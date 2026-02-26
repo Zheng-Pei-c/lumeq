@@ -709,15 +709,14 @@ def setup_exciton_dynamics(infile, key={}, total_time=300):
     if data is None and key.get('cif', None):
         data = process_parameters(key['cif'], key['n_cell_param'],
                                   key['param_dir'], key['nstate'])
-        cells, neighbor_index = set_model(data['neighbor_index'],
-                                          data['distances'],
-                                          key.get('model', 'AB'),
-                                          key.get('n_cell', [5,5,5]),
-                                          key.get('r_cutoff', 10))
-        data['cells'] = cells
-        data['neighbor_index'] = neighbor_index
-
         save_json(key['cif']+'.json', data)
+    cells, neighbor_index = set_model(data['neighbor_index'],
+                                      data['distances'],
+                                      key.get('model', 'AB'),
+                                      key.get('n_cell', [5,5,5]),
+                                      key.get('r_cutoff', 10))
+    data['cells'] = cells
+    data['neighbor_index'] = neighbor_index
     key.update(data) # real parameters
 
     if do_mc:
