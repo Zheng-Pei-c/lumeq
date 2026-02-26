@@ -3,7 +3,8 @@ import warnings
 from lumeq import np, itertools
 from lumeq.utils import (
         parser, print_matrix, convert_units, Sampler,
-        put_keys_kwargs_to_object, put_kwargs_to_keys)
+        put_keys_kwargs_to_object, put_kwargs_to_keys,
+        load_json, save_json)
 from lumeq.dynamics.dimers_in_crystal import add_molecule
 from lumeq.dynamics.process_exciton_parameters import process_parameters, set_model
 from lumeq.utils.sec_mole import write_symbols_coords
@@ -166,6 +167,9 @@ class Exciton():
         #print_matrix('Exciton energy (au):', self.energy)
         #print_matrix('Exciton coupling_j (au):', self.coupling_j)
         #print_matrix('Exciton dipole (au):', self.dipole)
+
+        if getattr(self, 'write_coords', False):
+            self.print_site_coords()
 
 
     def exciton_diagonal(self, energy=None, **kwargs):
@@ -542,8 +546,10 @@ class ExcitonDynamics():
             kwargs : keyword arguments for input parameters
             The required parameters are listed below with defalut values.
         """
+        self.output_file = 'exciton_dynamics.npz' # output file name
         self.total_time = 1
         self.printing_nsteps = 100
+        self.debug = 0
 
         put_kwargs_to_keys(key, **kwargs)
         # only take the total_time here
@@ -555,9 +561,9 @@ class ExcitonDynamics():
 
         # variables needed
         self.total_energy = np.zeros(self.total_time)
-        self.correlation = np.zeros((self.total_time, 3))
-        self.ipr = np.zeros(self.total_time)
-        self.c2 = []
+        self.correlation = np.zeros((self.total_time, 3), dtype=np.complex64)
+        self.ipr = np.zeros(self.total_time, dtype=np.complex64)
+        #self.c2 = []
 
         self.set_dynamics_class(key)
 
@@ -578,7 +584,7 @@ class ExcitonDynamics():
         c2 = edstep.get_initial_coefficients(coordinate=coords)
         correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-        self.c2.append(c2)
+        #self.c2.append(c2)
         self.correlation[0] = correlation
         self.ipr[0] = ipr
 
@@ -590,7 +596,7 @@ class ExcitonDynamics():
             c2 = edstep.update_coefficients(coordinate=coords)
             correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-            self.c2.append(c2)
+            #self.c2.append(c2)
             self.correlation[ti] = correlation
             self.ipr[ti] = ipr
 
@@ -622,7 +628,7 @@ class ExcitonDynamicsMC(ExcitonDynamics):
         c2 = edstep.get_initial_coefficients()
         correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-        self.c2.append(c2)
+        #self.c2.append(c2)
         self.correlation[0] = correlation
         self.ipr[0] = ipr
 
@@ -641,7 +647,7 @@ class ExcitonDynamicsMC(ExcitonDynamics):
             c2 = edstep.update_coefficients(exp_h=exp_h())
             correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-            self.c2.append(c2)
+            #self.c2.append(c2)
             self.correlation[ti] = correlation
             self.ipr[ti] = ipr
 
@@ -651,8 +657,13 @@ class ExcitonDynamicsMC(ExcitonDynamics):
                 print('Step %4d has energy %12.6f eh' % (ti, self.total_energy[ti]))
 
         self.total_energy = convert_units(self.total_energy, 'eh', 'ev')
-        print_matrix('total_energy (eV):', self.total_energy)
-        print_matrix('correlation (bohr^2):', self.correlation)
+
+        np.savez_compressed(self.output_file,
+                            total_energy=self.total_energy,
+                            correlation=self.correlation,)
+        if self.debug >= 1:
+            print_matrix('total_energy (eV):', self.total_energy)
+            print_matrix('correlation (bohr^2):', self.correlation)
 
 
 
@@ -677,6 +688,7 @@ def setup_exciton_dynamics(infile, key={}, total_time=300):
     else: # use explicit vibrational phonon modes
         key.update(parameters.get('phonon', {}))
 
+    key['output_file'] = key.get('output_file', infile.split('.')[0]+'_dynamics.npz')
     key['total_time'] = key.get('total_time', 300)
     key['debug'] = key.get('debug', 0)
     key['random_seed'] = key.get('random_seed', None)
@@ -688,18 +700,24 @@ def setup_exciton_dynamics(infile, key={}, total_time=300):
     key['propagator'] = key.get('propagator', 'split')
 
     key['cif'] = key.get('cif', 'H2OBPc.cif')
+    key['json'] = key.get('json', 'H2OBPc.cif.json')
     key['param_dir'] = key.get('param_dir', './')
+    key['write_coords'] = key.get('write_coords', False)
 
-    if key.get('cif', None):
+    if key.get('json', None):
+        data = load_json(key['json'], to_numpy=True)
+    if data is None and key.get('cif', None):
         data = process_parameters(key['cif'], key['n_cell_param'],
                                   key['param_dir'], key['nstate'])
-    cells, neighbor_index = set_model(data['neighbor_index'],
-                                      data['distances'],
-                                      key.get('model', 'AB'),
-                                      key.get('n_cell', [5,5,5]),
-                                      key.get('r_cutoff', 10))
-    data['cells'] = cells
-    data['neighbor_index'] = neighbor_index
+        cells, neighbor_index = set_model(data['neighbor_index'],
+                                          data['distances'],
+                                          key.get('model', 'AB'),
+                                          key.get('n_cell', [5,5,5]),
+                                          key.get('r_cutoff', 10))
+        data['cells'] = cells
+        data['neighbor_index'] = neighbor_index
+
+        save_json(key['cif']+'.json', data)
     key.update(data) # real parameters
 
     if do_mc:
@@ -713,22 +731,21 @@ if __name__ == '__main__':
     import sys
     infile = sys.argv[1]
     obj = setup_exciton_dynamics(infile)
-    #obj.kernel()
 
-    write_coords = False
-    if write_coords:
-        obj.edstep.print_site_coords()
+    if obj.debug >= 1: # print the exciton Hamiltonian and spectra for analysis
+        obj.edstep.get_hamiltonian()
+        #print_matrix('Exciton Hamiltonian (au):', obj.edstep.hamiltonian)
+        e, f = obj.edstep.cal_spectra()
+        e_shift = 0.47 # ev
+        e = convert_units(e-convert_units(e_shift, 'ev', 'eh'), 'eh', 'nm')
 
-    obj.edstep.get_hamiltonian()
-    #print_matrix('Exciton Hamiltonian (au):', obj.edstep.hamiltonian)
-    e, f = obj.edstep.cal_spectra()
-    e_shift = 0.47 # ev
-    e = convert_units(e-convert_units(e_shift, 'ev', 'eh'), 'eh', 'nm')
+        from lumeq.plot import plt, broadening
+        fig, ax = plt.subplots()
+        e, f = broadening(e, f, method='voigt', margin=20, width=25, gamma=20)
+        ax.plot(e, f.real)
+        ax.set_xlabel('Exciton wavelength (nm)')
+        ax.set_ylabel('Oscillator strength (au)')
+        plt.show()
 
-    from lumeq.plot import plt, broadening
-    fig, ax = plt.subplots()
-    e, f = broadening(e, f, method='voigt', margin=20, width=15, gamma=10)
-    ax.plot(e, f.real)
-    ax.set_xlabel('Exciton wavelength (nm)')
-    ax.set_ylabel('Oscillator strength (au)')
-    plt.show()
+
+    obj.kernel()

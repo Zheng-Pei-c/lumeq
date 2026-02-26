@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from lumeq import np, itertools
 from lumeq.utils import read_number, read_array, print_matrix
 from lumeq.dynamics.dimers_in_crystal import read_unit_cell_info, add_molecules_cell, add_molecule
@@ -52,7 +54,7 @@ def sort_index(i, j, k, l, nx, ny, nz, ns):
     return i*ny*nz*ns + j*nz*ns + k*ns + l
 
 
-def process_parameters(cif_file, n_cell, outfile_dir, nstate=2, npairs=50,
+def process_parameters(cif_file, n_cell, outfile_dir='./', nstate=2, npairs=50,
                        center=0, debug=0):
     r"""
     Process the input parameters and get real parameters:
@@ -67,6 +69,12 @@ def process_parameters(cif_file, n_cell, outfile_dir, nstate=2, npairs=50,
             The output file directory
         nstate : int
             The number of exciton states per site
+        npairs : int
+            The number of neighboring pairs to be included
+        center : int
+            The center site index needed to shift (0 for B, 1 for A)
+        debug : int
+            The debug level
 
     Returns
         unit_cell : dict
@@ -79,6 +87,10 @@ def process_parameters(cif_file, n_cell, outfile_dir, nstate=2, npairs=50,
             Transition dipole moments of two sites in au
         neighbor_index : list of [int, list of int]
             The neighbor index list for each dimer
+        distances : (ndimer,) array
+            The distances between dimers in Angstrom
+        center_coords : (2, 3) array
+            The center of mass coordinates of the sites in Angstrom
     """
     mol = cif_file.replace('.cif', '')
 
@@ -99,6 +111,7 @@ def process_parameters(cif_file, n_cell, outfile_dir, nstate=2, npairs=50,
         distances.append(np.linalg.norm(centers_all[i]-centers_all[j]))
     distances = np.array(distances)
     order = distances.argsort()
+    if npairs is None: npairs = len(order) - 1
     order = order[:npairs+1]
 
     # given neighboring pairs
@@ -129,17 +142,17 @@ def process_parameters(cif_file, n_cell, outfile_dir, nstate=2, npairs=50,
     # read energy, dipoles, and couplings from output files
     energy, coupling, trans_dipole = [], [], []
     for k in order[1:npairs+1]:
-        outfile = mol+'-'+str(i+1)+'-'+str(k+1)+'-dimer'+'_%4.2f-dc.out' % distances[k]
-
-        e, c, d = read_energy_coupling(outfile)
-        #energy.append(e)
-        coupling.append(c)
-        energy = e[0]
-        trans_dipole = d[0]
+        outfile = outfile_dir+mol+'-'+str(i+1)+'-'+str(k+1)+'-dimer'+'_%4.2f-dc.out' % distances[k]
+        if Path(outfile).is_file():
+            e, c, d = read_energy_coupling(outfile)
+            #energy.append(e)
+            coupling.append(c)
+            energy = e[0]
+            trans_dipole = d[0]
 
     energy, coupling = np.array(energy), np.array(coupling)
 
-    i = int(n_total//2)
+    i = int(n_total//2) - center
     keys = {'unit_cell': unit_cell,
             'energy': energy,
             'coupling_j': coupling,
@@ -162,7 +175,7 @@ def set_model(neighbor_index, distances, model='AB', n_cell=[10,1,1],
         distances : (ndimer,) array
             The distances between dimers in Angstrom
         model : str
-            The model type, e.g., 'AB', 'BC', 'BACA', 'any'
+            The model type, e.g., 'AB', 'BC', 'ABAC', 'AB-C', 'any'
         n_cell : list of int
             The number of unit cells in each direction [nx, ny, nz]
         r_cutoff : float
@@ -209,11 +222,12 @@ def set_model(neighbor_index, distances, model='AB', n_cell=[10,1,1],
         cells = list(itertools.product(range(nx), range(ny), range(nz+1)))
         return np.array(cells), neighbor_index
 
-    if model not in {'AB', 'BC', 'ABAC', 'BACA', 'any'}:
+    # interchangable model types
+    if model == 'BACA':
+        model = 'ABAC'
+    if model not in {'AB', 'BC', 'ABAC', 'AB-C', 'BC-A', 'any'}:
         model = 'any'
         print('Unknown model type %s changed to any.' % model)
-    # interchangable model types
-    if model == 'BACA': model = 'ABAC'
 
 
     # the first three neighboring dimers labeled as A, B, and C
@@ -224,7 +238,7 @@ def set_model(neighbor_index, distances, model='AB', n_cell=[10,1,1],
         vector_perp = np.cross(vectors[0], vectors[1])
     elif model == 'BC':
         vector_perp = np.cross(vectors[1], vectors[2])
-    elif model in {'ABAC', 'any'}:
+    elif model in {'ABAC', 'AB-C', 'BC-A', 'any'}:
         vector_perp = np.cross(vectors[1], vectors[2])
         vector_perp = np.cross(vector_perp, vectors[0])
     vector_perp = np.abs(vector_perp)
@@ -232,16 +246,13 @@ def set_model(neighbor_index, distances, model='AB', n_cell=[10,1,1],
 
 
     # get effective 1D chain cells
-    if model in {'AB', 'ABAC', 'any'}: # A as the starting of second column
-        vec = vectors[0]
-    elif model == 'BC': # B as the starting of second column
-        vec = vectors[1]
+    c = 1 if model in {'BC', 'BC-A'} else 0
+    vec = vectors[c] # A or B as the starting of second column
     cells = [[[0,0,0]], [vec]] # O as the starting of first column
 
-    c = 0 if model == 'AB' else 1
     nmax = nx - 1
     if ndim == 1: nmax = nmax // 2
-    if model in {'AB', 'BC'}:
+    if model in {'AB', 'BC', 'AB-C', 'BC-A'}:
         for i in range(nmax):
             cells[1].append(cells[0][-1] + vectors[c+1])
             cells[0].append(cells[1][-1] - vectors[c])
@@ -254,26 +265,39 @@ def set_model(neighbor_index, distances, model='AB', n_cell=[10,1,1],
     cells = np.array(cells)
 
     # shift to positive indices
-    cells = cells.reshape(-1, 3).T
-    for i, _cells in enumerate(cells):
-        min_id = np.min(_cells)
-        if min_id < 0:
-            cells[i] -= min_id
-    cells = cells.T
+    #cells = cells.reshape(-1, 3).T
+    #for i, _cells in enumerate(cells):
+    #    min_id = np.min(_cells)
+    #    if min_id < 0:
+    #        cells[i] -= min_id
+    #cells = cells.T
 
     if model == 'any': # include unconnected cells
+        cells = cells.reshape(-1, 3)
         ci, cj = np.min(cells, axis=0), np.max(cells, axis=0)
         rx, ry, rz = range(ci[0], cj[0]+1), range(ci[1], cj[1]+1), range(ci[2], cj[2]+1)
         cells = list(itertools.product(rx, ry, rz))
 
     cells = np.reshape(cells, (2, -1, 3))
 
+
     # expand to higher dimensions
-    if ndim >= 2:
+    if ndim >= 2 and model in {'AB-C', 'BC-A'}:
+        if model == 'AB-C':
+            vec = vectors[2] - vectors[1] # BC vector
+        elif model == 'BC-A':
+            vecc = vectors[1] - vectors[0] # BA vector
+        cells_t = np.copy(cells)
+        for i in range(ny-1):
+            cells_t += vec[None, None, :]
+            cells = np.append(cells, cells_t, axis=0)
+
+    elif ndim >= 2:
         cells_t = np.copy(cells[1])
         for i in range(ny-2):
             cells_t += vec[None, :]
             cells = np.append(cells, [cells_t], axis=0)
+
     if ndim >= 3:
         cells_t = np.copy(cells)
         for i in range(nz-1):
