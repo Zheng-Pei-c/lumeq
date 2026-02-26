@@ -1,0 +1,15 @@
+$exciton
+parm_dir ./
+model BC-A
+cutoff 26
+n_cell 30 10 1
+nstate 2
+total_time 600
+printing_nsteps 100
+$end
+
+$monte_carlo
+mc_variance  0.1
+random_seed 123
+mc_covariance 0
+$end
