@@ -95,6 +95,7 @@ class Exciton():
                     sites.append(ic*n_mol+l)
                     sites.append(jc*n_mol+d)
                     hamil_index.append([ic, l, jc, d, x])
+                    #print('index: ', ic, '[',i,j,k,l,'];', jc, '[',a,b,c,d,'];',x)
 
         self.hamil_index = hamil_index
         self.sites = sites = list(set(sites))
@@ -119,9 +120,13 @@ class Exciton():
         length = np.zeros((self.n_cell, self.n_mol, 3))
         for icount, (i, j, k) in enumerate(cells):
             for s in range(self.n_mol):
-                length[icount,s] = add_molecule(i,j,k,s+1,abc,angles,None,center)
+                # use s rather s+1 below to be consistent to the definition in
+                # dimers_in_crystal.py
+                length[icount,s] = add_molecule(i,j,k,s,abc,angles,None,center)
 
         length = length.reshape(-1, 3)[self.sites]
+        #print_matrix('length (AA):', length)
+        #print_matrix('distances (AA):', np.linalg.norm((length[:,None,:]-length).reshape(-1,3), axis=1))
         self.length = length - np.mean(length, axis=0)
         #print_matrix('length (AA):', self.length)
 
