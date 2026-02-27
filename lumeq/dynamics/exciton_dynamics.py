@@ -381,11 +381,19 @@ class ExcitonMC(Exciton):
 
         sampler = Sampler(size=(self.n_site*self.nstate), variance=variance,
                           seed=seed, **kwargs)
-        self.sample = sampler.sample # get the function pointer
+        if hasattr(self, 'tau_c'): # get the function pointer
+            self.sample = sampler.correlated_sample
+            print('Using correlated sampling with tau_c = %.3f fs.' % convert_units(self.tau_c, 'au', 'fs'))
+        else:
+            self.sample = sampler.sample
 
         # save unperturbed parameters
         self.energy0 = np.copy(self.energy)
         self.coupling_j0 = np.copy(self.coupling_j)
+
+        # initial disorders
+        self.delta_e = np.zeros_like(self.energy)
+        self.delta_j = np.zeros_like(self.coupling_j)
 
 
     def update_parameters(self, sample=None, dt=None):
@@ -400,12 +408,12 @@ class ExcitonMC(Exciton):
         if dt is None: dt = self.exciton_dt
 
         if self.onsite_disorder:
-            if hasattr(self, 'temporal_correlation'):
-                self.delta_e = sample(self.delta_e, tau_c, dt)
-            else:
-                self.delta_e = sample()
-
+            self.delta_e = sample(self.delta_e, self.tau_c, dt)
             self.energy = self.energy0 + self.delta_e
+
+        if self.coupling_disorder:
+            self.delta_j = sample(self.delta_j, self.tau_c, dt)
+            self.coupling_j = self.coupling_j0 + self.delta_j
 
 
     def split_operator(self, dt=None, **kwargs):
