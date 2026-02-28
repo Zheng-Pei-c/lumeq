@@ -236,6 +236,8 @@ class Exciton():
         if H is None: H = self.get_hamiltonian(**kwargs)
         if method is None: method = getattr(self, 'initial_method', 'random')
 
+        self.length_order = None
+
         if method == 'random':
             idx = getattr(self, 'n_site_init', 0)
             rng = np.random.default_rng(kwargs.get('seed', None))
@@ -696,7 +698,8 @@ class ExcitonDynamicsMC(ExcitonDynamics):
                             total_energy=self.total_energy,
                             c2=self.c2,
                             correlation=self.correlation,
-                            ipr=self.ipr,)
+                            ipr=self.ipr,
+                            length_order=self.length_order,)
         if self.debug >= 1:
             print_matrix('total_energy (eV):', self.total_energy)
             print_matrix('correlation (bohr^2):', self.correlation)
