@@ -699,7 +699,7 @@ class ExcitonDynamicsMC(ExcitonDynamics):
                             c2=self.c2,
                             correlation=self.correlation,
                             ipr=self.ipr,
-                            length_order=self.length_order,)
+                            length_order=self.edstep.length_order,)
         if self.debug >= 1:
             print_matrix('total_energy (eV):', self.total_energy)
             print_matrix('correlation (bohr^2):', self.correlation)
