@@ -242,6 +242,8 @@ class Exciton():
             if type(idx) is str:
                 length = np.linalg.norm(self.length, axis=1)
                 order = np.argsort(length)
+                # save length order in class for later use if needed
+                self.length_order = order
                 if idx == 'center':
                     idx = order[self.n_site//2]
                 elif idx == 'edge0':
@@ -788,7 +790,7 @@ if __name__ == '__main__':
 
     fig, ax = plt.subplots(3,1)
     ax[0].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), obj.total_energy)
-    r2 = obj.correlation[:,0] - obj.correlation[0,1]
+    r2 = obj.correlation[:,0] - obj.correlation[:,1]
     for x in range(3):
         ax[1].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), r2[:,x], label='R$^2$-'+str(chr(ord('x') + x)))
     ax[1].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), np.sum(np.abs(r2), axis=1), label='R$^2$-tot')
@@ -800,9 +802,7 @@ if __name__ == '__main__':
 
     save_c2_steps = [0, 10, 100, 500, 1000, 5000]
     save_c2_steps = [x for x in save_c2_steps if x < obj.nsteps]
-    length = obj.edstep.length
-    length = np.linalg.norm(length, axis=1)
-    idx = np.argsort(length)
+    idx = obj.edstep.length_order
     n = len(obj.c2[0])
     ns, nd = int(n//2-10), int(n//2+10)
     for i, c2 in enumerate(obj.c2[save_c2_steps]):
