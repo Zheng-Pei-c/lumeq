@@ -92,10 +92,11 @@ def process_parameters(cif_file, n_cell, outfile_dir='./', nstate=2, npairs=50,
         center_coords : (2, 3) array
             The center of mass coordinates of the sites in Angstrom
     """
+    cif_file = outfile_dir + cif_file
     mol = cif_file.replace('.cif', '')
 
     # find out the unit cell information
-    abc, angles, elements, scales, n_mol = read_unit_cell_info(mol+'.cif')
+    abc, angles, elements, scales, n_mol = read_unit_cell_info(cif_file)
     unit_cell = {'abc': abc, 'angles': angles, 'elements': elements,
                  'scales': scales, 'n_mol': n_mol}
 

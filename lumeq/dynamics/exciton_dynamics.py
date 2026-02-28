@@ -47,8 +47,7 @@ class Exciton():
         self.coupling_g = 0 # (nmode, nstate) on-site
         self.coupling_a = 0 # (ndimer, nmode, nstate, nstate) off-diagonal
 
-        self.param_dir = './' # output file directory
-        self.outfile_dir = './' # output file directory
+        self.param_dir = './' # param file directory
 
         # add user-defined parameters
         put_keys_kwargs_to_object(self, key, **kwargs)
@@ -302,7 +301,7 @@ class Exciton():
         self.coefficients = np.einsum('ij,j->i', exp_h, self.coefficients)
         # c2 should be pure real even though the following is complex type
         c2 = np.einsum('i,i->i', self.coefficients.conj(), self.coefficients)
-        return c2
+        return c2.real
 
 
     def cal_energy(self, hamiltonian=None, coefficients=None):
@@ -345,8 +344,9 @@ class Exciton():
             c2 = np.einsum('i,i->i', coefficients.conj(), coefficients)
 
         c2 = np.reshape(c2, (self.n_site, -1))
-        correlation = np.einsum('nx,nx,ni->x', self.length, self.length, c2)
-        correlation -= np.einsum('nx,ni->x', self.length, c2)**2
+        r2 = np.einsum('nx,nx,ni->x', self.length, self.length, c2)
+        r_2 = np.einsum('nx,ni->x', self.length, c2)**2
+        correlation = np.array([r2, r_2])
         #print('c2:', np.sum(c2), c2.shape)
         #print('correlation:', correlation.real, correlation.imag)
         return correlation.real
@@ -572,17 +572,17 @@ class ExcitonDynamics():
             kwargs : keyword arguments for input parameters
             The required parameters are listed below with defalut values.
         """
-        self.output_file = 'exciton_dynamics.npz' # output file name
-        self.dt = None # time step in au
-        self.printing_nsteps = 100
-        self.debug = 0
-
         put_kwargs_to_keys(key, **kwargs)
+
+        # pop out outer md parameters
+        self.output_name = key.pop('output_name', 'exciton_dynamics')
+        self.dt = key.pop('dt', None) # time step in au
+        # print the energy every printing_nsteps steps
+        self.printing_nsteps = key.pop('printing_nsteps', 100)
+        self.debug = key.pop('debug', 0)
         # only take the nsteps here
         self.nsteps = key.pop('nsteps', 10) # total number steps for dynamics
         self.nsteps += 1 # add one for the initial step
-
-        self.save_c2_steps = key.pop('save_c2_steps', [0]) # steps to save the exciton coefficients c2
 
         self.set_dynamics_class(key)
 
@@ -592,10 +592,11 @@ class ExcitonDynamics():
         print('Exciton dynamics runs for %4d steps in %6.3f fs.' % (self.nsteps, convert_units(self.total_time, 'au', 'fs')))
 
         # variables needed
-        self.total_energy = np.zeros(self.nsteps)
-        self.correlation = np.zeros((self.nsteps, 3))
-        self.ipr = np.zeros(self.nsteps)
-        self.c2 = {}
+        self.total_energy = np.empty(self.nsteps)
+        # <r^2> and <r>^2 correlation for each step
+        self.correlation = np.empty((self.nsteps, 2, 3))
+        self.ipr = np.empty(self.nsteps)
+        self.c2 = np.empty((self.nsteps, self.edstep.n_site))
 
 
     def set_dynamics_class(self, key):
@@ -614,8 +615,8 @@ class ExcitonDynamics():
         c2 = edstep.get_initial_coefficients(coordinate=coords)
         correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-        save_c2_steps = self.save_c2_steps
-        self.c2[0] = c2.real
+        n_site = edstep.n_site
+        self.c2[0] = np.sum(c2.reshape(n_site, -1), axis=1)
         self.correlation[0] = correlation
         self.ipr[0] = ipr
 
@@ -627,8 +628,7 @@ class ExcitonDynamics():
             c2 = edstep.update_coefficients(coordinate=coords)
             correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-            if ti in save_c2_steps:
-                self.c2[ti] = c2.real
+            self.c2[ti] = np.sum(c2.reshape(n_site, -1), axis=1)
             self.correlation[ti] = correlation
             self.ipr[ti] = ipr
 
@@ -660,9 +660,8 @@ class ExcitonDynamicsMC(ExcitonDynamics):
         c2 = edstep.get_initial_coefficients()
         correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-        save_c2_steps = self.save_c2_steps
-        print('save_c2_steps:', save_c2_steps)
-        self.c2[0] = c2.real
+        n_site = edstep.n_site
+        self.c2[0] = np.sum(c2.reshape(n_site, -1), axis=1)
         self.correlation[0] = correlation
         self.ipr[0] = ipr
 
@@ -681,8 +680,7 @@ class ExcitonDynamicsMC(ExcitonDynamics):
             c2 = edstep.update_coefficients(exp_h=exp_h())
             correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-            if ti in save_c2_steps:
-                self.c2[ti] = c2.real
+            self.c2[ti] = np.sum(c2.reshape(n_site, -1), axis=1)
             self.correlation[ti] = correlation
             self.ipr[ti] = ipr
 
@@ -693,9 +691,11 @@ class ExcitonDynamicsMC(ExcitonDynamics):
 
         self.total_energy = convert_units(self.total_energy, 'eh', 'ev')
 
-        np.savez_compressed(self.output_file,
+        np.savez_compressed(self.output_name+'.npz',
                             total_energy=self.total_energy,
-                            correlation=self.correlation,)
+                            c2=self.c2,
+                            correlation=self.correlation,
+                            ipr=self.ipr,)
         if self.debug >= 1:
             print_matrix('total_energy (eV):', self.total_energy)
             print_matrix('correlation (bohr^2):', self.correlation)
@@ -723,7 +723,6 @@ def setup_exciton_dynamics(infile, key={}, nsteps=300):
     else: # use explicit vibrational phonon modes
         key.update(parameters.get('phonon', {}))
 
-    key['output_file'] = key.get('output_file', infile.split('.')[0]+'_dynamics.npz')
     key['debug'] = key.get('debug', 0)
     key['random_seed'] = key.get('random_seed', None)
     key['nsteps'] = key.get('nsteps', 300)
@@ -739,7 +738,7 @@ def setup_exciton_dynamics(infile, key={}, nsteps=300):
     key['write_coords'] = key.get('write_coords', False)
 
     if key.get('json', None):
-        data = load_json(key['json'], to_numpy=True)
+        data = load_json(key['param_dir']+key['json'], to_numpy=True)
     if data is None and key.get('cif', None):
         data = process_parameters(key['cif'], key['n_cell_param'],
                                   key['param_dir'], key['nstate'])
@@ -782,30 +781,36 @@ if __name__ == '__main__':
         plt.show()
 
 
+    # write to file directly
+    #from contextlib import redirect_stdout
+    #with open(obj.output_name+'.out', 'w') as f, redirect_stdout(f):
+    #    obj.kernel()
     obj.kernel()
 
     fig, ax = plt.subplots(3,1)
     ax[0].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), obj.total_energy)
+    r2 = obj.correlation[:,0] - obj.correlation[0,1]
     for x in range(3):
-        ax[1].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), obj.correlation[:,x], label='R2-'+str(chr(ord('x') + x)))
-    ax[1].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), np.sum(np.abs(obj.correlation), axis=1), label='R2-tot')
+        ax[1].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), r2[:,x], label='R$^2$-'+str(chr(ord('x') + x)))
+    ax[1].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), np.sum(np.abs(r2), axis=1), label='R$^2$-tot')
     ax[1].legend()
-    ax[0].set_ylabel('Total energy (eV)')
-    ax[1].set_ylabel('R2 correlation ($\\AA$^2)')
+    ax[0].set_ylabel('Energy (eV)')
+    ax[1].set_ylabel('<R$^2>-<R_0>^2$ ($\\AA^2$)')
     ax[1].set_xlabel('Time (fs)')
 
 
+    save_c2_steps = [0, 10, 100, 500, 1000, 5000]
+    save_c2_steps = [x for x in save_c2_steps if x < obj.nsteps]
     length = obj.edstep.length
     length = np.linalg.norm(length, axis=1)
     idx = np.argsort(length)
-    n = len(obj.c2[0])//2
+    n = len(obj.c2[0])
     ns, nd = int(n//2-10), int(n//2+10)
-    for i, c2 in obj.c2.items():
-        c2 = np.reshape(c2, (obj.edstep.n_site, -1))
-        c2 = np.sum(c2, axis=1)
-        c2 = c2[idx].ravel()
-        ax[2].plot(range(ns, nd), c2[ns:nd], label='time %d (fs)' % convert_units(i*obj.dt, 'au', 'fs'))
-    ax[2].set_ylabel('c2 real')
+    for i, c2 in enumerate(obj.c2[save_c2_steps]):
+        i = save_c2_steps[i]
+        c2 = c2[idx]
+        ax[2].plot(range(ns, nd), c2[ns:nd], label='t$=$ %d (fs)' % convert_units(i*obj.dt, 'au', 'fs'))
+    ax[2].set_ylabel('c$^2$')
     ax[2].set_xlabel('Site index')
     ax[2].set_xticks(range(ns, nd))
     ax[2].legend()
