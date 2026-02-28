@@ -129,6 +129,8 @@ class Exciton():
         #print_matrix('distances (AA):', np.linalg.norm((length[:,None,:]-length).reshape(-1,3), axis=1))
         self.length = length - np.mean(length, axis=0)
         #print_matrix('length (AA):', self.length)
+        if getattr(self, 'write_coords', False):
+            self.print_site_coords()
 
 
     def print_site_coords(self, xyzfile=None):
@@ -140,7 +142,7 @@ class Exciton():
             xyzfile += '.xyz'
         xyzfile = self.param_dir + '/' + xyzfile
         symbols = ['Ag'] * self.n_site
-        coords = self.length * convert_units(1., 'bohr', 'aa')
+        coords = self.length
         write_symbols_coords(xyzfile, symbols, coords)
         print('Molecular site coordinates written to', xyzfile)
 
@@ -172,9 +174,6 @@ class Exciton():
         #print_matrix('Exciton energy (au):', self.energy)
         #print_matrix('Exciton coupling_j (au):', self.coupling_j)
         #print_matrix('Exciton dipole (au):', self.dipole)
-
-        if getattr(self, 'write_coords', False):
-            self.print_site_coords()
 
 
     def exciton_diagonal(self, energy=None, **kwargs):
@@ -240,10 +239,22 @@ class Exciton():
         if method is None: method = getattr(self, 'initial_method', 'random')
 
         if method == 'random':
-            n = kwargs.get('n_site_init', 1)
+            idx = getattr(self, 'n_site_init', 0)
             rng = np.random.default_rng(kwargs.get('seed', None))
-            idx = rng.integers(0, self.n_site*self.nstate, size=n*self.nstate)
-            values = rng.random(n*self.nstate) + 1j * rng.random(n*self.nstate)
+            if type(idx) is str:
+                length = np.linalg.norm(self.length, axis=1)
+                order = np.argsort(length)
+                if idx == 'center':
+                    idx = order[self.n_site//2]
+                elif idx == 'edge0':
+                    idx = order[0]
+                elif idx == 'edge1':
+                    idx = order[-1]
+                idx = int(idx)
+            if type(idx) is int: idx = [idx]
+            idx = [x for i in idx for x in (2*i, 2*i+1)]
+            print('Wavafunction initializes at sites*states:', idx)
+            values = rng.random(len(idx)) + 1j * rng.random(len(idx))
             values /= np.linalg.norm(values)
             coeffs0 = np.zeros(self.n_site*self.nstate, dtype=complex)
             for i, v in zip(idx, values):
@@ -289,6 +300,7 @@ class Exciton():
             self.h_eigens = [evals, evecs] # save for analysis if needed
 
         self.coefficients = np.einsum('ij,j->i', exp_h, self.coefficients)
+        # c2 should be pure real even though the following is complex type
         c2 = np.einsum('i,i->i', self.coefficients.conj(), self.coefficients)
         return c2
 
@@ -335,8 +347,9 @@ class Exciton():
         c2 = np.reshape(c2, (self.n_site, -1))
         correlation = np.einsum('nx,nx,ni->x', self.length, self.length, c2)
         correlation -= np.einsum('nx,ni->x', self.length, c2)**2
-        #print('correlation: %8.6f %10.8f' % correlation.real, correlation.imag)
-        return correlation
+        #print('c2:', np.sum(c2), c2.shape)
+        #print('correlation:', correlation.real, correlation.imag)
+        return correlation.real
 
 
     def cal_ipr_value(self, coefficients=None, c2=None):
@@ -348,7 +361,7 @@ class Exciton():
         # inverse participation ratio (ipr)
         ipr = 1./ np.einsum('i,i->', c2, c2)
         #print('ipr: %8.6f %10.8f' % ipr.real, ipr.imag)
-        return ipr
+        return ipr.real
 
 
     def analyze_wf_property(self, coefficients=None, c2=None):
@@ -560,25 +573,29 @@ class ExcitonDynamics():
             The required parameters are listed below with defalut values.
         """
         self.output_file = 'exciton_dynamics.npz' # output file name
-        self.total_time = 1
+        self.dt = None # time step in au
         self.printing_nsteps = 100
         self.debug = 0
 
         put_kwargs_to_keys(key, **kwargs)
-        # only take the total_time here
-        if 'total_time' in key.keys():
-            self.total_time = key.pop('total_time')
-        print('Exciton dynamics runs %d steps in %.3f fs.'
-              %(self.total_time,
-                convert_units(self.total_time, 'au', 'fs')))
+        # only take the nsteps here
+        self.nsteps = key.pop('nsteps', 10) # total number steps for dynamics
+        self.nsteps += 1 # add one for the initial step
 
-        # variables needed
-        self.total_energy = np.zeros(self.total_time)
-        self.correlation = np.zeros((self.total_time, 3), dtype=np.complex64)
-        self.ipr = np.zeros(self.total_time, dtype=np.complex64)
-        #self.c2 = []
+        self.save_c2_steps = key.pop('save_c2_steps', [0]) # steps to save the exciton coefficients c2
 
         self.set_dynamics_class(key)
+
+        if self.dt == None:
+            self.dt = self.edstep.exciton_dt
+        self.total_time = (self.nsteps - 1) * self.dt
+        print('Exciton dynamics runs for %4d steps in %6.3f fs.' % (self.nsteps, convert_units(self.total_time, 'au', 'fs')))
+
+        # variables needed
+        self.total_energy = np.zeros(self.nsteps)
+        self.correlation = np.zeros((self.nsteps, 3))
+        self.ipr = np.zeros(self.nsteps)
+        self.c2 = {}
 
 
     def set_dynamics_class(self, key):
@@ -597,19 +614,21 @@ class ExcitonDynamics():
         c2 = edstep.get_initial_coefficients(coordinate=coords)
         correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-        #self.c2.append(c2)
+        save_c2_steps = self.save_c2_steps
+        self.c2[0] = c2.real
         self.correlation[0] = correlation
         self.ipr[0] = ipr
 
         self.total_energy[0] = edstep.cal_energy() + ndstep.energy
         force = edstep.cal_force(coords)
 
-        for ti in range(1, self.total_time):
+        for ti in range(1, self.nsteps):
             ndstep.update_coordinate_velocity(force)
             c2 = edstep.update_coefficients(coordinate=coords)
             correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-            #self.c2.append(c2)
+            if ti in save_c2_steps:
+                self.c2[ti] = c2.real
             self.correlation[ti] = correlation
             self.ipr[ti] = ipr
 
@@ -641,7 +660,9 @@ class ExcitonDynamicsMC(ExcitonDynamics):
         c2 = edstep.get_initial_coefficients()
         correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-        #self.c2.append(c2)
+        save_c2_steps = self.save_c2_steps
+        print('save_c2_steps:', save_c2_steps)
+        self.c2[0] = c2.real
         self.correlation[0] = correlation
         self.ipr[0] = ipr
 
@@ -655,12 +676,13 @@ class ExcitonDynamicsMC(ExcitonDynamics):
         else:
             exp_h = lambda: None
 
-        for ti in range(1, self.total_time):
+        for ti in range(1, self.nsteps):
             edstep.update_parameters()
             c2 = edstep.update_coefficients(exp_h=exp_h())
             correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
-            #self.c2.append(c2)
+            if ti in save_c2_steps:
+                self.c2[ti] = c2.real
             self.correlation[ti] = correlation
             self.ipr[ti] = ipr
 
@@ -680,14 +702,14 @@ class ExcitonDynamicsMC(ExcitonDynamics):
 
 
 
-def setup_exciton_dynamics(infile, key={}, total_time=300):
+def setup_exciton_dynamics(infile, key={}, nsteps=300):
     r"""
     Run the exciton dynamics simulation.
 
     Parameters
         infile : input file for dynamics parameters
         key : dict of the input parameters
-        total_time : int, total time steps for dynamics
+        nsteps : int, total time steps for dynamics
 
     Returns
         obj : ExcitonDynamicsMC object
@@ -702,10 +724,9 @@ def setup_exciton_dynamics(infile, key={}, total_time=300):
         key.update(parameters.get('phonon', {}))
 
     key['output_file'] = key.get('output_file', infile.split('.')[0]+'_dynamics.npz')
-    key['total_time'] = key.get('total_time', 300)
     key['debug'] = key.get('debug', 0)
     key['random_seed'] = key.get('random_seed', None)
-    key['dt'] = key.get('dt', 10)
+    key['nsteps'] = key.get('nsteps', 300)
     key['exciton_dt'] = key.get('exciton_dt', 10)
     key['n_cell'] = key.get('n_cell', [5, 5, 5])
     key['n_cell_param'] = key.get('n_cell_param', [5, 5, 5])
@@ -740,7 +761,9 @@ def setup_exciton_dynamics(infile, key={}, total_time=300):
 
 
 if __name__ == '__main__':
-    import sys
+    from lumeq import sys
+    from lumeq.plot import plt, broadening
+
     infile = sys.argv[1]
     obj = setup_exciton_dynamics(infile)
 
@@ -751,7 +774,6 @@ if __name__ == '__main__':
         e_shift = 0.47 # ev
         e = convert_units(e-convert_units(e_shift, 'ev', 'eh'), 'eh', 'nm')
 
-        from lumeq.plot import plt, broadening
         fig, ax = plt.subplots()
         e, f = broadening(e, f, method='voigt', margin=20, width=25, gamma=20)
         ax.plot(e, f.real)
@@ -761,3 +783,32 @@ if __name__ == '__main__':
 
 
     obj.kernel()
+
+    fig, ax = plt.subplots(3,1)
+    ax[0].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), obj.total_energy)
+    for x in range(3):
+        ax[1].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), obj.correlation[:,x], label='R2-'+str(chr(ord('x') + x)))
+    ax[1].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), np.sum(np.abs(obj.correlation), axis=1), label='R2-tot')
+    ax[1].legend()
+    ax[0].set_ylabel('Total energy (eV)')
+    ax[1].set_ylabel('R2 correlation ($\\AA$^2)')
+    ax[1].set_xlabel('Time (fs)')
+
+
+    length = obj.edstep.length
+    length = np.linalg.norm(length, axis=1)
+    idx = np.argsort(length)
+    n = len(obj.c2[0])//2
+    ns, nd = int(n//2-10), int(n//2+10)
+    for i, c2 in obj.c2.items():
+        c2 = np.reshape(c2, (obj.edstep.n_site, -1))
+        c2 = np.sum(c2, axis=1)
+        c2 = c2[idx].ravel()
+        ax[2].plot(range(ns, nd), c2[ns:nd], label='time %d (fs)' % convert_units(i*obj.dt, 'au', 'fs'))
+    ax[2].set_ylabel('c2 real')
+    ax[2].set_xlabel('Site index')
+    ax[2].set_xticks(range(ns, nd))
+    ax[2].legend()
+    plt.tight_layout()
+
+    plt.show()
