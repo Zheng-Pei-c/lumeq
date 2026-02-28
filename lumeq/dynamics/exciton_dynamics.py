@@ -139,7 +139,6 @@ class Exciton():
             xyzfile = getattr(self, 'xyzfile', xyzfile)
         if xyzfile[-4] != '.xyz':
             xyzfile += '.xyz'
-        xyzfile = self.param_dir + '/' + xyzfile
         symbols = ['Ag'] * self.n_site
         coords = self.length
         write_symbols_coords(xyzfile, symbols, coords)
