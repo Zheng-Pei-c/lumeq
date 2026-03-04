@@ -80,7 +80,7 @@ class Sampler:
         return self.covariance
 
 
-    def sample(self, **kwargs):
+    def sample(self, *args, **kwargs):
         r"""Generate random numbers from a normal distribution."""
         if self.covariance is None: # no correlations
             return self.rng.normal(loc=self.mean, scale=self.sigma,

@@ -397,7 +397,8 @@ class ExcitonMC(Exciton):
 
         sampler = Sampler(size=(self.n_site*self.nstate), variance=variance,
                           seed=seed, **kwargs)
-        if hasattr(self, 'tau_c'): # get the function pointer
+        self.tau_c = getattr(self, 'tau_c', None)
+        if self.tau_c: # get the function pointer
             self.sample = sampler.correlated_sample
             print('Using correlated sampling with tau_c = %.3f fs.' % convert_units(self.tau_c, 'au', 'fs'))
         else:
@@ -702,7 +703,7 @@ class ExcitonDynamicsMC(ExcitonDynamics):
                             length_order=self.edstep.length_order,)
         if self.debug >= 1:
             print_matrix('total_energy (eV):', self.total_energy)
-            print_matrix('correlation (bohr^2):', self.correlation)
+            print_matrix('correlation (AA^2):', self.correlation)
 
 
 
@@ -791,15 +792,17 @@ if __name__ == '__main__':
     #    obj.kernel()
     obj.kernel()
 
+    time_line = convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs')
+
     fig, ax = plt.subplots(3,1)
-    ax[0].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), obj.total_energy)
+    ax[0].plot(time_line, obj.total_energy)
     r2 = obj.correlation[:,0] - obj.correlation[:,1]
     for x in range(3):
-        ax[1].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), r2[:,x], label='R$^2$-'+str(chr(ord('x') + x)))
-    ax[1].plot(convert_units(np.arange(obj.nsteps)*obj.dt, 'au', 'fs'), np.sum(np.abs(r2), axis=1), label='R$^2$-tot')
+        ax[1].plot(time_line, r2[:,x], label='R$^2$-'+str(chr(ord('x') + x)))
+    ax[1].plot(time_line, np.sum(np.abs(r2), axis=1), label='R$^2$-tot')
     ax[1].legend()
     ax[0].set_ylabel('Energy (eV)')
-    ax[1].set_ylabel('<R$^2>-<R_0>^2$ ($\\AA^2$)')
+    ax[1].set_ylabel('<R$^2>-<R>^2$ ($\\AA^2$)')
     ax[1].set_xlabel('Time (fs)')
 
 
