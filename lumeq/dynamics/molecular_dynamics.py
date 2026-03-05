@@ -33,6 +33,7 @@ class MolecularDynamics():
         self.md_time_coordinate = np.zeros((self.nsteps, self.ndstep.natoms, 3))
         self.md_time_velocity = np.zeros((self.nsteps, self.ndstep.natoms, 3))
         self.md_time_dipole = np.zeros((self.nsteps, 3))
+        self.md_time_mo_energy = [None]*self.nsteps
 
 
     def set_nuclear_step(self, key):
@@ -112,6 +113,7 @@ class MolecularDynamics():
         self.md_time_coordinate[0] = coords
         self.md_time_velocity[0] = ndstep.velocity
         self.md_time_dipole[0] = dipole
+        self.md_time_mo_energy[0] = edstep.mf.mo_energy
 
 
         # loop times
@@ -156,6 +158,7 @@ class MolecularDynamics():
             self.md_time_coordinate[ti] = coords
             self.md_time_velocity[ti] = ndstep.velocity
             self.md_time_dipole[ti] = dipole
+            self.md_time_mo_energy[ti] = edstep.mf.mo_energy
 
     kernel = run_dynamics
 
