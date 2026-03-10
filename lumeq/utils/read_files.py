@@ -107,7 +107,8 @@ def read_array(filename, keyword=None, nline=0, ncol=4, nrange=[0,4],
         else:
             for line in infile:
                 if line.find(keyword) >= 0:
-                    for i in range(nline+1):
+                    kernel(line)
+                    for i in range(nline):
                         kernel(next(infile))
 
     return np.array(array)
