@@ -2,8 +2,6 @@ import warnings
 from lumeq import np
 from lumeq.utils.sec_mole import read_molecule
 
-section_names = ['molecule', 'rem', 'polariton']
-
 def read_keyword_block(data):
     r"""Read keyword block like $rem ... $end."""
     rem_keys = {}

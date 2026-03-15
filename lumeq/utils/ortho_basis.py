@@ -1,12 +1,9 @@
-import os, sys
-import numpy as np
-
-from pyscf import gto
-
-from lumeq.utils.pyscf_helper import *
+from lumeq import sys, np
 from lumeq.utils import print_matrix
 from lumeq.utils import fdiff
 from lumeq.utils.unit_conversion import BOHR
+
+from pyscf import gto
 
 def get_ortho_basis(S, method='lowdin', eigen=False):
     """
@@ -87,6 +84,9 @@ def get_ortho_basis_deriv(S, dS, method='lowdin', l_or_z='L', solver='iter'):
 
 
 if __name__ == '__main__':
+    from lumeq.utils import parser
+    from lumeq.utils.pyscf_helper import run_pyscf_final
+
     method = 'lowdin'
     infile = '../samples/h2o.in'
     parameters = parser(infile)

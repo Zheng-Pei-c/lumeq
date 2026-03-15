@@ -1,5 +1,4 @@
-import numpy as np
-import itertools
+from lumeq import np, itertools
 
 def random_matrix(n=10, mean=0., width=.1, func='uniform', sym=True, diag=True):
     if func == 'uniform':
@@ -39,3 +38,31 @@ def swap_largest_to_diagonal(matrix):
         matrix[i,i], matrix[i, idx] = matrix[i, idx], matrix[i,i]
 
     return matrix
+
+
+def collect_lists(fn, iterable, *args, upack=False):
+    r"""
+    Collect lists returned by a function into columns.
+
+    Parameters
+        fn: function
+            A function that takes an element of the iterable and returns a list of values.
+        iterable: iterable
+            An iterable of elements to process with the function.
+        *args: additional arguments
+            Additional arguments to pass to the function.
+        upack: bool, optional
+            If True, the elements of the iterable are unpacked as arguments to the function. Default is False.
+
+    Returns
+        list of lists
+            A list of lists, where each inner list contains the values returned by the function for each
+    """
+    cols = None
+    for x in iterable:
+        values = fn(*x, *args) if upack else fn(x, *args)
+        if cols is None:
+            cols = [[] for _ in range(len(values))]
+        for i, v in enumerate(values):
+            cols[i].append(v)
+    return cols

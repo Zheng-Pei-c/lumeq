@@ -1,4 +1,5 @@
 import warnings
+import numbers
 import numpy as np
 
 import functools
@@ -31,7 +32,8 @@ def print_matrix(keyword, matrix, nwidth=6, nind=0, digits=[13,8,'f'],
     if '\n' in keyword[-3:]: keyword = keyword[:-2]
     print(keyword)
 
-    if type(matrix) in {float, list}: matrix = np.array(matrix)
+    if isinstance(matrix, numbers.Real): matrix = np.array([matrix])
+    elif isinstance(matrix, list): matrix = np.array(matrix)
 
     # transpose the last two dimensions
     if trans: matrix = np.einsum('...ij->...ji', matrix)

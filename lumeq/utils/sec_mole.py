@@ -11,53 +11,53 @@ def read_molecule(data):
         nfrag: number of fragments
         charge: list of charges for each fragment
         spin: list of spins for each fragment
-        coords: list of coordinate strings for each fragment
+        geoms: list of sym and coord strings for each fragment
         atmsym: list of atom symbols for each fragment
-        xyz: list of xyz coordinates for each fragment
+        coords: list of xyz coordinates for each fragment
     """
     charge, spin = [], []
-    coords, atmsym, xyz = [], [], []
+    geoms, atmsym, coords = [], [], []
 
     for line in data:
         info = line.split()
         if len(info) == 2:
             charge.append(int(info[0]))
             spin.append(int((int(info[1]) - 1))) # pyscf using 2S=nalpha-nbeta rather than (2S+1)
+            geoms.append('')
             atmsym.append([])
-            xyz.append([])
-            coords.append('')
+            coords.append([])
         elif len(info) == 4:
-            coords[-1] += line + '\n'
+            geoms[-1] += line + '\n'
             atmsym[-1].append(info[0])
             for x in range(3):
-                xyz[-1].append(float(info[x+1]))
+                coords[-1].append(float(info[x+1]))
 
-    nfrag = len(charge) - 1 if len(charge) > 1 else 1
+    nfrag = len(charge) - 1
     if len(charge) == 1:
         charge = charge[0]
         spin = spin[0]
+        geoms = geoms[0]
         atmsym = atmsym[0]
-        xyz = xyz[0]
         coords = coords[0]
     elif len(charge) > 1:
         # move the complex info to the end
         charge.append(charge.pop(0))
         spin.append(spin.pop(0))
+        geoms.append(geoms.pop(0))
         atmsym.append(atmsym.pop(0))
-        xyz.append(xyz.pop(0))
         coords.append(coords.pop(0))
         # add complex coords
         for n in range(len(charge)-1):
-            coords[-1] += coords[n]
+            geoms[-1] += geoms[n]
             for i in range(len(atmsym[n])):
                 atmsym[-1].append(atmsym[n][i])
                 for x in range(3):
-                    xyz[-1].append(xyz[n][i*3+x])
+                    coords[-1].append(coords[n][i*3+x])
 
     #for n in range(len(charge)):
     #    print('charge and spin: ', charge[n], spin[n])
     #    print('coords:\n', coords[n])
-    return nfrag, charge, spin, coords, atmsym, xyz
+    return nfrag, charge, spin, geoms, atmsym, coords
 
 
 def read_geometry(infile, probe=1):

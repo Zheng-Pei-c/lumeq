@@ -1,13 +1,162 @@
+from dataclasses import dataclass, field
+from typing import Any
+
 from lumeq import sys, np
 from lumeq.utils import print_matrix
-from lumeq.utils.parser import parser, section_names
+from lumeq.utils import parser, collect_lists
 
 from pyscf import scf, tdscf, gto
 from pyscf.lib import logger
 
 #import qed
 
+section_names = ['molecule', 'rem', 'polariton']
+
+@dataclass
+class MoleculeInput:
+    r"""Class to hold molecule input data."""
+    charge: int = 0
+    spin: int = 1
+    atom: list[str] = None
+    symbols: list[str] = None
+    coords: np.ndarray = None
+    unit: str = 'angstrom'
+
+
+@dataclass
+class SystemInput:
+    r"""Class to hold system input data."""
+    molecules: list[MoleculeInput]
+
+    @property
+    def nfrag(self):
+        return len(self.molecules)
+
+
+@dataclass
+class SCFInput:
+    r"""Class to hold SCF input data."""
+    functional: str
+    basis: str
+    method: str = "RKS"
+    grids_prune: bool = True
+    unrestricted: bool = False
+
+    h: Any = None # core Hamiltonian
+    e_field: np.ndarray = None
+
+    max_cycle: int = 50
+    convergence: float = 1e-6
+
+    jobtype: str = 'energy'
+    max_memory: int = 60000
+    verbose: int = 0
+    debug: int = 0
+
+
+@dataclass
+class TDInput:
+    method: str = 'TDA'
+    cis_n_roots: int = 0
+    cis_singlets: bool = False
+    cis_triplets: bool = False
+    rpa: bool = False
+
+    max_cycle: int = 50
+    max_space: int = 200
+    verbose: int = 0
+
+
+@dataclass
+class QEDInput:
+    cavity_freq: np.ndarray
+    cavity_mode: np.ndarray
+    cavity_model: str = 'JC'
+    uniform_field: bool = True
+
+    freq_window: list[float] = field(default_factory=lambda: [-0.05, 0.05])
+    solver_algorithm: str = 'davidson_qr'
+    solver_conv_prop: str = 'norm'
+    target_states: str = 'polariton'
+    nstates: int = 4
+    solver_conv_thresh: float = 1e-8
+
+    resonance_state: int = None
+    verbose: int = 0
+    debug: int = 0
+
+
+def setup_molecules(parameters, unit='angstrom'):
+    r"""Setup MoleculeInput class from input parameters."""
+    if isinstance(parameters, dict):
+        parameters = parameters.get(section_names[0], parameters)
+    nfrag, charge, spin, atom, symbols, coords = parameters
+
+    if nfrag >= 1:
+        molecules = [
+            MoleculeInput(
+                charge=charge[i],
+                spin=spin[i],
+                atom=atom[i],
+                symbols=symbols[i],
+                coords=coords[i],
+                unit=unit,
+            )
+            for i in range(nfrag)
+        ]
+    else:
+        molecules = [
+            MoleculeInput(
+                charge=charge,
+                spin=spin,
+                atom=atom,
+                symbols=symbols,
+                coords=coords,
+                unit=unit,
+            )
+        ]
+
+    return SystemInput(molecules=molecules)
+
+
+def setup_scf_input(parameters):
+    r"""Setup SCFInput class from input parameters."""
+    parameters = parameters.get(section_names[1], parameters)
+    if parameters.get('debug', 0) > 0:
+        print('SCF parameters:')
+        for key, value in parameters.items():
+            print(f' {key} = {value}')
+
+    return SCFInput(
+        method=parameters.get('scf_method', 'RKS'),
+        functional=parameters.get('method'),
+        basis=parameters.get('basis'),
+        grids_prune=parameters.get('grids_prune', True),
+        unrestricted=parameters.get('unrestricted', False),
+        h=parameters.get('h', None),
+        e_field=parameters.get('e_field', None),
+        max_cycle=parameters.get('max_cycle', 50),
+        convergence=pow(10, -parameters.get('convergence', 6)),
+        jobtype=get_jobtype(parameters),
+        max_memory=parameters.get('max_memory', 60000),
+        verbose=parameters.get('verbose', 0),
+        debug=parameters.get('debug', 0),
+    )
+
+def setup_td_input(parameters):
+    r"""Setup TDInput class from input parameters."""
+    parameters = parameters.get(section_names[1], parameters)
+    return TDInput(
+        method=parameters.get('td_model', 'TDA'),
+        cis_n_roots=parameters.get('cis_n_roots', 0),
+        cis_singlets=parameters.get('cis_singlets', False),
+        cis_triplets=parameters.get('cis_triplets', False),
+        rpa=parameters.get('rpa', False)
+    )
+
+
 def build_atom(atmsym, coords):
+    r"""Build atom string for PySCF from atomic symbols and coordinates."""
     atom = ''
     for i in range(len(atmsym)):
         atom += str(atmsym[i]) + ' '
@@ -18,14 +167,29 @@ def build_atom(atmsym, coords):
     return atom
 
 
-def build_molecule(atom, basis, charge=0, spin=0, unit='angstrom',
-                          max_memory=60000, verbose=0):
+def build_molecule(molecule: MoleculeInput, basis, **kwargs):
+    r"""
+    Build molecule object for PySCF from MoleculeInput data and other parameters.
+
+    Parameters
+        molecule (MoleculeInput): An instance of MoleculeInput containing the molecule data.
+        basis (str): Basis set name for the molecule.
+        kwargs: Additional keyword arguments for building the molecule, such as:
+            - max_memory (int): Maximum memory in MB for PySCF calculations (default: 60000).
+            - verbose (int): Verbosity level for PySCF output (default: 0).
+
+    Returns
+        mol (pyscf.gto.Mole): PySCF molecule object.
+    """
+    max_memory = kwargs.get('max_memory', 60000)
+    verbose = kwargs.get('verbose', 0)
+
     mol = gto.M(
-        atom       = atom,
-        unit       = unit,
+        atom       = molecule.atom,
+        unit       = molecule.unit,
+        spin       = molecule.spin,
+        charge     = molecule.charge,
         basis      = basis,
-        spin       = spin,
-        charge     = charge,
         max_memory = max_memory,
         verbose    = verbose
     )
@@ -34,22 +198,22 @@ def build_molecule(atom, basis, charge=0, spin=0, unit='angstrom',
 
 
 def get_jobtype(parameters):
+    r"""Determine the job type based on the parameters provided."""
     jobtype = 'scf'
-    if 'cis_n_roots' in parameters.get(section_names[1]):
+    if 'cis_n_roots' in parameters:
         jobtype = 'td'
 
-    if 'force' in parameters.get(section_names[1]):
+    if 'force' in parameters:
         jobtype += 'force'
-    elif 'freq' in parameters.get(section_names[1]):
+    elif 'freq' in parameters:
         jobtype += 'hess'
-
-    if section_names[2] in parameters:
-        jobtype += '_qed'
 
     return jobtype
 
 
 def get_frgm_idx(parameters):
+    r"""Get the fragment indices from the parameters provided
+    for embedding or other purposes."""
     frgm_idx = parameters.get(section_names[1])['impurity']
     if isinstance(frgm_idx, list):
         for i in range(len(frgm_idx)):
@@ -85,36 +249,44 @@ def get_center_of_mass(mol, nfrag=1):
         return _get_center_of_mass(mol)
 
 
-def _run_pyscf_dft(charge, spin, atom, basis, functional, verbose=0, h=None,
-                   scf_method='RKS'):
-    mol = build_molecule(atom, basis, charge, spin, verbose=verbose)
-    mf = getattr(scf, scf_method)(mol)
-    if h:
+def _run_pyscf_dft(molecule, scf_input):
+    r"""
+    Run PySCF DFT calculation based on the parameters provided.
+
+    Parameters
+        molecule (MoleculeInput): An instance of MoleculeInput containing the molecule data.
+        scf_input (SCFInput): An instance of SCFInput containing the SCF calculation parameters.
+
+    Returns
+        mol (pyscf.gto.Mole): PySCF molecule object.
+        mf (pyscf.scf.SCF): PySCF mean-field object after SCF convergence.
+        etot (float): Total energy of the system after SCF convergence.
+    """
+    mol = build_molecule(molecule, scf_input.basis,
+                         max_memory=scf_input.max_memory,
+                         verbose=scf_input.verbose)
+    mf = getattr(scf, scf_input.method)(mol)
+    if scf_input.h:
         #h = h + mol.intor('cint1e_kin_sph') + mol.intor('cint1e_nuc_sph')
-        mf.get_hcore = lambda *args: h
-    mf.xc = functional
-    mf.grids.prune = True
-    etot = mf.kernel() # return total energy so that we don't need to calculate it again
+        mf.get_hcore = lambda *args: scf_input.h
+    mf.xc = scf_input.functional
+    mf.grids.prune = scf_input.grids_prune
+    # return total energy so that we don't need to calculate it again
+    etot = mf.kernel()
 
     return mol, mf, etot
 
 
-def run_pyscf_dft(charge, spin, atom, basis, functional, nfrag=1, verbose=0,
-                  h=None, scf_method='RKS'):
-    if isinstance(charge, list):
-        mol, mf, etot = [None]*nfrag, [None]*nfrag, [None]*nfrag
-        for n in range(nfrag):
-            mol[n], mf[n], etot[n] = _run_pyscf_dft(charge[n], spin[n], atom[n],
-                                                    basis, functional, verbose,
-                                                    h, scf_method)
-
-        return mol, mf, etot
-    else:
-        return _run_pyscf_dft(charge, spin, atom, basis, functional, verbose,
-                              h, scf_method)
+def run_pyscf_dft(molecules, scf_input):
+    r"""Run PySCF DFT calculation based on the parameters provided."""
+    if len(molecules) == 1:
+        return _run_pyscf_dft(molecules[0], scf_input)
+    return collect_lists(_run_pyscf_dft, molecules, scf_input)
 
 
-def _run_pyscf_tddft(mf, td_model, nroots, verbose=0):
+def _run_pyscf_tddft(mf, td_input):
+    r"""Run a single PySCF TDDFT calculation based on the mean-field object
+    and TDDFT model provided."""
     def rotation_strength(td, trans_dip=None, trans_mag_dip=None):
         if trans_dip is None: trans_dip = td.transition_dipole()
         if trans_mag_dip is None:
@@ -124,74 +296,54 @@ def _run_pyscf_tddft(mf, td_model, nroots, verbose=0):
         f = np.einsum('sx,sx->s', trans_dip, trans_mag_dip)
         return f
 
-    td = getattr(tdscf, td_model)(mf)
-    td.max_cycle = 600
-    #td.max_space = 200
+    td = getattr(tdscf, td_input.method)(mf)
+    td.max_cycle = td_input.max_cycle
+    td.max_space = td_input.max_space
 
-    if nroots > 0:
-        td.kernel(nstates=nroots)
-        if not td.converged.all():
-            print('tddft is not converged:', td.converged)
-        #try:
-        #    td.converged.all()
-        #    #print('TDDFT converged: ', td.converged)
-        #    #print_matrix('Excited state energies (eV):\n', td.e * 27.2116, 6)
-        #except Warning:
-        #    #print('the %d-th job for TDDFT is not converged.' % (n+1))
-        #    print('the job for TDDFT is not converged.')
+    td.kernel(nstates=td_input.cis_n_roots)
+    if not td.converged.all():
+        print('tddft is not converged:', td.converged)
+    #try:
+    #    td.converged.all()
+    #    #print('TDDFT converged: ', td.converged)
+    #    #print_matrix('Excited state energies (eV):\n', td.e * 27.2116, 6)
+    #except Warning:
+    #    #print('the %d-th job for TDDFT is not converged.' % (n+1))
+    #    print('the job for TDDFT is not converged.')
 
     td.f_rotation = rotation_strength(td)
 
-    if verbose >= 5:
-        td.analyze(verbose)
+    if td_input.verbose >= 5:
+        td.analyze(td_input.verbose)
 
     return td
 
 
-def run_pyscf_tddft(mf, td_model, nroots, nfrag=1, verbose=0):
+def run_pyscf_tddft(mf, td_input):
+    r"""Run PySCF TDDFT calculation based on the mean-field object and TDDFT model provided."""
     if isinstance(mf, list):
-        td = [None]*nfrag
-        for n in range(nfrag):
-            td[n] = _run_pyscf_tddft(mf[n], td_model, nroots, verbose=verbose)
-
-        return td
+        return [_run_pyscf_tddft(_mf, td_model) for _mf in mf]
     else:
-        return _run_pyscf_tddft(mf, td_model, nroots, verbose)
+        return _run_pyscf_tddft(mf, td_input)
 
 
-def _run_pyscf_dft_tddft(charge, spin, atom, basis, functional, td_model, nroots,
-                         verbose=0, debug=0, h=None, scf_method='RKS'):
-    mol, mf, etot = _run_pyscf_dft(charge, spin, atom, basis, functional,
-                                  verbose, h, scf_method)
-    td = _run_pyscf_tddft(mf, td_model, nroots, verbose)
+def _run_pyscf_dft_tddft(molecule, scf_input, td_input):
+    r"""Run PySCF DFT and TDDFT calculations based on the parameters provided."""
+    mol, mf, etot = _run_pyscf_dft(molecule, scf_input)
+    td = _run_pyscf_tddft(mf, td_input)
     return mol, mf, etot, td
 
 
 # mainly for parallel execute
-def run_pyscf_dft_tddft(charge, spin, atom, basis, functional, td_model, nroots,
-                        nfrag=1, verbose=0, debug=0, h=None, scf_method='RKS'):
-    if isinstance(charge, list):
-        mol, mf, etot, td = [None]*nfrag, [None]*nfrag, [None]*nfrag, [None]*nfrag
-        for n in range(nfrag):
-            mol[n], mf[n], etot[n] = _run_pyscf_dft(charge[n], spin[n], atom[n],
-                                                   basis, functional, verbose,
-                                                   h, scf_method)
-            td[n] = _run_pyscf_tddft(mf[n], td_model, nroots, verbose)
-
-        if debug > 0:
-            final_print_energy(td, nwidth=10, iprint=7)
-            trans_dipole, trans_mag_dip, argmax = find_transition_dipole(td, nroots, nfrag)
-
-        return mol, mf, etot, td
-    else:
-        return _run_pyscf_dft_tddft(charge, spin, atom, basis, functional,
-                                    td_model, nroots, verbose, debug, h,
-                                    scf_method)
+def run_pyscf_dft_tddft(molecules, scf_input, td_input):
+    if len(molecules) == 1:
+        return _run_pyscf_dft_tddft(molecules[0], scf_input, td_input)
+    return collect_lists(_run_pyscf_dft_tddft, molecules, scf_input, td_input)
 
 
-def _run_pyscf_tdqed(mf, td, qed_model, cavity_model, key):
-    cav_obj = getattr(qed, cavity_model)(mf, key)
-    qed_td = getattr(qed, qed_model)(mf, td, cav_obj, key)
+def _run_pyscf_tdqed(mf, td, td_input, qed_input, key):
+    cav_obj = getattr(qed, qed_input.cavity_model)(mf, key)
+    qed_td = getattr(qed, td_input.method)(mf, td, cav_obj, key)
     qed_td.kernel()
     if not qed_td.converged.all():
         print('tdqed is not converged:', td.converged)
@@ -206,16 +358,12 @@ def _run_pyscf_tdqed(mf, td, qed_model, cavity_model, key):
     return qed_td, cav_obj
 
 
-def run_pyscf_tdqed(mf, td, qed_model, cavity_model, key, nfrag=1):
+def run_pyscf_tdqed(mf, td, td_input, qed_input, key):
     if isinstance(mf, list):
-        qed_td, cav_obj = [None]*nfrag, [None]*nfrag
-        for n in range(nfrag):
-            qed_td[n], cav_obj[n] = _run_pyscf_tdqed(mf[n], td[n], qed_model,
-                                                     cavity_model, key)
-
-        return qed_td, cav_obj
+        return collect_lists(_run_pyscf_tdqed, zip(mf, td), td_input, qed_input,
+                             key, unpack=True)
     else:
-        return _run_pyscf_tdqed(mf, td, qed_model, cavity_model, key)
+        return _run_pyscf_tdqed(mf, td, td_input, qed_input, key)
 
 
 def _find_transition_dipole(td, nroots):
@@ -277,34 +425,6 @@ def get_basis_info(mol):
     return [nbas, nocc, nvir, nov]
 
 
-def get_rem_info(rem_keys):
-    for key in rem_keys:
-        print(key + ' = ', end=' ')
-        key = rem_keys.get(key)
-        print(key)
-
-    functional = rem_keys.get('method')
-    basis = rem_keys.get('basis')
-
-    unrestricted = rem_keys.get('unrestricted', 0)
-    if unrestricted in {0, 'false', 'FALSE'}:
-        scf_method = 'RKS'
-    elif unrestricted in {'2', 'g', 'general'}:
-        scf_method = 'GKS'
-    else:
-        scf_method = 'UKS'
-
-    nroots = rem_keys.get('cis_n_roots', 0)
-    # 0 for rpa if it is ungiven. But it's working! Still None
-    rpa = rem_keys.get('rpa', 0)
-    td_model = 'TDDFT' if rpa == 2 else 'TDA'
-
-    verbose = rem_keys.get('verbose', 1)
-    debug   = rem_keys.get('debug', 0)
-
-    return functional, basis, nroots, td_model, verbose, debug, scf_method
-
-
 def get_photon_info(photon_key):
     key = photon_key.copy()
 
@@ -354,7 +474,8 @@ def get_photon_info(photon_key):
     return key
 
 
-def justify_photon_info(td, nroots, nstate='max_dipole', func='average', nwidth=10):
+def justify_photon_info(td, nroots, nstate='max_dipole', func='average',
+                        nwidth=10):
     energy = final_print_energy(td, nwidth=nwidth)
     if nstate == 'max_dipole':
         trans_dipole, trans_mag_dip, argmax = find_transition_dipole(td, nroots)
@@ -387,29 +508,33 @@ def run_pyscf_final(parameters):
     cpu0 = (logger.process_clock(), logger.perf_counter())
     log = logger.new_logger(verbose=5)
 
-    nfrag, charge, spin, atom = parameters.get(section_names[0])[:4]
-    functional, basis, nroots, td_model, verbose, debug, scf_method = \
-                get_rem_info(parameters.get(section_names[1]))
+    mol_param = parameters.get(section_names[0], {})
+    rem_param = parameters.get(section_names[1], {})
+    unit = rem_param.get('unit', 'angstrom')
+    molecular_system = setup_molecules(mol_param, unit)
+    molecules = molecular_system.molecules
+    scf_input = setup_scf_input(rem_param)
+    td_input = setup_td_input(rem_param)
 
 
     results = {}
 
-    jobtype = get_jobtype(parameters)
+    jobtype = scf_input.jobtype
     if jobtype == 'scf':
-        mol, mf, etot = run_pyscf_dft(charge, spin, atom, basis, functional,
-                                      nfrag, verbose, scf_method=scf_method)
+        mol, mf, etot = run_pyscf_dft(molecules, scf_input)
         results['mol'] = mol
         results['mf']  = mf
-        print_matrix('scf energy:', [etot])
+        results['etot'] = etot
     elif 'td' in jobtype:
-        mol, mf, etot, td = run_pyscf_dft_tddft(charge, spin, atom, basis, functional,
-                                                td_model, nroots, nfrag, verbose, debug,
-                                                scf_method=scf_method)
+        mol, mf, etot, td = run_pyscf_dft_tddft(molecules, scf_input, td_input)
         results['mol'] = mol
         results['mf']  = mf
+        results['etot'] = etot
         results['td']  = td
-        print_matrix('scf energy:', [etot])
-        final_print_energy(td, nwidth=10, iprint=1)
+
+    print_matrix('scf energy:', results['etot'])
+    if 'td' in jobtype:
+        final_print_energy(results['td'], nwidth=10, iprint=1)
 
     if 'td_qed' in jobtype:
         mol0 = mol[0] if isinstance(mol, list) else mol
