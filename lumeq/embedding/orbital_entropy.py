@@ -3,7 +3,7 @@ from lumeq import sys, np
 from pyscf import scf, lib
 from pyscf.mp.mp2 import MP2
 
-from lumeq.utils.pyscf_parser import *
+from lumeq.utils.pyscf_helper import *
 from lumeq.utils import print_matrix
 from lumeq.embedding.mol_lo_tools import partition_lo_to_imps
 from lumeq.utils import get_ortho_basis
@@ -154,4 +154,3 @@ if __name__ == '__main__':
     print_matrix('s2:', s2)
     Iij = get_orbital_entropy_info(s1, s2)
     print_matrix('orbital-pair mutual information:', Iij)
-

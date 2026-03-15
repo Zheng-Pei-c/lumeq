@@ -1,17 +1,14 @@
-import sys
-import numpy as np
+from lumeq import sys, np
+from lumeq.utils.pyscf_helper import *
+from lumeq.utils import convert_units, print_matrix
+from lumeq.plot import plt, fit_val
+
+from scipy import signal, fftpack
 
 from pyscf import lib
 from pyscf.lib import logger
 from pyscf.dft.rks import RKS
 from pyscf.hessian import thermo
-
-from lumeq.utils.pyscf_parser import *
-from lumeq.utils import convert_units, print_matrix
-
-#import matplotlib.mlab as mlab
-from scipy import signal, fftpack
-from lumeq.plot import plt, fit_val
 
 def plot_spectra(peak_centers, peak_intens, broaden, fig_name):
     ix, iy = fit_val(peak_centers, peak_intens, broaden)

@@ -127,7 +127,7 @@ def _gen_rhf_response(mf, mo_coeff=None, mo_occ=None,
 
 if __name__ == '__main__':
     from pyscf import scf, tdscf
-    from lumeq.utils.pyscf_parser import *
+    from lumeq.utils.pyscf_helper import *
     from lumeq.utils import print_matrix
     from lumeq.embedding.fragment_entangle import EmbeddingMeanField
 

@@ -546,7 +546,7 @@ def rotate_molecule(coords0, axis, theta):
 
 if __name__ == '__main__':
     from lumeq.utils import print_matrix, convert_units
-    from lumeq.utils.pyscf_parser import build_atom
+    from lumeq.utils.pyscf_helper import build_atom
 
     xyzfile = sys.argv[1]
     symbols, coords = read_symbols_coords(xyzfile)

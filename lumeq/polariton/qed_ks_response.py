@@ -7,7 +7,7 @@ from pyscf import lib, scf, tdscf
 from pyscf.lib import logger
 
 from lumeq.utils import convert_units, print_matrix
-from lumeq.utils.pyscf_parser import build_molecule
+from lumeq.utils.pyscf_helper import build_molecule
 from lumeq.polariton import polariton_cs
 from lumeq.polariton.qed_ks import print_qed_dse_energy
 

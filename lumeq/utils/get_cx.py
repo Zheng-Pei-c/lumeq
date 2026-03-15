@@ -1,7 +1,7 @@
 import os, sys
 import numpy as np
 
-from lumeq.utils.pyscf_parser import *
+from lumeq.utils.pyscf_helper import *
 from lumeq.utils.ortho_basis import get_ortho_basis
 
 if __name__ == '__main__':

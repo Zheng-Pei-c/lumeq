@@ -368,7 +368,7 @@ class EmbeddingMeanField():
 
 
 if __name__ == '__main__':
-    from lumeq.utils.pyscf_parser import *
+    from lumeq.utils.pyscf_helper import *
     from pyscf import scf
 
     #infile = '../samples/formic_acid_6_h2o.in'

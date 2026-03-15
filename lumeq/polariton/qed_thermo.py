@@ -6,7 +6,7 @@ from pyscf import lib
 from pyscf.hessian import thermo
 from pyscf.data import nist
 
-from lumeq.utils.pyscf_parser import *
+from lumeq.utils.pyscf_helper import *
 from lumeq.utils import convert_units, print_matrix
 from lumeq.polariton.qed_ks import polariton_cs
 from lumeq.polariton.qed_ks_grad import get_multipole_matrix_d1, finite_difference

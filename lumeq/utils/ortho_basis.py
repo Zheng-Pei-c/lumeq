@@ -3,7 +3,7 @@ import numpy as np
 
 from pyscf import gto
 
-from lumeq.utils.pyscf_parser import *
+from lumeq.utils.pyscf_helper import *
 from lumeq.utils import print_matrix
 from lumeq.utils import fdiff
 from lumeq.utils.unit_conversion import BOHR

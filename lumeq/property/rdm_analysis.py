@@ -1,5 +1,5 @@
 from lumeq import sys, np
-from lumeq.utils.pyscf_parser import *
+from lumeq.utils.pyscf_helper import *
 
 from pyscf import scf, tdscf, gto, lib
 

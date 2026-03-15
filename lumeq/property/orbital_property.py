@@ -5,7 +5,7 @@ import pyscf
 from pyscf import scf, tdscf, gto, lib
 
 from lumeq.utils import convert_units
-from lumeq.utils.pyscf_parser import *
+from lumeq.utils.pyscf_helper import *
 from lumeq.utils.unit_conversion import EV2J, E_MASS
 
 def cal_orbital_property(mol, mf):

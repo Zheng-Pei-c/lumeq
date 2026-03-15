@@ -7,7 +7,7 @@ from pyscf.lib import logger
 from pyscf.dft.rks import RKS
 from pyscf.grad import rks as rks_grad
 
-from lumeq.utils.pyscf_parser import *
+from lumeq.utils.pyscf_helper import *
 from lumeq.utils import convert_units, print_matrix, fdiff
 from lumeq.polariton import polariton_cs, polariton_ns
 from lumeq.polariton.qed_ks import get_lambda2

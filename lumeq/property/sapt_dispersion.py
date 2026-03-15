@@ -95,7 +95,7 @@ def cal_sapt_u(mol, mo_coeffs, amps, nstates, omega=None):
 
 def run_tddft(symbols, coords, charge=1, spin=1, functional='hf', basis='sto-3g'):
     from pyscf import gto, scf, tdscf
-    from lumeq.utils.pyscf_parser import build_atom
+    from lumeq.utils.pyscf_helper import build_atom
 
     atom = build_atom(symbols, coords)
     mol = gto.M(

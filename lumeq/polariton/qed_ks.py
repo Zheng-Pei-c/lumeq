@@ -6,7 +6,7 @@ from pyscf import lib
 from pyscf.lib import logger
 from pyscf.dft.rks import RKS
 
-from lumeq.utils.pyscf_parser import *
+from lumeq.utils.pyscf_helper import *
 from lumeq.utils import convert_units, print_matrix
 
 def get_scaled_lambda(c_lambda, frequency, photon_coeff=1.):

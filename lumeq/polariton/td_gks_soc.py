@@ -129,7 +129,7 @@ class GHF(ghf.GHF):
 
 
 if __name__ == '__main__':
-    from lumeq.utils.pyscf_parser import *
+    from lumeq.utils.pyscf_helper import *
     infile = 'h2o.in'
     parameters = parser(infile)
 

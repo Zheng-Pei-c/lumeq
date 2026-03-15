@@ -7,7 +7,7 @@ from pyscf.dft.rks import RKS
 from pyscf.hessian import rhf as rhf_hess
 from pyscf.hessian import rks as rks_hess
 
-from lumeq.utils.pyscf_parser import *
+from lumeq.utils.pyscf_helper import *
 from lumeq.utils import convert_units, print_matrix, fdiff
 from lumeq.polariton.qed_ks import polariton_cs, get_lambda2
 from lumeq.polariton.qed_ks_grad import get_multipole_matrix_d1, cal_multipole_matrix_fd, finite_difference

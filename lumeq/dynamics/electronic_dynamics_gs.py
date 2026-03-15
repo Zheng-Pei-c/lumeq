@@ -3,7 +3,7 @@ from lumeq.polariton import polariton_ns
 from lumeq.utils import print_matrix, convert_units
 from lumeq.utils import put_keys_kwargs_to_object
 from lumeq.utils import get_ortho_basis
-from lumeq.utils.pyscf_parser import build_atom, build_molecule
+from lumeq.utils.pyscf_helper import build_atom, build_molecule
 
 from pyscf import scf, gto, grad
 
