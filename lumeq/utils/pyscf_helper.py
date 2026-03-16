@@ -4,9 +4,9 @@ from typing import Any
 from lumeq import sys, np
 from lumeq.utils import print_matrix
 from lumeq.utils import parser, collect_lists
+from lumeq.utils import monitor_performance, set_performance_log
 
 from pyscf import scf, tdscf, gto
-from pyscf.lib import logger
 
 #import qed
 
@@ -194,6 +194,7 @@ def build_molecule(molecule: MoleculeInput, basis, **kwargs):
         verbose    = verbose
     )
 
+    # print(f'Basis number: {mol.nao_nr()} spherical and {mol.nao_cart()} cartesian.')
     return mol
 
 
@@ -271,12 +272,16 @@ def _run_pyscf_dft(molecule, scf_input):
         mf.get_hcore = lambda *args: scf_input.h
     mf.xc = scf_input.functional
     mf.grids.prune = scf_input.grids_prune
+    mf.max_cycle = scf_input.max_cycle
+    mf.conv_tol = scf_input.convergence
+
     # return total energy so that we don't need to calculate it again
     etot = mf.kernel()
 
     return mol, mf, etot
 
 
+@monitor_performance
 def run_pyscf_dft(molecules, scf_input):
     r"""Run PySCF DFT calculation based on the parameters provided."""
     if len(molecules) == 1:
@@ -319,6 +324,7 @@ def _run_pyscf_tddft(mf, td_input):
     return td
 
 
+@monitor_performance
 def run_pyscf_tddft(mf, td_input):
     r"""Run PySCF TDDFT calculation based on the mean-field object and TDDFT model provided."""
     if isinstance(mf, list):
@@ -335,6 +341,7 @@ def _run_pyscf_dft_tddft(molecule, scf_input, td_input):
 
 
 # mainly for parallel execute
+@monitor_performance
 def run_pyscf_dft_tddft(molecules, scf_input, td_input):
     if len(molecules) == 1:
         return _run_pyscf_dft_tddft(molecules[0], scf_input, td_input)
@@ -358,6 +365,7 @@ def _run_pyscf_tdqed(mf, td, td_input, qed_input, key):
     return qed_td, cav_obj
 
 
+@monitor_performance
 def run_pyscf_tdqed(mf, td, td_input, qed_input, key):
     if isinstance(mf, list):
         return collect_lists(_run_pyscf_tdqed, zip(mf, td), td_input, qed_input,
@@ -504,10 +512,8 @@ def justify_photon_info(td, nroots, nstate='max_dipole', func='average',
     return argmax0, np.asarray([freq])
 
 
+@monitor_performance(level=0)
 def run_pyscf_final(parameters):
-    cpu0 = (logger.process_clock(), logger.perf_counter())
-    log = logger.new_logger(verbose=5)
-
     mol_param = parameters.get(section_names[0], {})
     rem_param = parameters.get(section_names[1], {})
     unit = rem_param.get('unit', 'angstrom')
@@ -561,7 +567,6 @@ def run_pyscf_final(parameters):
         results['qed_td'] = qed_td
         results['cav_obj'] = cav_obj
 
-    log.timer('pyscf running time', *cpu0)
     return results
 
 
