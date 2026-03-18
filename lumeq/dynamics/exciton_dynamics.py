@@ -4,7 +4,7 @@ from lumeq import np, itertools
 from lumeq.utils import (
         parser, print_matrix, convert_units, Sampler,
         put_keys_kwargs_to_object, put_kwargs_to_keys,
-        load_json, save_json)
+        load_json, save_json, monitor_performance)
 from lumeq.dynamics.dimers_in_crystal import add_molecule
 from lumeq.dynamics.process_exciton_parameters import process_parameters, set_model
 from lumeq.utils.sec_mole import write_symbols_coords
@@ -236,16 +236,11 @@ class Exciton():
         if H is None: H = self.get_hamiltonian(**kwargs)
         if method is None: method = getattr(self, 'initial_method', 'random')
 
-        self.length_order = None
-
         if method == 'random':
             idx = getattr(self, 'n_site_init', 0)
             rng = np.random.default_rng(kwargs.get('seed', None))
-            if type(idx) is str:
-                length = np.linalg.norm(self.length, axis=1)
-                order = np.argsort(length)
-                # save length order in class for later use if needed
-                self.length_order = order
+            if isinstance(idx, str):
+                order = np.lexsort(tuple(self.length.T[::-1]))
                 if idx == 'center':
                     idx = order[self.n_site//2]
                 elif idx == 'edge0':
@@ -253,7 +248,7 @@ class Exciton():
                 elif idx == 'edge1':
                     idx = order[-1]
                 idx = int(idx)
-            if type(idx) is int: idx = [idx]
+            if isinstance(idx, int): idx = [idx]
             idx = [x for i in idx for x in (2*i, 2*i+1)]
             print('Wavafunction initializes at sites*states:', idx)
             values = rng.random(len(idx)) + 1j * rng.random(len(idx))
@@ -657,6 +652,7 @@ class ExcitonDynamicsMC(ExcitonDynamics):
                                 covariance=key.get('mc_covariance', False))
 
 
+    @monitor_performance(level=0)
     def kernel(self):
         # assign local variables for class attributes
         edstep = self.edstep
@@ -679,6 +675,11 @@ class ExcitonDynamicsMC(ExcitonDynamics):
         else:
             exp_h = lambda: None
 
+        onsite_energy = None
+        if self.debug == -2:
+            onsite_energy = np.empty((self.nsteps, n_site*edstep.nstate))
+            onsite_energy[0] = edstep.energy
+
         for ti in range(1, self.nsteps):
             edstep.update_parameters()
             c2 = edstep.update_coefficients(exp_h=exp_h())
@@ -690,20 +691,25 @@ class ExcitonDynamicsMC(ExcitonDynamics):
 
             self.total_energy[ti] = edstep.cal_energy()
 
+            if self.debug == -2:
+                onsite_energy[ti] = edstep.energy
+
             if ti % self.printing_nsteps == 0:
                 print('Step %4d has energy %12.6f eh' % (ti, self.total_energy[ti]))
 
         self.total_energy = convert_units(self.total_energy, 'eh', 'ev')
-
-        np.savez_compressed(self.output_name+'.npz',
-                            total_energy=self.total_energy,
-                            c2=self.c2,
-                            correlation=self.correlation,
-                            ipr=self.ipr,
-                            length_order=self.edstep.length_order,)
         if self.debug >= 1:
             print_matrix('total_energy (eV):', self.total_energy)
             print_matrix('correlation (AA^2):', self.correlation)
+
+        data_dict = {'total_energy': self.total_energy,
+                     'c2': self.c2,
+                     'correlation': self.correlation,
+                     'ipr': self.ipr,}
+        if self.debug == -2:
+            data_dict['onsite_energy'] = onsite_energy
+
+        np.savez_compressed(self.output_name+'.npz', **data_dict)
 
 
 
@@ -808,16 +814,14 @@ if __name__ == '__main__':
 
     save_c2_steps = [0, 10, 100, 500, 1000, 5000]
     save_c2_steps = [x for x in save_c2_steps if x < obj.nsteps]
-    idx = obj.edstep.length_order
-    n = len(obj.c2[0])
-    ns, nd = int(n//2-10), int(n//2+10)
     for i, c2 in enumerate(obj.c2[save_c2_steps]):
         i = save_c2_steps[i]
-        c2 = c2[idx]
-        ax[2].plot(range(ns, nd), c2[ns:nd], label='t$=$ %d (fs)' % convert_units(i*obj.dt, 'au', 'fs'))
+        nsites = range(len(c2))
+        #nsites = np.arange(min(nsites), max(nsites)+1)
+        ax[2].plot(nsites, c2[nsites], label='t$=$ %d (fs)' % convert_units(i*obj.dt, 'au', 'fs'))
     ax[2].set_ylabel('c$^2$')
     ax[2].set_xlabel('Site index')
-    ax[2].set_xticks(range(ns, nd))
+    #ax[2].set_xticks(nsites[::10])
     ax[2].legend()
     plt.tight_layout()
 

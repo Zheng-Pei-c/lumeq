@@ -26,9 +26,11 @@ def convert_string(string):
     r"""Convert string to int, float, or keep as string."""
     if string.isdigit():
         return int(string)
-    elif string.lstrip('-').replace('.','',1).isdigit():
-        return float(string)
-    else: return string
+    else:
+        try:
+            return float(string)
+        except:
+            return string
 
 
 def parser(file_name):
