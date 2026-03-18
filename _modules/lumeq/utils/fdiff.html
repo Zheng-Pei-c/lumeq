@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.utils.fdiff &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.utils.fdiff</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">sys</span><span class="p">,</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">print_matrix</span>
+
+<div class="viewcode-block" id="fdiff">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.fdiff.fdiff">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">fdiff</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">norder</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        central finite difference method</span>
+<span class="sd">        norder 1,2,3...</span>
+<span class="sd">        accuracy = 2 * norder</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norder</span> <span class="o">=</span> <span class="n">norder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_size</span> <span class="o">=</span> <span class="n">step_size</span> <span class="o">*</span> <span class="n">unit</span>
+
+        <span class="k">if</span> <span class="n">norder</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span> <span class="n">norder</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">norder</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span> <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;fdiff order currently is in [1,4].&#39;</span><span class="p">)</span>
+
+        <span class="n">d</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">norder</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">d</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">step_size</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">norder</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">d</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">step_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="fdiff.get_d">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.fdiff.fdiff.get_d">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_d</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">norder</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ndim</span><span class="p">))</span>
+        <span class="n">d</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span>
+        <span class="k">return</span> <span class="n">d</span></div>
+
+
+
+<div class="viewcode-block" id="fdiff.get_x">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.fdiff.fdiff.get_x">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_x</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x0</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">norder</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">idx</span>
+            <span class="n">x</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span>
+
+        <span class="c1">#print_matrix(&#39;x:&#39;, x)</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">coeff</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="c1"># stencil</span>
+        <span class="c1"># it will be called automatically as an attribute</span>
+        <span class="n">coeff</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">norder</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">coeff</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">.5</span><span class="p">,</span> <span class="mf">.5</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">norder</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">coeff</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="o">/</span><span class="mf">12.</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="mf">2.</span><span class="o">/</span><span class="mf">3.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="o">/</span><span class="mf">12.</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">norder</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">coeff</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.</span><span class="o">/</span><span class="mf">60.</span><span class="p">,</span> <span class="mf">3.</span><span class="o">/</span><span class="mf">20.</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span> <span class="mf">3.</span><span class="o">/</span><span class="mf">4.</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.</span><span class="o">/</span><span class="mf">20.</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="mf">60.</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">norder</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">coeff</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="o">/</span><span class="mf">280.</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.</span><span class="o">/</span><span class="mf">105.</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="mf">5.</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.</span><span class="o">/</span><span class="mf">5.</span><span class="p">,</span> <span class="mf">4.</span><span class="o">/</span><span class="mf">5.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="o">/</span><span class="mf">5.</span><span class="p">,</span> <span class="mf">4.</span><span class="o">/</span><span class="mf">105.</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.</span><span class="o">/</span><span class="mf">280.</span><span class="p">]</span>
+        <span class="n">coeff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coeff</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">step_size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">coeff</span>
+
+
+<div class="viewcode-block" id="fdiff.compute">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.fdiff.fdiff.compute">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fx</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i...,i-&gt;...&#39;</span><span class="p">,</span> <span class="n">fx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coeff</span><span class="p">)</span><span class="o">*</span><span class="n">unit</span></div>
+</div>
+
+
+
+
+<div class="viewcode-block" id="change_wf_phase">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.fdiff.change_wf_phase">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">change_wf_phase</span><span class="p">(</span><span class="n">C0</span><span class="p">,</span> <span class="n">X0</span><span class="p">,</span> <span class="n">Y0</span><span class="p">,</span> <span class="n">C1</span><span class="p">,</span> <span class="n">X1</span><span class="p">,</span> <span class="n">Y1</span><span class="p">):</span>
+    <span class="n">C1</span> <span class="o">=</span> <span class="n">change_matrix_phase_c</span><span class="p">(</span><span class="n">C0</span><span class="p">,</span> <span class="n">C1</span><span class="p">)</span>
+    <span class="n">X1</span> <span class="o">=</span> <span class="n">change_matrix_phase_rc</span><span class="p">(</span><span class="n">X0</span><span class="p">,</span> <span class="n">X1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Y0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span> <span class="n">Y1</span> <span class="o">=</span> <span class="n">change_matrix_phase_rc</span><span class="p">(</span><span class="n">Y0</span><span class="p">,</span> <span class="n">Y1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="change_matrix_phase_rc">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.fdiff.change_matrix_phase_rc">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">change_matrix_phase_rc</span><span class="p">(</span><span class="n">matrix0</span><span class="p">,</span> <span class="n">matrix1</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrix0</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">=</span> <span class="n">matrix0</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nrow</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncol</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">matrix0</span><span class="p">[</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">]</span><span class="o">*</span><span class="n">matrix1</span><span class="p">[</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">]</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">:</span>
+                    <span class="n">matrix1</span><span class="p">[</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrix0</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">==</span><span class="mi">3</span><span class="p">:</span>
+        <span class="n">nslice</span><span class="p">,</span> <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">=</span> <span class="n">matrix0</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nslice</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nrow</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncol</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">matrix0</span><span class="p">[</span><span class="n">s</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">]</span><span class="o">*</span><span class="n">matrix1</span><span class="p">[</span><span class="n">s</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">]</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">:</span>
+                        <span class="n">matrix1</span><span class="p">[</span><span class="n">s</span><span class="p">,</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">matrix1</span></div>
+
+
+
+<div class="viewcode-block" id="change_matrix_phase_c">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.fdiff.change_matrix_phase_c">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">change_matrix_phase_c</span><span class="p">(</span><span class="n">matrix0</span><span class="p">,</span> <span class="n">matrix1</span><span class="p">):</span>
+    <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">=</span> <span class="n">matrix0</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">idx0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">matrix0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">idx1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">matrix1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1">#print(&#39;idx:&#39;, idx0, idx1)</span>
+    <span class="n">swap</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d1</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">idx0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">d1</span> <span class="o">!=</span> <span class="n">idx1</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">d2</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">idx1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">d1</span> <span class="o">==</span> <span class="n">d2</span> <span class="ow">and</span> <span class="p">[</span><span class="n">j</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">swap</span><span class="p">:</span>
+                    <span class="n">swap</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">])</span>
+
+    <span class="c1">#print(&#39;swap:&#39;, swap)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">swap</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">[</span><span class="n">d1</span><span class="p">,</span> <span class="n">d2</span><span class="p">]</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">swap</span><span class="p">):</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">matrix1</span><span class="p">[:,</span> <span class="n">d1</span><span class="p">])</span>
+            <span class="n">matrix1</span><span class="p">[:,</span> <span class="n">d1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">matrix1</span><span class="p">[:,</span> <span class="n">d2</span><span class="p">])</span>
+            <span class="n">matrix1</span><span class="p">[:,</span> <span class="n">d2</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ncol</span><span class="p">):</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">matrix0</span><span class="p">[:,</span><span class="n">c</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">matrix0</span><span class="p">[</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">]</span><span class="o">*</span><span class="n">matrix1</span><span class="p">[</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">]</span><span class="o">&lt;</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">matrix1</span><span class="p">[:,</span><span class="n">c</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">matrix1</span></div>
+
+
+
+<div class="viewcode-block" id="change_number_phase">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.fdiff.change_number_phase">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">change_number_phase</span><span class="p">(</span><span class="n">num0</span><span class="p">,</span> <span class="n">num1</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">num0</span><span class="o">*</span><span class="n">num1</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">num1</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="c1"># have to return this number</span>
+    <span class="k">return</span> <span class="n">num1</span></div>
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_matrix</span><span class="p">,</span> <span class="n">read_number</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.unit_conversion</span><span class="w"> </span><span class="kn">import</span> <span class="n">BOHR</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.sec_mole</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_symbols_coords</span><span class="p">,</span> <span class="n">write_mol_info_geometry</span><span class="p">,</span> <span class="n">write_rem_info</span>
+
+    <span class="n">infile</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">jb</span> <span class="o">=</span> <span class="s1">&#39;write&#39;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span> <span class="n">jb</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="c1"># &#39;write&#39; # cal</span>
+
+    <span class="n">functional</span> <span class="o">=</span> <span class="n">read_number</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="s1">&#39;method &#39;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">basis</span>      <span class="o">=</span> <span class="n">read_number</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="s1">&#39;basis &#39;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+
+    <span class="n">norder</span><span class="p">,</span> <span class="n">step_size</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">1e-4</span>
+    <span class="n">symbols</span><span class="p">,</span> <span class="n">coords</span> <span class="o">=</span> <span class="n">read_symbols_coords</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+    <span class="n">natoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+
+    <span class="n">suffixes</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;P &#39;</span><span class="p">,</span> <span class="s1">&#39;angular &#39;</span><span class="p">]</span> <span class="c1"># momentum, angular_momentum</span>
+    <span class="n">fix2s</span>    <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;N&#39;</span><span class="p">]</span>
+    <span class="n">loop</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">jb</span> <span class="o">==</span> <span class="s1">&#39;write&#39;</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">suffixes</span><span class="p">)</span>
+    <span class="n">loop2</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">jb</span> <span class="o">==</span> <span class="s1">&#39;write&#39;</span> <span class="k">else</span> <span class="nb">len</span><span class="p">(</span><span class="n">fix2s</span><span class="p">)</span>
+    <span class="n">contract</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1">#True # contract hessian with density</span>
+    <span class="n">nwidth</span> <span class="o">=</span> <span class="mi">5</span>
+
+    <span class="n">p_momentum_3n_d1</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">il</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">loop</span><span class="p">):</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">suffixes</span><span class="p">[</span><span class="n">il</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">jb</span> <span class="o">==</span> <span class="s1">&#39;cal&#39;</span><span class="p">:</span>
+            <span class="n">out0</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;.out&#39;</span>
+            <span class="n">nbas</span> <span class="o">=</span> <span class="n">read_number</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="s1">&#39;NBas: &#39;</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">den</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="s1">&#39;scf density matrix arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;den-den.T:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">den</span><span class="o">-</span><span class="n">den</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+
+            <span class="n">momentum_3</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum 3 arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">)</span>
+            <span class="n">momentum_3n</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum 3N arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum difference:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">momentum_3</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;nx...-&gt;x...&#39;</span><span class="p">,</span> <span class="n">momentum_3n</span><span class="p">)))</span>
+            <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;angular &#39;</span><span class="p">:</span>
+                <span class="n">momentum_ref</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;angular momentum ref&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">)</span>
+                <span class="n">m_diff</span> <span class="o">=</span> <span class="n">momentum_3</span> <span class="o">-</span> <span class="n">momentum_ref</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;angular difference ref:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">m_diff</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;P &#39;</span><span class="p">:</span>
+                <span class="n">momentum_ref</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;SRx momentum 3N ref&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">)</span>
+                <span class="n">m_diff</span> <span class="o">=</span> <span class="n">momentum_3n</span> <span class="o">-</span> <span class="n">momentum_ref</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;P difference ref:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">m_diff</span><span class="p">))</span>
+            <span class="c1">#    print_matrix(suffix+&#39;momentum 3:&#39;, momentum_3, nwidth, nind=1)</span>
+            <span class="c1">#    #print_matrix(suffix+&#39;momentum_3n:&#39;, momentum_3n, nwidth, 1)</span>
+
+            <span class="n">momentum_3_d1</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum derivative 3 arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">)</span>
+            <span class="n">momentum_3n_d1</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="o">*</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum derivative 3N arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum derivative difference:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">momentum_3_d1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;nx...-&gt;x...&#39;</span><span class="p">,</span> <span class="n">momentum_3n_d1</span><span class="p">)))</span>
+            <span class="c1">#if suffix == &#39;P &#39;:</span>
+            <span class="c1">#    p_momentum_3n_d1 = np.copy(momentum_3n_d1)</span>
+            <span class="c1">#    #print_matrix(suffix+&#39;momentum 3_d1:&#39;, momentum_3_d1, nwidth, nind=1)</span>
+            <span class="c1">#    print_matrix(suffix+&#39;momentum_3n_d1:&#39;, momentum_3n_d1, nwidth, 1)</span>
+
+            <span class="k">if</span> <span class="n">contract</span><span class="p">:</span>
+                <span class="n">momentum_3_d2</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="o">*</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum derivative 2 3 arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span>
+                <span class="n">momentum_3n_d2</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="o">*</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum derivative 2 3N arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">momentum_3_d2</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="o">*</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="o">*</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum derivative 2 3 arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">)</span>
+                <span class="n">momentum_3n_d2</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">out0</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="o">*</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="o">*</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum derivative 2 3N arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum derivative 2 difference:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">momentum_3_d2</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;nx...-&gt;x...&#39;</span><span class="p">,</span> <span class="n">momentum_3n_d2</span><span class="p">)))</span>
+
+
+        <span class="n">momentum_3_fd</span><span class="p">,</span> <span class="n">momentum_3n_fd</span><span class="p">,</span> <span class="n">momentum_3_fd2</span><span class="p">,</span> <span class="n">momentum_3n_fd2</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natoms</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+                <span class="n">fd</span> <span class="o">=</span> <span class="n">fdiff</span><span class="p">(</span><span class="n">norder</span><span class="p">,</span> <span class="n">step_size</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">jb</span> <span class="o">==</span> <span class="s1">&#39;write&#39;</span><span class="p">:</span>
+                    <span class="n">coords_new</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">get_x</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">])</span>
+
+                    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords_new</span><span class="p">)):</span>
+                        <span class="n">newfile</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span> <span class="s1">&#39;.in&#39;</span>
+                        <span class="n">write_mol_info_geometry</span><span class="p">(</span><span class="n">newfile</span><span class="p">,</span> <span class="n">symbols</span><span class="o">=</span><span class="n">symbols</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords_new</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
+                        <span class="n">write_rem_info</span><span class="p">(</span><span class="n">newfile</span><span class="p">,</span> <span class="n">functional</span><span class="p">,</span> <span class="n">basis</span><span class="p">)</span>
+
+                <span class="k">elif</span> <span class="n">jb</span> <span class="o">==</span> <span class="s1">&#39;cal&#39;</span><span class="p">:</span>
+                    <span class="n">momentum</span><span class="p">,</span> <span class="n">momentum2</span><span class="p">,</span> <span class="n">momentum3</span><span class="p">,</span> <span class="n">momentum4</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">norder</span><span class="o">*</span><span class="mi">2</span><span class="p">):</span>
+                        <span class="n">newfile</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span> <span class="s1">&#39;.out&#39;</span>
+                        <span class="n">m</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">newfile</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum 3 arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                        <span class="n">m2</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">newfile</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="p">,</span> <span class="mi">3</span><span class="o">*</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum derivative 3 arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                        <span class="n">m3</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">newfile</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum 3N arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                        <span class="n">m4</span> <span class="o">=</span> <span class="n">read_matrix</span><span class="p">(</span><span class="n">newfile</span><span class="p">,</span> <span class="n">nbas</span><span class="o">*</span><span class="n">nbas</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="o">*</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum derivative 3N arma&#39;</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nskip</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                        <span class="n">momentum</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                        <span class="n">momentum2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m2</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                        <span class="n">momentum3</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m3</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                        <span class="n">momentum4</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m4</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+                    <span class="n">momentum</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">momentum</span><span class="p">),</span> <span class="mf">1.</span><span class="o">/</span><span class="n">BOHR</span><span class="p">)</span>
+                    <span class="n">momentum2</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">momentum2</span><span class="p">),</span> <span class="mf">1.</span><span class="o">/</span><span class="n">BOHR</span><span class="p">)</span>
+                    <span class="n">momentum3</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">momentum3</span><span class="p">),</span> <span class="mf">1.</span><span class="o">/</span><span class="n">BOHR</span><span class="p">)</span>
+                    <span class="n">momentum4</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">momentum4</span><span class="p">),</span> <span class="mf">1.</span><span class="o">/</span><span class="n">BOHR</span><span class="p">)</span>
+                    <span class="n">momentum_3_fd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">momentum</span><span class="p">)</span>
+                    <span class="n">momentum_3_fd2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">momentum2</span><span class="p">)</span>
+                    <span class="n">momentum_3n_fd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">momentum3</span><span class="p">)</span>
+                    <span class="n">momentum_3n_fd2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">momentum4</span><span class="p">)</span>
+
+
+        <span class="k">if</span> <span class="n">jb</span> <span class="o">==</span> <span class="s1">&#39;cal&#39;</span><span class="p">:</span>
+            <span class="n">momentum_3_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">momentum_3_fd</span><span class="p">,</span> <span class="p">(</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+            <span class="n">momentum_3_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ixy...-&gt;yix...&#39;</span><span class="p">,</span> <span class="n">momentum_3_fd</span><span class="p">)</span>
+            <span class="n">m_diff</span> <span class="o">=</span> <span class="n">momentum_3_fd</span><span class="o">-</span><span class="n">momentum_3_d1</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;3 derivative difference:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">m_diff</span><span class="p">))</span>
+            <span class="c1">#if suffix == &#39;angular &#39;:</span>
+            <span class="c1">#    print_matrix(suffix+&#39;3 derivative difference:&#39;, m_diff, nwidth, 1)</span>
+            <span class="c1">#    print_matrix(suffix+&#39;momentum_3_d1:&#39;, momentum_3_d1, nwidth, 1)</span>
+            <span class="c1">#    print_matrix(suffix+&#39;momentum_3_fd:&#39;, momentum_3_fd, nwidth, 1)</span>
+            <span class="n">momentum_3n_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">momentum_3n_fd</span><span class="p">,</span> <span class="p">(</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+            <span class="n">momentum_3n_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ixjy...-&gt;jyix...&#39;</span><span class="p">,</span> <span class="n">momentum_3n_fd</span><span class="p">)</span>
+            <span class="n">m_diff</span> <span class="o">=</span> <span class="n">momentum_3n_fd</span><span class="o">-</span><span class="n">momentum_3n_d1</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;3N derivative difference:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">m_diff</span><span class="p">))</span>
+            <span class="c1">#if suffix == &#39;angular &#39;:</span>
+            <span class="c1">#    print_matrix(suffix+&#39;3N derivative difference:&#39;, m_diff, nwidth, 1)</span>
+            <span class="c1">#    print_matrix(suffix+&#39;momentum_3n_d1:&#39;, momentum_3n_d1, nwidth, 1)</span>
+            <span class="c1">#    print_matrix(suffix+&#39;momentum_3n_fd:&#39;, momentum_3n_fd, nwidth, 1)</span>
+
+            <span class="n">momentum_3_fd2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">momentum_3_fd2</span><span class="p">,</span> <span class="p">(</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+            <span class="n">momentum_3n_fd2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">momentum_3n_fd2</span><span class="p">,</span> <span class="p">(</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">contract</span><span class="p">:</span>
+                <span class="n">momentum_3_fd2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijkpq,pq-&gt;jki&#39;</span><span class="p">,</span> <span class="n">momentum_3_fd2</span><span class="p">,</span> <span class="n">den</span><span class="p">)</span>
+                <span class="n">momentum_3n_fd2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijkpq,pq-&gt;jki&#39;</span><span class="p">,</span> <span class="n">momentum_3n_fd2</span><span class="p">,</span> <span class="n">den</span><span class="p">)</span>
+                <span class="n">momentum_3n_d2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">momentum_3n_d2</span><span class="p">,</span> <span class="p">(</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">))</span>
+                <span class="n">print_matrix</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39; fd2:&#39;</span><span class="p">,</span> <span class="n">momentum_3n_fd2</span><span class="p">,</span> <span class="n">nwidth</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">print_matrix</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39; d2:&#39;</span><span class="p">,</span> <span class="n">momentum_3n_d2</span><span class="p">,</span> <span class="n">nwidth</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">momentum_3_fd2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijkpq-&gt;jkipq&#39;</span><span class="p">,</span> <span class="n">momentum_3_fd2</span><span class="p">)</span>
+                <span class="n">momentum_3n_fd2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijkpq-&gt;jkipq&#39;</span><span class="p">,</span> <span class="n">momentum_3n_fd2</span><span class="p">)</span>
+                <span class="n">momentum_3n_d2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">momentum_3n_d2</span><span class="p">,</span> <span class="p">(</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+
+            <span class="n">m_diff</span> <span class="o">=</span> <span class="n">momentum_3_fd2</span> <span class="o">-</span> <span class="n">momentum_3_d2</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;3 derivative 2 difference:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">m_diff</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">suffix</span> <span class="o">==</span> <span class="s1">&#39;P &#39;</span><span class="p">:</span>
+                <span class="n">print_matrix</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;3 derivative 2 difference:&#39;</span><span class="p">,</span> <span class="n">m_diff</span><span class="p">,</span> <span class="n">nwidth</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">print_matrix</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum_3_d2&#39;</span><span class="p">,</span> <span class="n">momentum_3_d2</span><span class="p">,</span> <span class="n">nwidth</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">print_matrix</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;momentum_3_fd2&#39;</span><span class="p">,</span> <span class="n">momentum_3_fd2</span><span class="p">,</span> <span class="n">nwidth</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+                <span class="c1">#momentum_3_d2 = np.reshape(momentum_3_d2, (3, natoms, 3, natoms, 3, nbas, nbas))</span>
+                <span class="c1">#p_momentum_3n_d1 = np.einsum(&#39;ixjypq-&gt;ixjyqp&#39;, p_momentum_3n_d1) - p_momentum_3n_d1</span>
+                <span class="c1">#for x in range(3):</span>
+                <span class="c1">#    y, z = (x+1) % 3, (x+2) % 3</span>
+                <span class="c1">#    momentum_3_d2[x,:,x,:,y] += p_momentum_3n_d1[:,z,:,x]</span>
+                <span class="c1">#    momentum_3_d2[x,:,x,:,z] -= p_momentum_3n_d1[:,y,:,x]</span>
+
+                <span class="c1">#    momentum_3_d2[x,:,y,:,x] += p_momentum_3n_d1[:,z,:,x]</span>
+                <span class="c1">#    momentum_3_d2[x,:,z,:,x] -= p_momentum_3n_d1[:,y,:,x]</span>
+
+                <span class="c1">#    momentum_3_d2[x,:,y,:,y] += 2.*p_momentum_3n_d1[:,z,:,y]</span>
+                <span class="c1">#    momentum_3_d2[x,:,z,:,z] -= 2.*p_momentum_3n_d1[:,y,:,z]</span>
+
+                <span class="c1">#    momentum_3_d2[x,:,y,:,z] += p_momentum_3n_d1[:,z,:,z]</span>
+                <span class="c1">#    momentum_3_d2[x,:,y,:,z] -= p_momentum_3n_d1[:,y,:,y]</span>
+                <span class="c1">#</span>
+                <span class="c1">#    momentum_3_d2[x,:,z,:,y] += p_momentum_3n_d1[:,z,:,z]</span>
+                <span class="c1">#    momentum_3_d2[x,:,z,:,y] -= p_momentum_3n_d1[:,y,:,y]</span>
+                <span class="c1">#momentum_3_d2 = np.reshape(momentum_3_d2, (3, natoms*3, natoms*3, nbas, nbas))</span>
+                <span class="c1">#print_matrix(suffix+&#39;momentum_3_d2 correct&#39;, momentum_3_d2, nwidth, 1)</span>
+                <span class="c1">#m_diff = momentum_3_fd2 - momentum_3_d2</span>
+                <span class="c1">#print_matrix(suffix+&#39;3 derivative 2 difference correct:&#39;, m_diff, nwidth, 1)</span>
+                <span class="c1">#print(suffix+&#39;3 derivative 2 difference correct:&#39;, np.linalg.norm(m_diff))</span>
+
+            <span class="n">m_diff</span> <span class="o">=</span> <span class="n">momentum_3n_fd2</span> <span class="o">-</span> <span class="n">momentum_3n_d2</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">suffix</span><span class="o">+</span><span class="s1">&#39;3N derivative 2 difference:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">m_diff</span><span class="p">))</span>
+            <span class="c1">#if suffix == &#39;P &#39;:</span>
+            <span class="c1">#    print_matrix(suffix+&#39;3N derivative 2 difference:&#39;, m_diff, nwidth, 1)</span>
+            <span class="c1">#    print_matrix(suffix+&#39;momentum_3n_d2&#39;, momentum_3n_d2, nwidth, 1)</span>
+            <span class="c1">#    print_matrix(suffix+&#39;momentum_3n_fd2&#39;, momentum_3n_fd2, nwidth, 1)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

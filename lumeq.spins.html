@@ -1,0 +1,993 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lumeq.spins package &mdash; lumeq  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lumeq.utils package" href="lumeq.utils.html" />
+    <link rel="prev" title="lumeq.property package" href="lumeq.property.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            lumeq
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="lumeq.html">lumeq package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html">lumeq.dynamics package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.embedding.html">lumeq.embedding package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html">lumeq.opt package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.plot.html">lumeq.plot package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html">lumeq.polariton package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html">lumeq.property package</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">lumeq.spins package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.spins.circuit">lumeq.spins.circuit module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.circuit.beta_layer"><code class="docutils literal notranslate"><span class="pre">beta_layer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.circuit.create_circuit"><code class="docutils literal notranslate"><span class="pre">create_circuit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.circuit.create_qubits_1d"><code class="docutils literal notranslate"><span class="pre">create_qubits_1d()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.circuit.create_qubits_2d"><code class="docutils literal notranslate"><span class="pre">create_qubits_2d()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.circuit.gamma_layer"><code class="docutils literal notranslate"><span class="pre">gamma_layer()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.spins.infinite_mps_block">lumeq.spins.infinite_mps_block module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.infinite_mps_block.apply_gate_on_mps"><code class="docutils literal notranslate"><span class="pre">apply_gate_on_mps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.infinite_mps_block.build_evolution_gate"><code class="docutils literal notranslate"><span class="pre">build_evolution_gate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.infinite_mps_block.contract_from_left"><code class="docutils literal notranslate"><span class="pre">contract_from_left()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.infinite_mps_block.contract_from_right"><code class="docutils literal notranslate"><span class="pre">contract_from_right()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.infinite_mps_block.evaluate_energy_mps"><code class="docutils literal notranslate"><span class="pre">evaluate_energy_mps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.infinite_mps_block.evaluate_energy_rdm"><code class="docutils literal notranslate"><span class="pre">evaluate_energy_rdm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.infinite_mps_block.get_mps_2rdm"><code class="docutils literal notranslate"><span class="pre">get_mps_2rdm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.infinite_mps_block.normalize_mps"><code class="docutils literal notranslate"><span class="pre">normalize_mps()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.infinite_mps_block.normalize_mps_2"><code class="docutils literal notranslate"><span class="pre">normalize_mps_2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.infinite_mps_block.run_tebd"><code class="docutils literal notranslate"><span class="pre">run_tebd()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.infinite_mps_block.update_ortho_mps"><code class="docutils literal notranslate"><span class="pre">update_ortho_mps()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.spins.matrix_product_state">lumeq.spins.matrix_product_state module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.matrix_product_state.dmrg_opt_gs"><code class="docutils literal notranslate"><span class="pre">dmrg_opt_gs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.matrix_product_state.dmrg_sweep"><code class="docutils literal notranslate"><span class="pre">dmrg_sweep()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.matrix_product_state.get_hamil_from_mpo"><code class="docutils literal notranslate"><span class="pre">get_hamil_from_mpo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.matrix_product_state.mpo_hamil_disordered"><code class="docutils literal notranslate"><span class="pre">mpo_hamil_disordered()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.matrix_product_state.mpo_hamil_uniform"><code class="docutils literal notranslate"><span class="pre">mpo_hamil_uniform()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.matrix_product_state.mpo_spin_correlation"><code class="docutils literal notranslate"><span class="pre">mpo_spin_correlation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.matrix_product_state.mps_canonical"><code class="docutils literal notranslate"><span class="pre">mps_canonical()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.matrix_product_state.mps_canonical_left"><code class="docutils literal notranslate"><span class="pre">mps_canonical_left()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.matrix_product_state.mps_canonical_right"><code class="docutils literal notranslate"><span class="pre">mps_canonical_right()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.matrix_product_state.zipper_from_left"><code class="docutils literal notranslate"><span class="pre">zipper_from_left()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.matrix_product_state.zipper_from_right"><code class="docutils literal notranslate"><span class="pre">zipper_from_right()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.spins.qaoa">lumeq.spins.qaoa module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.qaoa.QAOA"><code class="docutils literal notranslate"><span class="pre">QAOA</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.qaoa.QAOA_Ising"><code class="docutils literal notranslate"><span class="pre">QAOA_Ising</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.spins.spin_hamil">lumeq.spins.spin_hamil module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.spin_hamil.get_prod_spin_list"><code class="docutils literal notranslate"><span class="pre">get_prod_spin_list()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.spin_hamil.get_spin"><code class="docutils literal notranslate"><span class="pre">get_spin()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.spin_hamil.get_spin_mat"><code class="docutils literal notranslate"><span class="pre">get_spin_mat()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.spin_hamil.get_spins"><code class="docutils literal notranslate"><span class="pre">get_spins()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.spin_hamil.hamil_heisenberg_1d"><code class="docutils literal notranslate"><span class="pre">hamil_heisenberg_1d()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.spin_hamil.hamil_x_1d"><code class="docutils literal notranslate"><span class="pre">hamil_x_1d()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.spin_hamil.hamil_xxz_1d"><code class="docutils literal notranslate"><span class="pre">hamil_xxz_1d()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.spin_hamil.hamil_xyz_1d"><code class="docutils literal notranslate"><span class="pre">hamil_xyz_1d()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.spins.spin_hamil.hamil_zeeman_1d"><code class="docutils literal notranslate"><span class="pre">hamil_zeeman_1d()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.spins">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html">lumeq.utils package</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lumeq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="lumeq.html">lumeq package</a></li>
+      <li class="breadcrumb-item active">lumeq.spins package</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/Zheng-Pei-c/lumeq/edit/main/docs/lumeq.spins.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="lumeq-spins-package">
+<h1>lumeq.spins package<a class="headerlink" href="#lumeq-spins-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-lumeq.spins.circuit">
+<span id="lumeq-spins-circuit-module"></span><h2>lumeq.spins.circuit module<a class="headerlink" href="#module-lumeq.spins.circuit" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.circuit.beta_layer">
+<span class="sig-name descname"><span class="pre">beta_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/circuit.html#beta_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.circuit.beta_layer" title="Link to this definition"></a></dt>
+<dd><p>Define the beta layer of the circuit for mixer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qubits</strong> – Cirq qubit objects.</p></li>
+<li><p><strong>beta</strong> – Rotation angle of the initial Hamiltonian <code class="docutils literal notranslate"><span class="pre">sum_i</span> <span class="pre">X_i</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Rotation-gate operations.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>iterable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.circuit.create_circuit">
+<span class="sig-name descname"><span class="pre">create_circuit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nlayers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/circuit.html#create_circuit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.circuit.create_circuit" title="Link to this definition"></a></dt>
+<dd><p>Create a quantum circuit with Hadamard gates on each qubit for
+equal superposition as real initial state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qubits</strong> – Qubit container.</p></li>
+<li><p><strong>gamma</strong> – Symbol or value used for the <code class="docutils literal notranslate"><span class="pre">U(gamma,</span> <span class="pre">C)</span></code> operator.</p></li>
+<li><p><strong>beta</strong> – Symbol or value used for the <code class="docutils literal notranslate"><span class="pre">U(beta,</span> <span class="pre">B)</span></code> operator.</p></li>
+<li><p><strong>nlayers</strong> (<em>int</em>) – Number of circuit layers.</p></li>
+<li><p><strong>**kwargs</strong> – Additional parameters such as coupling strengths and magnetic fields.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Constructed circuit.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>cirq.Circuit</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.circuit.create_qubits_1d">
+<span class="sig-name descname"><span class="pre">create_qubits_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nsite</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/circuit.html#create_qubits_1d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.circuit.create_qubits_1d" title="Link to this definition"></a></dt>
+<dd><p>Initialize qubits in a 1D array.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.circuit.create_qubits_2d">
+<span class="sig-name descname"><span class="pre">create_qubits_2d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nrow</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ncol</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/circuit.html#create_qubits_2d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.circuit.create_qubits_2d" title="Link to this definition"></a></dt>
+<dd><p>Initialize qubits in a 2D grid.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.circuit.gamma_layer">
+<span class="sig-name descname"><span class="pre">gamma_layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">qubits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">js</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/circuit.html#gamma_layer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.circuit.gamma_layer" title="Link to this definition"></a></dt>
+<dd><p>Define the gamma layer of the circuit with cost Hamiltonian.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>qubits</strong> – Cirq qubit objects.</p></li>
+<li><p><strong>gamma</strong> – Rotation angle of the target Hamiltonian.</p></li>
+<li><p><strong>js</strong> – Coupling constants between qubits.</p></li>
+<li><p><strong>hs</strong> – Magnetic-field constants.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Rotation-gate operations.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>iterable</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-lumeq.spins.infinite_mps_block">
+<span id="lumeq-spins-infinite-mps-block-module"></span><h2>lumeq.spins.infinite_mps_block module<a class="headerlink" href="#module-lumeq.spins.infinite_mps_block" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.infinite_mps_block.apply_gate_on_mps">
+<span class="sig-name descname"><span class="pre">apply_gate_on_mps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gate_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ba</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-07</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/infinite_mps_block.html#apply_gate_on_mps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.infinite_mps_block.apply_gate_on_mps" title="Link to this definition"></a></dt>
+<dd><p>Apply a two-site evolution gate to the AB MPS tensors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gate_ab</strong> (<em>numpy.ndarray</em>) – Two-site gate on the AB pattern.</p></li>
+<li><p><strong>s_ab</strong> (<em>numpy.ndarray</em>) – Bond weights from site A to site B.</p></li>
+<li><p><strong>s_ba</strong> (<em>numpy.ndarray</em>) – Bond weights from site B to site A.</p></li>
+<li><p><strong>mps_a</strong> (<em>numpy.ndarray</em>) – MPS tensor on site A.</p></li>
+<li><p><strong>mps_b</strong> (<em>numpy.ndarray</em>) – MPS tensor on site B.</p></li>
+<li><p><strong>chi</strong> (<em>int</em>) – Maximum retained bond dimension after truncation.</p></li>
+<li><p><strong>tol</strong> (<em>float</em>) – Lower bound used when inverting small singular values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated <code class="docutils literal notranslate"><span class="pre">(s_ab,</span> <span class="pre">mps_a,</span> <span class="pre">mps_b)</span></code> after applying the gate.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.infinite_mps_block.build_evolution_gate">
+<span class="sig-name descname"><span class="pre">build_evolution_gate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ham</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'imag'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/infinite_mps_block.html#build_evolution_gate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.infinite_mps_block.build_evolution_gate" title="Link to this definition"></a></dt>
+<dd><p>Build evolution gate from given Hamiltonian</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ham</strong> (<em>numpy.ndarray</em>) – Hamiltonian matrix.</p></li>
+<li><p><strong>tau</strong> (<em>float</em>) – Time-evolution step.</p></li>
+<li><p><strong>itype</strong> (<em>str</em>) – Evolution type. Use <code class="docutils literal notranslate"><span class="pre">'imag'</span></code> for imaginary-time
+evolution and <code class="docutils literal notranslate"><span class="pre">'real'</span></code> for real-time evolution.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Matrix exponential of the evolution operator.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.infinite_mps_block.contract_from_left">
+<span class="sig-name descname"><span class="pre">contract_from_left</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mu_ba</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ba</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pick_eig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'LM'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/infinite_mps_block.html#contract_from_left"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.infinite_mps_block.contract_from_left" title="Link to this definition"></a></dt>
+<dd><p>Update the left environment density matrix for a two-site unit cell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mu_ba</strong> (<em>numpy.ndarray</em>) – Left environment density matrix on the BA bond.</p></li>
+<li><p><strong>s_ab</strong> (<em>numpy.ndarray</em>) – Bond weights from site A to site B.</p></li>
+<li><p><strong>s_ba</strong> (<em>numpy.ndarray</em>) – Bond weights from site B to site A.</p></li>
+<li><p><strong>mps_a</strong> (<em>numpy.ndarray</em>) – MPS tensor on site A.</p></li>
+<li><p><strong>mps_b</strong> (<em>numpy.ndarray</em>) – MPS tensor on site B.</p></li>
+<li><p><strong>pick_eig</strong> (<em>str</em>) – Eigenvalue selection mode passed to <code class="docutils literal notranslate"><span class="pre">eigsh</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated <code class="docutils literal notranslate"><span class="pre">(mu_ba,</span> <span class="pre">mu_ab)</span></code> density matrices.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.infinite_mps_block.contract_from_right">
+<span class="sig-name descname"><span class="pre">contract_from_right</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nu_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ba</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pick_eig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'LM'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/infinite_mps_block.html#contract_from_right"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.infinite_mps_block.contract_from_right" title="Link to this definition"></a></dt>
+<dd><p>Update the right environment density matrix for a two-site unit cell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nu_ab</strong> (<em>numpy.ndarray</em>) – Right environment density matrix on the AB bond.</p></li>
+<li><p><strong>s_ab</strong> (<em>numpy.ndarray</em>) – Bond weights from site A to site B.</p></li>
+<li><p><strong>s_ba</strong> (<em>numpy.ndarray</em>) – Bond weights from site B to site A.</p></li>
+<li><p><strong>mps_a</strong> (<em>numpy.ndarray</em>) – MPS tensor on site A.</p></li>
+<li><p><strong>mps_b</strong> (<em>numpy.ndarray</em>) – MPS tensor on site B.</p></li>
+<li><p><strong>pick_eig</strong> (<em>str</em>) – Eigenvalue selection mode passed to <code class="docutils literal notranslate"><span class="pre">eigsh</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated <code class="docutils literal notranslate"><span class="pre">(nu_ab,</span> <span class="pre">nu_ba)</span></code> density matrices.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.infinite_mps_block.evaluate_energy_mps">
+<span class="sig-name descname"><span class="pre">evaluate_energy_mps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mpo_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpo_ba</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ba</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/infinite_mps_block.html#evaluate_energy_mps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.infinite_mps_block.evaluate_energy_mps" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the average two-site energy directly from the MPS tensors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mpo_ab</strong> (<em>numpy.ndarray</em>) – MPO tensor for the AB pattern.</p></li>
+<li><p><strong>mpo_ba</strong> (<em>numpy.ndarray</em>) – MPO tensor for the BA pattern.</p></li>
+<li><p><strong>s_ab</strong> (<em>numpy.ndarray</em>) – Bond weights from site A to site B.</p></li>
+<li><p><strong>s_ba</strong> (<em>numpy.ndarray</em>) – Bond weights from site B to site A.</p></li>
+<li><p><strong>mps_a</strong> (<em>numpy.ndarray</em>) – MPS tensor on site A.</p></li>
+<li><p><strong>mps_b</strong> (<em>numpy.ndarray</em>) – MPS tensor on site B.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Average of the AB and BA energies.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.infinite_mps_block.evaluate_energy_rdm">
+<span class="sig-name descname"><span class="pre">evaluate_energy_rdm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mpo_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mpo_ba</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_ba</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/infinite_mps_block.html#evaluate_energy_rdm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.infinite_mps_block.evaluate_energy_rdm" title="Link to this definition"></a></dt>
+<dd><p>Get energy of the two sites A and B
+using the density matrix from get_mps_2rdm function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mpo_ab</strong> (<em>matrix product operators</em><em> (</em><em>MPO</em><em>) of </em><em>AB and BA</em>)</p></li>
+<li><p><strong>mpo_ba</strong> (<em>matrix product operators</em><em> (</em><em>MPO</em><em>) of </em><em>AB and BA</em>)</p></li>
+<li><p><strong>rho_ab</strong> (<em>density matrix</em><em> of </em><em>AB and BA</em>)</p></li>
+<li><p><strong>rho_ba</strong> (<em>density matrix</em><em> of </em><em>AB and BA</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>averaged energy of AB and BA</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.infinite_mps_block.get_mps_2rdm">
+<span class="sig-name descname"><span class="pre">get_mps_2rdm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ba</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/infinite_mps_block.html#get_mps_2rdm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.infinite_mps_block.get_mps_2rdm" title="Link to this definition"></a></dt>
+<dd><p>Build the two-site reduced density matrices for the unit cell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>s_ab</strong> (<em>numpy.ndarray</em>) – Bond weights from site A to site B.</p></li>
+<li><p><strong>s_ba</strong> (<em>numpy.ndarray</em>) – Bond weights from site B to site A.</p></li>
+<li><p><strong>mps_a</strong> (<em>numpy.ndarray</em>) – MPS tensor on site A.</p></li>
+<li><p><strong>mps_b</strong> (<em>numpy.ndarray</em>) – MPS tensor on site B.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Reduced density matrices <code class="docutils literal notranslate"><span class="pre">(rho_ab,</span> <span class="pre">rho_ba)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.infinite_mps_block.normalize_mps">
+<span class="sig-name descname"><span class="pre">normalize_mps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s_left</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_right</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/infinite_mps_block.html#normalize_mps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.infinite_mps_block.normalize_mps" title="Link to this definition"></a></dt>
+<dd><p>Normalize a single-site MPS tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>s_left</strong> (<em>numpy.ndarray</em>) – Left bond weights.</p></li>
+<li><p><strong>s_right</strong> (<em>numpy.ndarray</em>) – Right bond weights.</p></li>
+<li><p><strong>mps</strong> (<em>numpy.ndarray</em>) – MPS tensor to normalize.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Normalized MPS tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.infinite_mps_block.normalize_mps_2">
+<span class="sig-name descname"><span class="pre">normalize_mps_2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ba</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/infinite_mps_block.html#normalize_mps_2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.infinite_mps_block.normalize_mps_2" title="Link to this definition"></a></dt>
+<dd><p>Normalize both site tensors in a two-site unit cell.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>s_ab</strong> (<em>numpy.ndarray</em>) – Bond weights from site A to site B.</p></li>
+<li><p><strong>s_ba</strong> (<em>numpy.ndarray</em>) – Bond weights from site B to site A.</p></li>
+<li><p><strong>mps_a</strong> (<em>numpy.ndarray</em>) – MPS tensor on site A.</p></li>
+<li><p><strong>mps_b</strong> (<em>numpy.ndarray</em>) – MPS tensor on site B.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Normalized <code class="docutils literal notranslate"><span class="pre">(mps_a,</span> <span class="pre">mps_b)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.infinite_mps_block.run_tebd">
+<span class="sig-name descname"><span class="pre">run_tebd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ham_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ham_ba</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ab</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s_ba</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_ba</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nu_ab</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tau</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'imag'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">midstep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/infinite_mps_block.html#run_tebd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.infinite_mps_block.run_tebd" title="Link to this definition"></a></dt>
+<dd><p>Run TEBD for an infinite two-site unit-cell MPS.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.infinite_mps_block.update_ortho_mps">
+<span class="sig-name descname"><span class="pre">update_ortho_mps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho_left</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_right</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_left</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps_right</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/infinite_mps_block.html#update_ortho_mps"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.infinite_mps_block.update_ortho_mps" title="Link to this definition"></a></dt>
+<dd><p>Bring the two-site MPS linker into canonical form.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rho_left</strong> (<em>numpy.ndarray</em>) – Left environment density matrix.</p></li>
+<li><p><strong>rho_right</strong> (<em>numpy.ndarray</em>) – Right environment density matrix.</p></li>
+<li><p><strong>weight</strong> (<em>numpy.ndarray</em>) – Bond weights between the two sites.</p></li>
+<li><p><strong>mps_left</strong> (<em>numpy.ndarray</em>) – Left MPS tensor.</p></li>
+<li><p><strong>mps_right</strong> (<em>numpy.ndarray</em>) – Right MPS tensor.</p></li>
+<li><p><strong>tol</strong> (<em>float</em>) – Eigenvalue cutoff for the environment density matrices.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated <code class="docutils literal notranslate"><span class="pre">(weight,</span> <span class="pre">mps_left,</span> <span class="pre">mps_right)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-lumeq.spins.matrix_product_state">
+<span id="lumeq-spins-matrix-product-state-module"></span><h2>lumeq.spins.matrix_product_state module<a class="headerlink" href="#module-lumeq.spins.matrix_product_state" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.matrix_product_state.dmrg_opt_gs">
+<span class="sig-name descname"><span class="pre">dmrg_opt_gs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h_mpo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Tzip</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbond</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pick_eig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SA'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/matrix_product_state.html#dmrg_opt_gs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.matrix_product_state.dmrg_opt_gs" title="Link to this definition"></a></dt>
+<dd><p>DMRG algorithm for ground-state optimization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>h_mpo</strong> (<em>list</em>) – MPO Hamiltonian.</p></li>
+<li><p><strong>mps</strong> (<em>list</em><em>, </em><em>optional</em>) – Initial MPS.</p></li>
+<li><p><strong>Tzip</strong> (<em>list</em><em>, </em><em>optional</em>) – Initial zipper tensors.</p></li>
+<li><p><strong>nbond</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of virtual bonds between neighboring MPS sites.</p></li>
+<li><p><strong>pick_eig</strong> (<em>str</em><em>, </em><em>optional</em>) – Method used to pick eigenvalues.</p></li>
+<li><p><strong>nmax</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of DMRG sweep loops.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Site energies and optimized MPS.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.matrix_product_state.dmrg_sweep">
+<span class="sig-name descname"><span class="pre">dmrg_sweep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h_mpo</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Tzip</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pick_eig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SA'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/matrix_product_state.html#dmrg_sweep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.matrix_product_state.dmrg_sweep" title="Link to this definition"></a></dt>
+<dd><p>Perform one two-way DMRG sweep over the MPS chain.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>h_mpo</strong> (<em>list</em>) – MPO Hamiltonian of the system.</p></li>
+<li><p><strong>mps</strong> (<em>list</em>) – Current MPS tensors.</p></li>
+<li><p><strong>Tzip</strong> (<em>list</em>) – Zipper tensors used to contract the MPS with the MPO.</p></li>
+<li><p><strong>pick_eig</strong> (<em>str</em>) – Eigenvalue selection mode passed to <code class="docutils literal notranslate"><span class="pre">eigsh</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Site energies, updated MPS tensors, and updated zipper tensors.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p><code class="docutils literal notranslate"><span class="pre">Tzip</span></code> is supplied as the right zipper with indices ordered from top
+to bottom so the routine can continue with a full left-to-right sweep
+followed by a full right-to-left sweep. The zipper contraction pattern
+for a local update is:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>|             |             |
+3-l           3-m           1-n
+|             |             |
+T---2-*p*-1---O---2-*q*-2---T
+|             |             |
+1-i           4-j           3-k
+|             |             |
+</pre></div>
+</div>
+<p>The routine performs one full sweep:</p>
+<ol class="arabic simple">
+<li><p>left-to-right update of the local MPS tensors,</p></li>
+<li><p>right-to-left update of the local MPS tensors,</p></li>
+<li><p>zipper refresh at each site.</p></li>
+</ol>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.matrix_product_state.get_hamil_from_mpo">
+<span class="sig-name descname"><span class="pre">get_hamil_from_mpo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">h_mpo</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/matrix_product_state.html#get_hamil_from_mpo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.matrix_product_state.get_hamil_from_mpo" title="Link to this definition"></a></dt>
+<dd><p>Build the Hamiltonian in Hilbert space using the MPOs</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>h_mpo</strong> (<em>list</em>) – MPO Hamiltonian.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Actual Hamiltonian matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.matrix_product_state.mpo_hamil_disordered">
+<span class="sig-name descname"><span class="pre">mpo_hamil_disordered</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nsite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/matrix_product_state.html#mpo_hamil_disordered"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.matrix_product_state.mpo_hamil_disordered" title="Link to this definition"></a></dt>
+<dd><p>Construct MPO Hamiltonian at all the site with disordered parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>MPO Hamiltonian.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.matrix_product_state.mpo_hamil_uniform">
+<span class="sig-name descname"><span class="pre">mpo_hamil_uniform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nsite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Hl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/matrix_product_state.html#mpo_hamil_uniform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.matrix_product_state.mpo_hamil_uniform" title="Link to this definition"></a></dt>
+<dd><p>Construct uniform MPO Hamiltonian at all the site</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>MPO Hamiltonian.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.matrix_product_state.mpo_spin_correlation">
+<span class="sig-name descname"><span class="pre">mpo_spin_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/matrix_product_state.html#mpo_spin_correlation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.matrix_product_state.mpo_spin_correlation" title="Link to this definition"></a></dt>
+<dd><p>Evaluate spin correlation function from MPS
+expval{sigma_{l}^{+} sigma_{l+1}^{-}}</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mps</strong> (<em>list</em>) – MPS tensors at the sites.</p></li>
+<li><p><strong>sigma</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Pauli spin matrices.</p></li>
+<li><p><strong>ns</strong> (<em>int</em><em> or </em><em>iterable</em><em>, </em><em>optional</em>) – Sites on which the spin correlation is calculated.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Spin-correlation values between sites <code class="docutils literal notranslate"><span class="pre">ns</span></code> and <code class="docutils literal notranslate"><span class="pre">ns+1</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.matrix_product_state.mps_canonical">
+<span class="sig-name descname"><span class="pre">mps_canonical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ndims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nsite</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'both'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/matrix_product_state.html#mps_canonical"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.matrix_product_state.mps_canonical" title="Link to this definition"></a></dt>
+<dd><p>Create a random MPS in canonical form.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ndims</strong> (<em>array-like</em>) – Leg dimensions <code class="docutils literal notranslate"><span class="pre">[nd,</span> <span class="pre">ns,</span> <span class="pre">nd]</span></code> in the order
+<code class="docutils literal notranslate"><span class="pre">[left,</span> <span class="pre">bottom,</span> <span class="pre">right]</span></code>. The first and third values should be the same.</p></li>
+<li><p><strong>nsite</strong> (<em>int</em><em> or </em><em>tuple</em>) – Number of sites in the system.</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – Random seed for reproducibility.</p></li>
+<li><p><strong>normalize</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Normalization mode. Supported values are
+<code class="docutils literal notranslate"><span class="pre">1</span></code> or <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code> or <code class="docutils literal notranslate"><span class="pre">'right'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'both'</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Generated matrix product state (MPS).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The bra MPS uses leg order <code class="docutils literal notranslate"><span class="pre">[left,</span> <span class="pre">bottom,</span> <span class="pre">right]</span></code>. The ket MPS is
+its transpose with legs ordered as <code class="docutils literal notranslate"><span class="pre">[right,</span> <span class="pre">top,</span> <span class="pre">left]</span></code>. The left
+and right legs are virtual bonds to be contracted with adjacent MPS
+tensors, while the bottom or top legs are physical bonds to be
+contracted with the MPO.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>---1---Mt---3---
+       |
+       2
+       |
+                             |
+                             2
+                             |
+                      ---3---Mb---1---
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.matrix_product_state.mps_canonical_left">
+<span class="sig-name descname"><span class="pre">mps_canonical_left</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/matrix_product_state.html#mps_canonical_left"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.matrix_product_state.mps_canonical_left" title="Link to this definition"></a></dt>
+<dd><p>Normalize MPS matrices from the left
+treat the first two dimensions as a vector to reduce the right leg numbers
+M1 * M2 = U*s*V^T * M2 = U * (s*V^T*M2)
+such that M1 is replaced by a smaller U</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.matrix_product_state.mps_canonical_right">
+<span class="sig-name descname"><span class="pre">mps_canonical_right</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mps</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/matrix_product_state.html#mps_canonical_right"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.matrix_product_state.mps_canonical_right" title="Link to this definition"></a></dt>
+<dd><p>Normalize MPS matrices from the right
+treat the last two dimensions as a vector to reduce the left leg numbers
+M1 * M2 = M1 * U*s*V^T = (M1*U*s) * V^T
+such that M2 is replaced by a smaller V^T</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.matrix_product_state.zipper_from_left">
+<span class="sig-name descname"><span class="pre">zipper_from_left</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">O</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Mb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Tl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[[1.]]])</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/matrix_product_state.html#zipper_from_left"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.matrix_product_state.zipper_from_left" title="Link to this definition"></a></dt>
+<dd><p>Contract one MPS/MPO site into the left zipper tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Mt</strong> (<em>numpy.ndarray</em>) – Bra-side MPS tensor.</p></li>
+<li><p><strong>O</strong> (<em>numpy.ndarray</em>) – MPO tensor at the current site.</p></li>
+<li><p><strong>Mb</strong> (<em>numpy.ndarray</em>) – Ket-side MPS tensor.</p></li>
+<li><p><strong>Tl</strong> (<em>numpy.ndarray</em>) – Current left zipper tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated left zipper tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p><code class="docutils literal notranslate"><span class="pre">Tl</span></code> is ordered from bottom to top. The contraction attaches the bra
+tensor Mt at top, MPO tensor O at middle,
+and ket tensor Mb at bottom to the current left zipper:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>/---3---*q*---1---Mt---3-k--
+|                 |
+|                 2
+|                 |
+|                 *l
+|                 |
+|                 3              /---3-k--
+|                 |              |
+Tl--2---*p*---1---O----2-j-- =   Tf--2-j--
+|                 |              |
+|                 4              \---1-i--
+|                 |
+|                 *m
+|                 |
+|                 2
+|                 |
+\---1---*n*---3---Mb---1-i---
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.matrix_product_state.zipper_from_right">
+<span class="sig-name descname"><span class="pre">zipper_from_right</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Mt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">O</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Mb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Tr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[[1.]]])</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/matrix_product_state.html#zipper_from_right"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.matrix_product_state.zipper_from_right" title="Link to this definition"></a></dt>
+<dd><p>Contract one MPS/MPO site into the right zipper tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Mt</strong> (<em>numpy.ndarray</em>) – Bra-side MPS tensor.</p></li>
+<li><p><strong>O</strong> (<em>numpy.ndarray</em>) – MPO tensor at the current site.</p></li>
+<li><p><strong>Mb</strong> (<em>numpy.ndarray</em>) – Ket-side MPS tensor.</p></li>
+<li><p><strong>Tr</strong> (<em>numpy.ndarray</em>) – Current right zipper tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated right zipper tensor.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p><code class="docutils literal notranslate"><span class="pre">Tr</span></code> is ordered from top to bottom. This is the right-to-left analog
+of <a class="reference internal" href="#lumeq.spins.matrix_product_state.zipper_from_left" title="lumeq.spins.matrix_product_state.zipper_from_left"><code class="xref py py-func docutils literal notranslate"><span class="pre">zipper_from_left()</span></code></a>.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>--i-1---Mt---3---*q*---1---\
+        |                  |
+        2                  |
+        |                  |
+        *l                 |
+        |                  |
+        3                  |      --1-i--\
+        |                  |             |
+--j-1---O----2---*p*---2---Tr =   --2-j--Tf
+        |                  |             |
+        4                  |      --3-k--/
+        |                  |
+        *m                 |
+        |                  |
+        2                  |
+        |                  |
+--k-3---Mb---1---*n*---3---/
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+<section id="module-lumeq.spins.qaoa">
+<span id="lumeq-spins-qaoa-module"></span><h2>lumeq.spins.qaoa module<a class="headerlink" href="#module-lumeq.spins.qaoa" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="lumeq.spins.qaoa.QAOA">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">QAOA</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nsite</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/qaoa.html#QAOA"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.qaoa.QAOA" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base class for Quantum Approximate Optimization Algorithm models.</p>
+<p class="rubric">Notes</p>
+<p>The variational state has the form
+<code class="docutils literal notranslate"><span class="pre">prod_k</span> <span class="pre">U(beta_k,</span> <span class="pre">B)</span> <span class="pre">U(gamma_k,</span> <span class="pre">C)</span> <span class="pre">|s&gt;</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">|s&gt;</span></code> is the equal-superposition initial state.</p>
+<p><code class="docutils literal notranslate"><span class="pre">U(gamma,</span> <span class="pre">C)</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">*</span> <span class="pre">gamma</span> <span class="pre">*</span> <span class="pre">C)</span></code> is the problem-Hamiltonian
+evolution and <code class="docutils literal notranslate"><span class="pre">U(beta,</span> <span class="pre">B)</span> <span class="pre">=</span> <span class="pre">exp(-i</span> <span class="pre">*</span> <span class="pre">beta</span> <span class="pre">*</span> <span class="pre">B)</span></code> is the mixer
+evolution.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="lumeq.spins.qaoa.QAOA.draw_circuit">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">draw_circuit</span></span><a class="headerlink" href="#lumeq.spins.qaoa.QAOA.draw_circuit" title="Link to this definition"></a></dt>
+<dd><p>Draw the quantum circuit.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.spins.qaoa.QAOA.energy_evaluation">
+<span class="sig-name descname"><span class="pre">energy_evaluation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/qaoa.html#QAOA.energy_evaluation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.qaoa.QAOA.energy_evaluation" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the energy expectation value for given gamma and beta on circuit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gamma</strong> (<em>float</em>) – Rotation angle of the target Hamiltonian.</p></li>
+<li><p><strong>beta</strong> (<em>float</em>) – Rotation angle of the initial Hamiltonian.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Energy expectation value of the simulated wavefunction.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.spins.qaoa.QAOA.energy_expectation">
+<span class="sig-name descname"><span class="pre">energy_expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/qaoa.html#QAOA.energy_expectation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.qaoa.QAOA.energy_expectation" title="Link to this definition"></a></dt>
+<dd><p>Calculate the energy expectation value for a given wavefunction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wf</strong> (<em>numpy.ndarray</em>) – Wavefunction array of size <code class="docutils literal notranslate"><span class="pre">2**(nrow*ncol)</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.spins.qaoa.QAOA.fd_gradient_evaluation">
+<span class="sig-name descname"><span class="pre">fd_gradient_evaluation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/qaoa.html#QAOA.fd_gradient_evaluation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.qaoa.QAOA.fd_gradient_evaluation" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.spins.qaoa.QAOA.optimizer">
+<span class="sig-name descname"><span class="pre">optimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">gamma</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_steps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">150</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thresh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/qaoa.html#QAOA.optimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.qaoa.QAOA.optimizer" title="Link to this definition"></a></dt>
+<dd><p>Optimize rotation angles</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>gamma</strong> (<em>float</em>) – Rotation angle for the target Hamiltonian.</p></li>
+<li><p><strong>beta</strong> (<em>float</em>) – Rotation angle for the initial Hamiltonian.</p></li>
+<li><p><strong>eps</strong> (<em>float</em>) – Finite-difference step size.</p></li>
+<li><p><strong>max_steps</strong> (<em>int</em>) – Maximum number of optimization steps.</p></li>
+<li><p><strong>thresh</strong> (<em>float</em>) – Convergence threshold for the energy.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Optimized <code class="docutils literal notranslate"><span class="pre">(gamma,</span> <span class="pre">beta,</span> <span class="pre">energy)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.spins.qaoa.QAOA.resolve_circuit_params">
+<span class="sig-name descname"><span class="pre">resolve_circuit_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/qaoa.html#QAOA.resolve_circuit_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.qaoa.QAOA.resolve_circuit_params" title="Link to this definition"></a></dt>
+<dd><p>Define the circuit parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> – Circuit parameters such as <code class="docutils literal notranslate"><span class="pre">gamma</span></code>, <code class="docutils literal notranslate"><span class="pre">beta</span></code>, and <code class="docutils literal notranslate"><span class="pre">nlayers</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lumeq.spins.qaoa.QAOA_Ising">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">QAOA_Ising</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nsite</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/qaoa.html#QAOA_Ising"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.qaoa.QAOA_Ising" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lumeq.spins.qaoa.QAOA" title="lumeq.spins.qaoa.QAOA"><code class="xref py py-class docutils literal notranslate"><span class="pre">QAOA</span></code></a></p>
+<p><cite>E = - sum_{ij} sigma_i sigma_j - h_i sigma_i</cite>
+h is the magnetic field on each spin</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.spins.qaoa.QAOA_Ising.energy_expectation">
+<span class="sig-name descname"><span class="pre">energy_expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">wf</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/qaoa.html#QAOA_Ising.energy_expectation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.qaoa.QAOA_Ising.energy_expectation" title="Link to this definition"></a></dt>
+<dd><p>Calculate the energy expectation value for a given wavefunction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>wf</strong> (<em>numpy.ndarray</em>) – Wavefunction array of size <code class="docutils literal notranslate"><span class="pre">2**(nrow*ncol)</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.spins.qaoa.QAOA_Ising.resolve_circuit_params">
+<span class="sig-name descname"><span class="pre">resolve_circuit_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/qaoa.html#QAOA_Ising.resolve_circuit_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.qaoa.QAOA_Ising.resolve_circuit_params" title="Link to this definition"></a></dt>
+<dd><p>Define the circuit parameters for Ising model.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-lumeq.spins.spin_hamil">
+<span id="lumeq-spins-spin-hamil-module"></span><h2>lumeq.spins.spin_hamil module<a class="headerlink" href="#module-lumeq.spins.spin_hamil" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.spin_hamil.get_prod_spin_list">
+<span class="sig-name descname"><span class="pre">get_prod_spin_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">np_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/spin_hamil.html#get_prod_spin_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.spin_hamil.get_prod_spin_list" title="Link to this definition"></a></dt>
+<dd><p>Build spin operators acting on each site in the full Hilbert space.</p>
+<p class="rubric">Notes</p>
+<p>This constructs the actual <code class="docutils literal notranslate"><span class="pre">sigma_{i,x}</span></code> operators by looping over
+the <code class="docutils literal notranslate"><span class="pre">n</span></code> spins, placing the requested spin matrix on site <code class="docutils literal notranslate"><span class="pre">i</span></code> and
+identity operators on all other sites. The returned <code class="docutils literal notranslate"><span class="pre">n</span> <span class="pre">*</span> <span class="pre">d</span></code> matrices
+form Hilbert-space operators or a basis in the full product space.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.spin_hamil.get_spin">
+<span class="sig-name descname"><span class="pre">get_spin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/spin_hamil.html#get_spin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.spin_hamil.get_spin" title="Link to this definition"></a></dt>
+<dd><p>spin matrices from qutip package</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.spin_hamil.get_spin_mat">
+<span class="sig-name descname"><span class="pre">get_spin_mat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/spin_hamil.html#get_spin_mat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.spin_hamil.get_spin_mat" title="Link to this definition"></a></dt>
+<dd><p>reload get_spin() but return numpy matrix by qutip full() function</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.spin_hamil.get_spins">
+<span class="sig-name descname"><span class="pre">get_spins</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">np_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/spin_hamil.html#get_spins"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.spin_hamil.get_spins" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.spin_hamil.hamil_heisenberg_1d">
+<span class="sig-name descname"><span class="pre">hamil_heisenberg_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">np_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'open'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/spin_hamil.html#hamil_heisenberg_1d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.spin_hamil.hamil_heisenberg_1d" title="Link to this definition"></a></dt>
+<dd><p>Build the 1D Heisenberg Hamiltonian in the full Hilbert space.</p>
+<p class="rubric">Notes</p>
+<p>The Hamiltonian is</p>
+<p><code class="docutils literal notranslate"><span class="pre">H</span> <span class="pre">=</span> <span class="pre">sum_i</span> <span class="pre">(j_{i,x}</span> <span class="pre">sigma_{i,x}</span> <span class="pre">sigma_{i+1,x}</span>
+<span class="pre">+</span> <span class="pre">j_{i,y}</span> <span class="pre">sigma_{i,y}</span> <span class="pre">sigma_{i+1,y}</span>
+<span class="pre">+</span> <span class="pre">j_{i,z}</span> <span class="pre">sigma_{i,z}</span> <span class="pre">sigma_{i+1,z})</span>
+<span class="pre">+</span> <span class="pre">sum_i</span> <span class="pre">h_{z,i}</span> <span class="pre">sigma_{i,z}</span></code>.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">j_x</span> <span class="pre">=</span> <span class="pre">j_y</span></code>, the transverse part can be rewritten as
+<code class="docutils literal notranslate"><span class="pre">sigma_x</span> <span class="pre">sigma_x</span> <span class="pre">+</span> <span class="pre">sigma_y</span> <span class="pre">sigma_y</span>
+<span class="pre">=</span> <span class="pre">0.5</span> <span class="pre">*</span> <span class="pre">(sigma_p</span> <span class="pre">sigma_m</span> <span class="pre">+</span> <span class="pre">sigma_m</span> <span class="pre">sigma_p)</span></code>,
+which makes it convenient to use ladder operators and keep the matrices
+real.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.spin_hamil.hamil_x_1d">
+<span class="sig-name descname"><span class="pre">hamil_x_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">np_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'x'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'open'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/spin_hamil.html#hamil_x_1d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.spin_hamil.hamil_x_1d" title="Link to this definition"></a></dt>
+<dd><p>separate one direction for efficiency</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.spin_hamil.hamil_xxz_1d">
+<span class="sig-name descname"><span class="pre">hamil_xxz_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">np_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'open'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/spin_hamil.html#hamil_xxz_1d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.spin_hamil.hamil_xxz_1d" title="Link to this definition"></a></dt>
+<dd><p>j * (xx + yy + zz * delta)
+reimplement for efficiency using ladder operator by defalut</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.spin_hamil.hamil_xyz_1d">
+<span class="sig-name descname"><span class="pre">hamil_xyz_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">np_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'open'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lumeq.spins.spin_hamil.hamil_xyz_1d" title="Link to this definition"></a></dt>
+<dd><p>Build the 1D Heisenberg Hamiltonian in the full Hilbert space.</p>
+<p class="rubric">Notes</p>
+<p>The Hamiltonian is</p>
+<p><code class="docutils literal notranslate"><span class="pre">H</span> <span class="pre">=</span> <span class="pre">sum_i</span> <span class="pre">(j_{i,x}</span> <span class="pre">sigma_{i,x}</span> <span class="pre">sigma_{i+1,x}</span>
+<span class="pre">+</span> <span class="pre">j_{i,y}</span> <span class="pre">sigma_{i,y}</span> <span class="pre">sigma_{i+1,y}</span>
+<span class="pre">+</span> <span class="pre">j_{i,z}</span> <span class="pre">sigma_{i,z}</span> <span class="pre">sigma_{i+1,z})</span>
+<span class="pre">+</span> <span class="pre">sum_i</span> <span class="pre">h_{z,i}</span> <span class="pre">sigma_{i,z}</span></code>.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">j_x</span> <span class="pre">=</span> <span class="pre">j_y</span></code>, the transverse part can be rewritten as
+<code class="docutils literal notranslate"><span class="pre">sigma_x</span> <span class="pre">sigma_x</span> <span class="pre">+</span> <span class="pre">sigma_y</span> <span class="pre">sigma_y</span>
+<span class="pre">=</span> <span class="pre">0.5</span> <span class="pre">*</span> <span class="pre">(sigma_p</span> <span class="pre">sigma_m</span> <span class="pre">+</span> <span class="pre">sigma_m</span> <span class="pre">sigma_p)</span></code>,
+which makes it convenient to use ladder operators and keep the matrices
+real.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.spins.spin_hamil.hamil_zeeman_1d">
+<span class="sig-name descname"><span class="pre">hamil_zeeman_1d</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hz</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">np_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_j</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/spins/spin_hamil.html#hamil_zeeman_1d"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.spins.spin_hamil.hamil_zeeman_1d" title="Link to this definition"></a></dt>
+<dd><p>separate the magnetic field part for efficiency</p>
+</dd></dl>
+
+</section>
+<section id="module-lumeq.spins">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-lumeq.spins" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="lumeq.property.html" class="btn btn-neutral float-left" title="lumeq.property package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lumeq.utils.html" class="btn btn-neutral float-right" title="lumeq.utils package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Zheng Pei.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

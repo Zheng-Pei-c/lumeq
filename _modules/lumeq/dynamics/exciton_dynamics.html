@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.dynamics.exciton_dynamics &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.dynamics.exciton_dynamics</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">np</span><span class="p">,</span> <span class="n">itertools</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">parser</span><span class="p">,</span> <span class="n">print_matrix</span><span class="p">,</span> <span class="n">convert_units</span><span class="p">,</span> <span class="n">Sampler</span><span class="p">,</span>
+        <span class="n">put_keys_kwargs_to_object</span><span class="p">,</span> <span class="n">put_kwargs_to_keys</span><span class="p">,</span>
+        <span class="n">load_json</span><span class="p">,</span> <span class="n">save_json</span><span class="p">,</span> <span class="n">monitor_performance</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.dynamics.dimers_in_crystal</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_molecule</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.dynamics.process_exciton_parameters</span><span class="w"> </span><span class="kn">import</span> <span class="n">process_parameters</span><span class="p">,</span> <span class="n">set_model</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.sec_mole</span><span class="w"> </span><span class="kn">import</span> <span class="n">write_symbols_coords</span>
+
+<div class="viewcode-block" id="Exciton">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Exciton</span><span class="p">():</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exciton class at each time for energy transport simulation.</span>
+<span class="sd">    It builds the exciton Hamiltonian and update the exciton coefficients.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="p">{},</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            key (dict): Input parameters.</span>
+<span class="sd">            **kwargs: Additional input parameters.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            The required parameters are listed below with default values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># default parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="mi">298</span> <span class="c1"># system temperature in K</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exciton_dt</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># exciton dynamics time step in au</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nstate</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># exciton number of each site</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">propogator</span> <span class="o">=</span> <span class="s1">&#39;magnus&#39;</span> <span class="c1"># time propagation method</span>
+
+        <span class="c1"># unit cell informations</span>
+        <span class="c1"># including intermolecular distance: abc</span>
+        <span class="c1"># angle, element, and coordinate: scale</span>
+        <span class="c1"># number of molecules and unit cell size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;abc&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;angle&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;element&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;scale&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                          <span class="s1">&#39;n_mol&#39;</span> <span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_cell</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span> <span class="c1"># number of unit cells [nx, ny, nz]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_cell_param</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span> <span class="c1"># unit cells extract parameters</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># exciton energy of each site</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_j</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># (ndimer, nstate, nstate) exciton-exciton couplings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dipole</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># transition dipole of each site</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_mode</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># vibrational mode number of each site</span>
+        <span class="c1"># exciton-phonon couplings with phonon modes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_g</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># (nmode, nstate) on-site</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_a</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># (ndimer, nmode, nstate, nstate) off-diagonal</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">param_dir</span> <span class="o">=</span> <span class="s1">&#39;./&#39;</span> <span class="c1"># param file directory</span>
+
+        <span class="c1"># add user-defined parameters</span>
+        <span class="n">put_keys_kwargs_to_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_parameters</span><span class="p">()</span>
+        <span class="c1"># convert the input parameters into atomic unit for the calculations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">convert_parameter_units</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;unit_dict&#39;</span><span class="p">,</span> <span class="p">{}))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_sanity</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Exciton.process_parameters">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.process_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Process the input parameters and get real parameters.&quot;&quot;&quot;</span>
+        <span class="c1"># number of molecules in an unit cell</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_mol</span> <span class="o">=</span> <span class="n">n_mol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="s1">&#39;n_mol&#39;</span><span class="p">]</span>
+
+        <span class="c1"># build the list of unit cells</span>
+        <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_cell</span>
+        <span class="n">cells</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">nx</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="n">ny</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="n">nz</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cells</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;cells&#39;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">cells</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;number of cells:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cells</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;cells:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cells</span><span class="p">)</span>
+
+        <span class="n">cells</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cells</span>
+        <span class="n">neighbor_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_index</span>
+
+        <span class="c1"># dictionary for cell index searching. O(1) loopup</span>
+        <span class="n">cell_dict</span> <span class="o">=</span> <span class="p">{</span><span class="nb">tuple</span><span class="p">(</span><span class="n">row</span><span class="p">):</span> <span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cells</span><span class="p">)}</span>
+        <span class="n">cell_dict_r</span> <span class="o">=</span> <span class="p">{</span><span class="n">idx</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cells</span><span class="p">)}</span>
+
+        <span class="c1"># premap the hamiltonian coupling index</span>
+        <span class="n">sites</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># left and right sites</span>
+        <span class="n">hamil_index</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ic</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cells</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">neighbor_index</span><span class="p">):</span>
+                <span class="c1"># l and d are the molecule index in the unit cell</span>
+                <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="n">a</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="n">b</span><span class="p">,</span> <span class="n">k</span><span class="o">+</span><span class="n">c</span>
+                <span class="n">jc</span> <span class="o">=</span> <span class="n">cell_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">tuple</span><span class="p">([</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">c</span><span class="p">]),</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">jc</span><span class="p">:</span>
+                    <span class="c1"># ic, jc are the indices of hamiltonian elements</span>
+                    <span class="c1"># l, d are the molecule indices in the unit cell</span>
+                    <span class="c1"># x is the index for coupling_j</span>
+                    <span class="n">sites</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ic</span><span class="o">*</span><span class="n">n_mol</span><span class="o">+</span><span class="n">l</span><span class="p">)</span>
+                    <span class="n">sites</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">jc</span><span class="o">*</span><span class="n">n_mol</span><span class="o">+</span><span class="n">d</span><span class="p">)</span>
+                    <span class="n">hamil_index</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">ic</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">jc</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">x</span><span class="p">])</span>
+                    <span class="c1">#print(&#39;index: &#39;, ic, &#39;[&#39;,i,j,k,l,&#39;];&#39;, jc, &#39;[&#39;,a,b,c,d,&#39;];&#39;,x)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">hamil_index</span> <span class="o">=</span> <span class="n">hamil_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sites</span> <span class="o">=</span> <span class="n">sites</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">sites</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%4d</span><span class="s1"> out of </span><span class="si">%4d</span><span class="s1"> molecules are included in the Hamiltonian.&#39;</span>
+              <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">),</span> <span class="nb">int</span><span class="p">((</span><span class="n">ic</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">n_mol</span><span class="p">)))</span>
+        <span class="n">hamil_filter</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">sites</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">*</span><span class="mi">2</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nstate</span><span class="p">)[</span><span class="kc">None</span><span class="p">,:])</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hamil_filter</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">hamil_filter</span><span class="p">,</span> <span class="n">hamil_filter</span><span class="p">)</span> <span class="c1"># remove isolated entries in hamiltonian</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;sites:&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;hamil_index:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hamil_index</span><span class="p">)</span>
+            <span class="n">isolated_sites</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">((</span><span class="n">ic</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">n_mol</span><span class="p">))</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">isolated_sites</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Isolated site:&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">cell_dict_r</span><span class="p">[</span><span class="n">s</span><span class="o">//</span><span class="n">n_mol</span><span class="p">],</span> <span class="n">s</span><span class="o">%</span><span class="n">n_mol</span><span class="p">)</span>
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_cell</span> <span class="o">=</span> <span class="n">ic</span> <span class="o">+</span> <span class="mi">1</span> <span class="c1"># total number of unit cells</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_site</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sites</span><span class="p">)</span> <span class="c1"># total number of sites included</span>
+
+        <span class="c1"># add length for c2 calculation</span>
+        <span class="n">abc</span><span class="p">,</span> <span class="n">angles</span><span class="p">,</span> <span class="n">scales</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="s1">&#39;abc&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="s1">&#39;angles&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit_cell</span><span class="p">[</span><span class="s1">&#39;scales&#39;</span><span class="p">]</span>
+        <span class="n">center</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">scales</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="n">scales</span><span class="p">[</span><span class="mi">8</span><span class="p">])])</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cell</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mol</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">icount</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cells</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_mol</span><span class="p">):</span>
+                <span class="c1"># use s rather s+1 below to be consistent to the definition in</span>
+                <span class="c1"># dimers_in_crystal.py</span>
+                <span class="n">length</span><span class="p">[</span><span class="n">icount</span><span class="p">,</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="n">add_molecule</span><span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">abc</span><span class="p">,</span><span class="n">angles</span><span class="p">,</span><span class="kc">None</span><span class="p">,</span><span class="n">center</span><span class="p">)</span>
+
+        <span class="n">length</span> <span class="o">=</span> <span class="n">length</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">sites</span><span class="p">]</span>
+        <span class="c1">#print_matrix(&#39;length (AA):&#39;, length)</span>
+        <span class="c1">#print_matrix(&#39;distances (AA):&#39;, np.linalg.norm((length[:,None,:]-length).reshape(-1,3), axis=1))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">length</span> <span class="o">=</span> <span class="n">length</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1">#print_matrix(&#39;length (AA):&#39;, self.length)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;write_coords&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">print_site_coords</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.print_site_coords">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.print_site_coords">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">print_site_coords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xyzfile</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Print site coordinates to xyz file for visualization.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">xyzfile</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">xyzfile</span> <span class="o">=</span> <span class="s1">&#39;molecular_sites_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cell</span><span class="p">)</span>
+            <span class="n">xyzfile</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;xyzfile&#39;</span><span class="p">,</span> <span class="n">xyzfile</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">xyzfile</span><span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;.xyz&#39;</span><span class="p">:</span>
+            <span class="n">xyzfile</span> <span class="o">+=</span> <span class="s1">&#39;.xyz&#39;</span>
+        <span class="n">symbols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Ag&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_site</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span>
+        <span class="n">write_symbols_coords</span><span class="p">(</span><span class="n">xyzfile</span><span class="p">,</span> <span class="n">symbols</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Molecular site coordinates written to&#39;</span><span class="p">,</span> <span class="n">xyzfile</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.convert_parameter_units">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.convert_parameter_units">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_parameter_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit_dict</span><span class="o">=</span><span class="p">{}):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Convert the input parameters into atomic unit for the calculations.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.dynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_boltzmann_beta</span>
+        <span class="n">BOHR</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;aa&#39;</span><span class="p">,</span> <span class="s1">&#39;bohr&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta_b</span> <span class="o">=</span> <span class="n">get_boltzmann_beta</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">temperature</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">energy</span><span class="p">,</span> <span class="n">unit_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;energy&#39;</span><span class="p">,</span> <span class="s1">&#39;ev&#39;</span><span class="p">),</span> <span class="s1">&#39;eh&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_j</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_j</span><span class="p">,</span> <span class="n">unit_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;coupling_j&#39;</span><span class="p">,</span> <span class="s1">&#39;ev&#39;</span><span class="p">),</span> <span class="s1">&#39;eh&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_g</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_g</span><span class="p">,</span> <span class="n">unit_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;coupling_g&#39;</span><span class="p">,</span> <span class="s1">&#39;ev&#39;</span><span class="p">),</span> <span class="s1">&#39;eh&#39;</span><span class="p">)</span> <span class="o">/</span> <span class="n">BOHR</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_a</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_a</span><span class="p">,</span> <span class="n">unit_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;coupling_a&#39;</span><span class="p">,</span> <span class="s1">&#39;ev&#39;</span><span class="p">),</span> <span class="s1">&#39;eh&#39;</span><span class="p">)</span> <span class="o">/</span> <span class="n">BOHR</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.check_sanity">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.check_sanity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Check the sanity of the input parameters.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nstate</span><span class="p">:</span>
+            <span class="c1"># pointer not a copy</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">energy</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dipole</span><span class="o">.</span><span class="n">size</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nstate</span><span class="o">*</span><span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># pointer not a copy</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dipole</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dipole</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_j</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coupling_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_j</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_cell</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span></div>
+
+
+        <span class="c1">#print_matrix(&#39;Exciton energy (au):&#39;, self.energy)</span>
+        <span class="c1">#print_matrix(&#39;Exciton coupling_j (au):&#39;, self.coupling_j)</span>
+        <span class="c1">#print_matrix(&#39;Exciton dipole (au):&#39;, self.dipole)</span>
+
+
+<div class="viewcode-block" id="Exciton.exciton_diagonal">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.exciton_diagonal">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exciton_diagonal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">energy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return the on-site energy.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">energy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">energy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy</span>
+        <span class="k">return</span> <span class="n">energy</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.exciton_couplings">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.exciton_couplings">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exciton_couplings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coupling_j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">neighbor_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Build the exciton couplings part of exciton Hamiltonian.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">coupling_j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coupling_j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_j</span>
+        <span class="n">hamil_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hamil_index</span>
+
+        <span class="n">n_cell</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">ns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_cell</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nstate</span>
+        <span class="c1"># n_site = n_cell*nt</span>
+        <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n_cell</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">ns</span><span class="p">,</span> <span class="n">n_cell</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">ns</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">left</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="ow">in</span> <span class="n">hamil_index</span><span class="p">:</span>
+            <span class="n">hamiltonian</span><span class="p">[</span><span class="n">left</span><span class="p">,</span><span class="n">l</span><span class="p">,:,</span><span class="n">right</span><span class="p">,</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="n">coupling_j</span><span class="p">[</span><span class="n">left</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span>
+
+        <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_cell</span><span class="o">*</span><span class="n">nt</span><span class="o">*</span><span class="n">ns</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">hamiltonian</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hamil_filter</span><span class="p">]</span>
+        <span class="n">hamiltonian</span> <span class="o">+=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
+        <span class="k">return</span> <span class="n">hamiltonian</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.get_hamiltonian">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.get_hamiltonian">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_hamiltonian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">energy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coupling_j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">neighbor_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the periodic exciton Hamiltonian of exciton part.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            energy (numpy.ndarray, optional): Exciton energies for each state.</span>
+<span class="sd">            coupling_j (numpy.ndarray, optional): Exciton-exciton couplings with shape</span>
+<span class="sd">                ``(ndimer, nstate, nstate)``.</span>
+<span class="sd">            neighbor_index (list, optional): Neighbor indices for the couplings.</span>
+<span class="sd">            **kwargs: Additional keyword arguments.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Exciton Hamiltonian with shape ``(nsite*nstate, nsite*nstate)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exciton_couplings</span><span class="p">(</span><span class="n">coupling_j</span><span class="p">,</span> <span class="n">neighbor_index</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">diagonal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exciton_diagonal</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span><span class="p">,</span> <span class="n">diagonal</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.get_initial_coefficients">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.get_initial_coefficients">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_initial_coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">H</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the initial exciton coefficients from the exciton Hamiltonian.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            H (numpy.ndarray, optional): Exciton Hamiltonian with shape</span>
+<span class="sd">                ``(nsite*nstate, nsite*nstate)``.</span>
+<span class="sd">            method (str, optional): Method used to initialize the coefficients.</span>
+<span class="sd">                ``&#39;random&#39;`` gives random coefficients, ``&#39;equal&#39;`` gives an equal</span>
+<span class="sd">                superposition state, ``&#39;ground&#39;`` gives the ground state, and</span>
+<span class="sd">                ``&#39;thermal&#39;`` gives a thermal equilibrium state at the given</span>
+<span class="sd">                temperature.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Squared exciton coefficients with shape</span>
+<span class="sd">            ``(nsite*nstate,)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">H</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_hamiltonian</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;initial_method&#39;</span><span class="p">,</span> <span class="s1">&#39;random&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;n_site_init&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">order</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">lexsort</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="o">.</span><span class="n">T</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="s1">&#39;center&#39;</span><span class="p">:</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">order</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="n">idx</span> <span class="o">==</span> <span class="s1">&#39;edge0&#39;</span><span class="p">:</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">order</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="n">idx</span> <span class="o">==</span> <span class="s1">&#39;edge1&#39;</span><span class="p">:</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">order</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span> <span class="n">idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idx</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">i</span><span class="p">,</span> <span class="mi">2</span><span class="o">*</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Wavafunction initializes at sites*states:&#39;</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+            <span class="n">values</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">))</span>
+            <span class="n">values</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+            <span class="n">coeffs0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nstate</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">complex</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+                <span class="n">coeffs0</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">v</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;ground&#39;</span><span class="p">,</span> <span class="s1">&#39;thermal&#39;</span><span class="p">}:</span>
+            <span class="n">evals</span><span class="p">,</span> <span class="n">evecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">H</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;ground&#39;</span><span class="p">:</span>
+                <span class="n">coeffs0</span> <span class="o">=</span> <span class="n">evecs</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># ground state</span>
+
+            <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;thermal&#39;</span><span class="p">:</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta_b</span> <span class="o">*</span> <span class="n">evals</span><span class="p">)</span>
+                <span class="n">weights</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span>
+                <span class="c1"># TODO what is random choice here?</span>
+                <span class="n">index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">evals</span><span class="p">),</span> <span class="n">p</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+                <span class="n">coeffs0</span> <span class="o">=</span> <span class="n">evecs</span><span class="p">[:,</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span> <span class="o">=</span> <span class="n">coeffs0</span>
+        <span class="n">c2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i-&gt;i&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">c2</span><span class="o">.</span><span class="n">real</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.update_coefficients">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.update_coefficients">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_coefficients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">H</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exp_h</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the exciton coefficients with time step dt.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dt (float): Time step in atomic units.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Squared exciton coefficients with shape</span>
+<span class="sd">            ``(nsite*nstate,)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">exp_h</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">H</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">H</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_hamiltonian</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exciton_dt</span>
+
+            <span class="n">evals</span><span class="p">,</span> <span class="n">evecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span><span class="p">)</span>
+            <span class="n">exp_h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span> <span class="o">*</span> <span class="n">evals</span><span class="p">)</span>
+            <span class="n">exp_h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ji,i,ki-&gt;jk&#39;</span><span class="p">,</span> <span class="n">evecs</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">exp_h</span><span class="p">,</span> <span class="n">evecs</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_eigens</span> <span class="o">=</span> <span class="p">[</span><span class="n">evals</span><span class="p">,</span> <span class="n">evecs</span><span class="p">]</span> <span class="c1"># save for analysis if needed</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,j-&gt;i&#39;</span><span class="p">,</span> <span class="n">exp_h</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span><span class="p">)</span>
+        <span class="c1"># c2 should be pure real even though the following is complex type</span>
+        <span class="n">c2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i-&gt;i&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">c2</span><span class="o">.</span><span class="n">real</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.cal_energy">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.cal_energy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cal_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hamiltonian</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate the exciton energy expectation value.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">hamiltonian</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">hamiltonian</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span>
+        <span class="k">if</span> <span class="n">coefficients</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coefficients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">e_tot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ij,j-&gt;&#39;</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">hamiltonian</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">)</span>
+        <span class="c1">#print(&#39;exciton e_tot (au):&#39;, e_tot.real, e_tot.imag)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">e_tot</span><span class="o">.</span><span class="n">real</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.cal_spectra">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.cal_spectra">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cal_spectra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dipole</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the exciton absorption spectra.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dipole (numpy.ndarray, optional): Transition dipoles for each site</span>
+<span class="sd">                with shape ``(nsite*nstate, 3)``.</span>
+<span class="sd">            coefficients (numpy.ndarray, optional): Exciton coefficients with</span>
+<span class="sd">                shape ``(nsite*nstate,)``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple: Exciton eigenvalues and oscillator strengths, each with shape</span>
+<span class="sd">            ``(nsite*nstate,)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;h_eigens&#39;</span><span class="p">):</span>
+            <span class="n">evals</span><span class="p">,</span> <span class="n">evecs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_eigens</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">evals</span><span class="p">,</span> <span class="n">evecs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span><span class="p">)</span>
+
+        <span class="n">dipole</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dipole</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nstate</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ix,ik-&gt;kx&#39;</span><span class="p">,</span> <span class="n">dipole</span><span class="p">,</span> <span class="n">evecs</span><span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="p">(</span><span class="mf">2.</span><span class="o">/</span><span class="mf">3.</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;k,kx,kx-&gt;k&#39;</span><span class="p">,</span> <span class="n">evals</span><span class="p">,</span> <span class="n">mu</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">mu</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">evals</span><span class="p">,</span> <span class="n">f</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.cal_r_correlation">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.cal_r_correlation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cal_r_correlation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">c2</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate the exciton r^2 - &lt;r&gt;^2 correlation value.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">c2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">coefficients</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coefficients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span>
+            <span class="n">c2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i-&gt;i&#39;</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">coefficients</span><span class="p">)</span>
+
+        <span class="n">c2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">c2</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">r2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;nx,nx,ni-&gt;x&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">,</span> <span class="n">c2</span><span class="p">)</span>
+        <span class="n">r_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;nx,ni-&gt;x&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">length</span><span class="p">,</span> <span class="n">c2</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">correlation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">r2</span><span class="p">,</span> <span class="n">r_2</span><span class="p">])</span>
+        <span class="c1">#print(&#39;c2:&#39;, np.sum(c2), c2.shape)</span>
+        <span class="c1">#print(&#39;correlation:&#39;, correlation.real, correlation.imag)</span>
+        <span class="k">return</span> <span class="n">correlation</span><span class="o">.</span><span class="n">real</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.cal_ipr_value">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.cal_ipr_value">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cal_ipr_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">c2</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate the inverse participation ratio (ipr) value.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">c2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">coefficients</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coefficients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span>
+            <span class="n">c2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i-&gt;i&#39;</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">coefficients</span><span class="p">)</span>
+
+        <span class="c1"># inverse participation ratio (ipr)</span>
+        <span class="n">ipr</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i-&gt;&#39;</span><span class="p">,</span> <span class="n">c2</span><span class="p">,</span> <span class="n">c2</span><span class="p">)</span>
+        <span class="c1">#print(&#39;ipr: %8.6f %10.8f&#39; % ipr.real, ipr.imag)</span>
+        <span class="k">return</span> <span class="n">ipr</span><span class="o">.</span><span class="n">real</span></div>
+
+
+
+<div class="viewcode-block" id="Exciton.analyze_wf_property">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.analyze_wf_property">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_wf_property</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">c2</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Analyze the exciton wavefunction properties including r-correlation and ipr.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">c2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">coefficients</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coefficients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span>
+            <span class="n">c2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i-&gt;i&#39;</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">coefficients</span><span class="p">)</span>
+
+        <span class="n">correlation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cal_r_correlation</span><span class="p">(</span><span class="n">c2</span><span class="o">=</span><span class="n">c2</span><span class="p">)</span>
+        <span class="n">ipr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cal_ipr_value</span><span class="p">(</span><span class="n">c2</span><span class="o">=</span><span class="n">c2</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">correlation</span><span class="p">,</span> <span class="n">ipr</span></div>
+</div>
+
+
+
+
+<div class="viewcode-block" id="ExcitonMC">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonMC">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExcitonMC</span><span class="p">(</span><span class="n">Exciton</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Thermal fluctuations are accounted for by Monte Carlo sampling Hamiltonian.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ExcitonMC.get_sampler">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonMC.get_sampler">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sampler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variance</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">123</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the sampler for Monte Carlo sampling of exciton Hamiltonian.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            variance (float): Variance of the random numbers.</span>
+<span class="sd">            seed (int): Seed for the random number generator.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">onsite_disorder</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;onsite_disorder&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_disorder</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;coupling_disorder&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">sampler</span> <span class="o">=</span> <span class="n">Sampler</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nstate</span><span class="p">),</span> <span class="n">variance</span><span class="o">=</span><span class="n">variance</span><span class="p">,</span>
+                          <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tau_c</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;tau_c&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_c</span><span class="p">:</span> <span class="c1"># get the function pointer</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sample</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">correlated_sample</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Using correlated sampling with tau_c = </span><span class="si">%.3f</span><span class="s1"> fs.&#39;</span> <span class="o">%</span> <span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tau_c</span><span class="p">,</span> <span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="s1">&#39;fs&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sample</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">sample</span>
+
+        <span class="c1"># save unperturbed parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">energy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coupling_j0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_j</span><span class="p">)</span>
+
+        <span class="c1"># initial disorders</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delta_e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">energy</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delta_j</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coupling_j</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ExcitonMC.update_parameters">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonMC.update_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update the exciton Hamiltonian parameters by Monte Carlo sampling.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sample (callable, optional): Sampling function used to generate the</span>
+<span class="sd">                random numbers. Passing a callable avoids repeated attribute</span>
+<span class="sd">                lookup.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">sample</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample</span>
+        <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exciton_dt</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">onsite_disorder</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delta_e</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delta_e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_c</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_e</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_disorder</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">delta_j</span> <span class="o">=</span> <span class="n">sample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">delta_j</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tau_c</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coupling_j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_j0</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">delta_j</span></div>
+
+
+
+<div class="viewcode-block" id="ExcitonMC.split_operator">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonMC.split_operator">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">split_operator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the split operator for time propagation.</span>
+
+<span class="sd">        Math `exp(-i H dt) = exp(-i H_d dt/2) exp(-i H_c dt) exp(-i H_d dt/2)`</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dt (float, optional): Time step in atomic units.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            callable: Function that returns the time-propagation operator with</span>
+<span class="sd">            shape ``(nsite*nstate, nsite*nstate)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exciton_dt</span>
+
+        <span class="n">J</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exciton_couplings</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">expm</span>
+        <span class="n">exp_j</span> <span class="o">=</span> <span class="n">expm</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">J</span> <span class="o">*</span> <span class="n">dt</span><span class="p">)</span>
+
+        <span class="n">dt_half</span> <span class="o">=</span> <span class="n">dt</span> <span class="o">/</span> <span class="mf">2.</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
+            <span class="n">exp_d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">dt_half</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy</span><span class="p">)</span>
+            <span class="n">exp_h</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ij,j-&gt;ij&#39;</span><span class="p">,</span> <span class="n">exp_d</span><span class="p">,</span> <span class="n">exp_j</span><span class="p">,</span> <span class="n">exp_d</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">exp_h</span>
+
+        <span class="k">return</span> <span class="n">kernel</span></div>
+</div>
+
+
+
+
+<div class="viewcode-block" id="ExcitonStep">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonStep">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExcitonStep</span><span class="p">(</span><span class="n">Exciton</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Thermal fluctuations are accounted for by explicit vibrational oscillators.</span>
+<span class="sd">    Requires the exciton-phonon couplings, and oscillator coordinates.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#def get_hamiltonian(self, coordinate=None):</span>
+    <span class="c1">#    r&quot;&quot;&quot;</span>
+    <span class="c1">#    Build the fluactuating part from oscillators of exciton Hamiltonian</span>
+    <span class="c1">#    along with the pure excitonic Hamiltonian.</span>
+    <span class="c1">#    &quot;&quot;&quot;</span>
+    <span class="c1">#    self.hamiltonian = super().get_hamiltonian()</span>
+
+    <span class="c1">#    # TODO: add the coordinate dependence for 3D</span>
+    <span class="c1">#    raise NotImplementedError(&quot;get_hamiltonian is not implemented for 3D yet.&quot;)</span>
+
+    <span class="c1">#    (nx, ny, nz), nt, ns = self.n_cell, self.n_mol, self.nstate</span>
+    <span class="c1">#    # n_site = nx*ny*nz*nt</span>
+    <span class="c1">#    hamiltonian = np.zeros((nx, ny, nz, nt, ns, nx, ny, nz, nt, ns))</span>
+
+    <span class="c1">#    self.hamiltonian += hamiltonian.reshape(self.n_site*nstate, -1)</span>
+    <span class="c1">#    return self.hamiltonian</span>
+
+
+<div class="viewcode-block" id="ExcitonStep.exciton_diagonal">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonStep.exciton_diagonal">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exciton_diagonal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Return the on-site energy with coordinate dependence.&quot;&quot;&quot;</span>
+        <span class="n">diagonal</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">exciton_diagonal</span><span class="p">()</span>
+
+        <span class="c1">#TODO</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;not checked function for 3D!&#39;</span><span class="p">)</span>
+        <span class="n">diagonal</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;mi,mn-&gt;ni&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_g</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">diagonal</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="ExcitonStep.exciton_couplings">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonStep.exciton_couplings">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exciton_couplings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coupling_j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">neighbor_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                          <span class="n">coupling_a</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coordinate</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Build the exciton couplings part with coordinate fluctuation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            coupling_j (numpy.ndarray, optional): Exciton-exciton couplings with shape</span>
+<span class="sd">                ``(ndimer, nstate, nstate)``.</span>
+<span class="sd">            neighbor_index (list, optional): Neighbor indices for the couplings.</span>
+<span class="sd">            coupling_a (numpy.ndarray, optional): Off-diagonal exciton-phonon couplings with</span>
+<span class="sd">                shape ``(ndimer, nmode, nstate, nstate)``.</span>
+<span class="sd">            coordinate (numpy.ndarray, optional): Oscillator coordinates with shape</span>
+<span class="sd">                ``(nsite, nmode)``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Exciton Hamiltonian with shape ``(nsite*nstate, nsite*nstate)``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">coupling_j</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coupling_j</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_j</span>
+        <span class="k">if</span> <span class="n">neighbor_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">neighbor_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">neighbor_index</span>
+        <span class="k">if</span> <span class="n">coupling_a</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coupling_a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coupling_a</span>
+        <span class="k">if</span> <span class="n">coordinate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coordinate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mode</span><span class="p">))</span>
+
+        <span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">),</span> <span class="n">nt</span><span class="p">,</span> <span class="n">ns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_cell</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nstate</span>
+        <span class="c1"># n_site = nx*ny*nz*nt</span>
+        <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">ns</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">ns</span><span class="p">))</span>
+
+        <span class="c1">#TODO</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;not checked function for 3D!&#39;</span><span class="p">)</span>
+
+        <span class="n">coordinate1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">coordinate</span><span class="p">)</span>
+        <span class="n">coordinate1</span><span class="p">[:,:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-=</span> <span class="n">coordinate</span><span class="p">[:,</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">for</span> <span class="n">icount</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ny</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nz</span><span class="o">-</span><span class="mi">1</span><span class="p">))):</span>
+            <span class="n">coupling</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;tmij,m-&gt;tij&#39;</span><span class="p">,</span> <span class="n">coupling_a</span><span class="p">,</span> <span class="n">coordinate1</span><span class="p">[</span><span class="n">icount</span><span class="p">])</span>
+            <span class="n">_coupling_j</span> <span class="o">=</span> <span class="n">coupling_j</span><span class="p">[</span><span class="n">icount</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">neighbor_index</span><span class="p">):</span>
+                <span class="c1"># l and d are the molecule index in the unit cell</span>
+                <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="n">a</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="n">b</span><span class="p">,</span> <span class="n">k</span><span class="o">+</span><span class="n">c</span>
+                <span class="k">if</span> <span class="mi">0</span><span class="o">&lt;=</span><span class="n">a</span><span class="o">&lt;</span><span class="n">nx</span> <span class="ow">and</span> <span class="mi">0</span><span class="o">&lt;=</span><span class="n">b</span><span class="o">&lt;</span><span class="n">ny</span> <span class="ow">and</span> <span class="mi">0</span><span class="o">&lt;=</span><span class="n">c</span><span class="o">&lt;</span><span class="n">nz</span><span class="p">:</span>
+                    <span class="n">hamiltonian</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">l</span><span class="p">,:,</span><span class="n">i</span><span class="o">+</span><span class="n">a</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="n">b</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="n">c</span><span class="p">,</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="n">_coupling_j</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">+</span> <span class="n">coupling</span>
+
+        <span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_site</span><span class="o">*</span><span class="n">ns</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">hamiltonian</span> <span class="o">+=</span> <span class="n">hamiltonian</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
+        <span class="k">return</span> <span class="n">hamiltonian</span></div>
+
+
+
+<div class="viewcode-block" id="ExcitonStep.cal_force">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonStep.cal_force">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cal_force</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the forces on each oscillators from exciton-phonon couplings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">coefficients</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coefficients</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coefficients</span>
+
+        <span class="c1">#force = np.zeros((self.n_site_tot, self.n_mode))</span>
+
+        <span class="c1"># TODO: change for 3D</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;not checked function for 3D!&#39;</span><span class="p">)</span>
+
+        <span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">),</span> <span class="n">nt</span><span class="p">,</span> <span class="n">ns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_cell</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nstate</span>
+        <span class="n">coefficients</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">coefficients</span><span class="p">,</span> <span class="p">(</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="n">ns</span><span class="p">))</span>
+        <span class="n">force</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">nt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_mode</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">icount</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nx</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ny</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nz</span><span class="o">-</span><span class="mi">1</span><span class="p">))):</span>
+            <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">))</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">neighbor_index</span><span class="p">):</span>
+                <span class="c1"># l and d are the molecule index in the unit cell</span>
+                <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">i</span><span class="o">+</span><span class="n">a</span><span class="p">,</span> <span class="n">j</span><span class="o">+</span><span class="n">b</span><span class="p">,</span> <span class="n">k</span><span class="o">+</span><span class="n">c</span>
+                <span class="k">if</span> <span class="mi">0</span><span class="o">&lt;=</span><span class="n">a</span><span class="o">&lt;</span><span class="n">nx</span> <span class="ow">and</span> <span class="mi">0</span><span class="o">&lt;=</span><span class="n">b</span><span class="o">&lt;</span><span class="n">ny</span> <span class="ow">and</span> <span class="mi">0</span><span class="o">&lt;=</span><span class="n">c</span><span class="o">&lt;</span><span class="n">nz</span><span class="p">:</span>
+                    <span class="n">c2</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,j-&gt;ij&#39;</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="n">a</span><span class="p">,</span><span class="n">j</span><span class="o">+</span><span class="n">b</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="n">c</span><span class="p">,</span><span class="n">d</span><span class="p">])</span>
+                <span class="n">force</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">k</span><span class="p">,</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.</span><span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;tmij,tij-&gt;m&#39;</span><span class="p">,</span> <span class="n">coupling_a</span><span class="p">,</span> <span class="n">c2</span><span class="o">.</span><span class="n">real</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">force</span></div>
+</div>
+
+
+
+
+<div class="viewcode-block" id="ExcitonDynamics">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamics">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExcitonDynamics</span><span class="p">():</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exciton dynamics for energy transport simulation.</span>
+<span class="sd">    Wrapper class containing exciton and phonon dynamics steps.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            key (dict): Input parameters.</span>
+<span class="sd">            **kwargs: Extra input options.</span>
+
+<span class="sd">        Notes:</span>
+<span class="sd">            The required parameters are listed below with default values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">put_kwargs_to_keys</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># pop out outer md parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_name</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;output_name&#39;</span><span class="p">,</span> <span class="s1">&#39;exciton_dynamics&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;dt&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="c1"># time step in au</span>
+        <span class="c1"># print the energy every printing_nsteps steps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">printing_nsteps</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;printing_nsteps&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;debug&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># only take the nsteps here</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;nsteps&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="c1"># total number steps for dynamics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span> <span class="o">+=</span> <span class="mi">1</span> <span class="c1"># add one for the initial step</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_dynamics_class</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edstep</span><span class="o">.</span><span class="n">exciton_dt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_time</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Exciton dynamics runs for </span><span class="si">%4d</span><span class="s1"> steps in </span><span class="si">%6.3f</span><span class="s1"> fs.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">,</span> <span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_time</span><span class="p">,</span> <span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="s1">&#39;fs&#39;</span><span class="p">)))</span>
+
+        <span class="c1"># variables needed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_energy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">)</span>
+        <span class="c1"># &lt;r^2&gt; and &lt;r&gt;^2 correlation for each step</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">correlation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ipr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edstep</span><span class="o">.</span><span class="n">n_site</span><span class="p">))</span>
+
+
+<div class="viewcode-block" id="ExcitonDynamics.set_dynamics_class">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamics.set_dynamics_class">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_dynamics_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Set the dynamics class for exciton and phonon dynamics.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edstep</span> <span class="o">=</span> <span class="n">ExcitonStep</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;n_site&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edstep</span><span class="o">.</span><span class="n">n_site</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ndstep</span> <span class="o">=</span> <span class="n">OscillatorStep</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ExcitonDynamics.kernel">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamics.kernel">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># assign local variables for class attributes</span>
+        <span class="n">ndstep</span><span class="p">,</span> <span class="n">edstep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndstep</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edstep</span>
+
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">coordinate</span> <span class="c1"># equal sign used here as a pointer</span>
+        <span class="n">c2</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">get_initial_coefficients</span><span class="p">(</span><span class="n">coordinate</span><span class="o">=</span><span class="n">coords</span><span class="p">)</span>
+        <span class="n">correlation</span><span class="p">,</span> <span class="n">ipr</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">analyze_wf_property</span><span class="p">(</span><span class="n">c2</span><span class="o">=</span><span class="n">c2</span><span class="p">)</span>
+
+        <span class="n">n_site</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">n_site</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">c2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_site</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">correlation</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">correlation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ipr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ipr</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_energy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">cal_energy</span><span class="p">()</span> <span class="o">+</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">energy</span>
+        <span class="n">force</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">cal_force</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">ti</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">):</span>
+            <span class="n">ndstep</span><span class="o">.</span><span class="n">update_coordinate_velocity</span><span class="p">(</span><span class="n">force</span><span class="p">)</span>
+            <span class="n">c2</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">update_coefficients</span><span class="p">(</span><span class="n">coordinate</span><span class="o">=</span><span class="n">coords</span><span class="p">)</span>
+            <span class="n">correlation</span><span class="p">,</span> <span class="n">ipr</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">analyze_wf_property</span><span class="p">(</span><span class="n">c2</span><span class="o">=</span><span class="n">c2</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">c2</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">c2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_site</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">correlation</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">correlation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ipr</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">ipr</span>
+
+            <span class="c1"># velocity_verlet is cumbersome</span>
+            <span class="n">force</span> <span class="o">=</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">update_coordinate_velocity</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">total_energy</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">cal_energy</span><span class="p">()</span> <span class="o">+</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">energy</span>
+            <span class="n">force</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">cal_force</span><span class="p">(</span><span class="n">coords</span><span class="p">)</span></div>
+</div>
+
+
+
+
+<div class="viewcode-block" id="ExcitonDynamicsMC">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamicsMC">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExcitonDynamicsMC</span><span class="p">(</span><span class="n">ExcitonDynamics</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exciton dynamics with Monte Carlo sampling Hamiltonian.</span>
+<span class="sd">    Wrapper class containing exciton dynamics with MC disorders.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ExcitonDynamicsMC.set_dynamics_class">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamicsMC.set_dynamics_class">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_dynamics_class</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Set the dynamics class for exciton Monte Carlo dynamics.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edstep</span> <span class="o">=</span> <span class="n">ExcitonMC</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edstep</span><span class="o">.</span><span class="n">get_sampler</span><span class="p">(</span><span class="n">variance</span><span class="o">=</span><span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mc_variance&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">),</span>
+                                <span class="n">seed</span><span class="o">=</span><span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;random_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                                <span class="n">covariance</span><span class="o">=</span><span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mc_covariance&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="ExcitonDynamicsMC.kernel">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamicsMC.kernel">[docs]</a>
+    <span class="nd">@monitor_performance</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># assign local variables for class attributes</span>
+        <span class="n">edstep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">edstep</span>
+
+        <span class="n">c2</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">get_initial_coefficients</span><span class="p">()</span>
+        <span class="n">correlation</span><span class="p">,</span> <span class="n">ipr</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">analyze_wf_property</span><span class="p">(</span><span class="n">c2</span><span class="o">=</span><span class="n">c2</span><span class="p">)</span>
+
+        <span class="n">n_site</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">n_site</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">c2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_site</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">correlation</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">correlation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ipr</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ipr</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_energy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">cal_energy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">edstep</span><span class="p">,</span> <span class="s1">&#39;propogator&#39;</span><span class="p">,</span> <span class="s1">&#39;magnus&#39;</span><span class="p">):</span>
+            <span class="c1"># hamiltonian is half step advanced</span>
+            <span class="n">edstep</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="n">edstep</span><span class="o">.</span><span class="n">exciton_dt</span><span class="o">/</span><span class="mf">2.</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">edstep</span><span class="p">,</span> <span class="s1">&#39;propogator&#39;</span><span class="p">,</span> <span class="s1">&#39;split&#39;</span><span class="p">):</span>
+            <span class="n">exp_h</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">split_operator</span><span class="p">(</span><span class="n">dt</span><span class="o">=</span><span class="n">edstep</span><span class="o">.</span><span class="n">exciton_dt</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">exp_h</span> <span class="o">=</span> <span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span>
+
+        <span class="n">onsite_energy</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span>
+            <span class="n">onsite_energy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">,</span> <span class="n">n_site</span><span class="o">*</span><span class="n">edstep</span><span class="o">.</span><span class="n">nstate</span><span class="p">))</span>
+            <span class="n">onsite_energy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">energy</span>
+
+        <span class="k">for</span> <span class="n">ti</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">):</span>
+            <span class="n">edstep</span><span class="o">.</span><span class="n">update_parameters</span><span class="p">()</span>
+            <span class="n">c2</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">update_coefficients</span><span class="p">(</span><span class="n">exp_h</span><span class="o">=</span><span class="n">exp_h</span><span class="p">())</span>
+            <span class="n">correlation</span><span class="p">,</span> <span class="n">ipr</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">analyze_wf_property</span><span class="p">(</span><span class="n">c2</span><span class="o">=</span><span class="n">c2</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">c2</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">c2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">n_site</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">correlation</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">correlation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ipr</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">ipr</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">total_energy</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">cal_energy</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span>
+                <span class="n">onsite_energy</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">energy</span>
+
+            <span class="k">if</span> <span class="n">ti</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">printing_nsteps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Step </span><span class="si">%4d</span><span class="s1"> has energy </span><span class="si">%12.6f</span><span class="s1"> eh&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ti</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_energy</span><span class="p">[</span><span class="n">ti</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_energy</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_energy</span><span class="p">,</span> <span class="s1">&#39;eh&#39;</span><span class="p">,</span> <span class="s1">&#39;ev&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;total_energy (eV):&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_energy</span><span class="p">)</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;correlation (AA^2):&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">correlation</span><span class="p">)</span>
+
+        <span class="n">data_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;total_energy&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_energy</span><span class="p">,</span>
+                     <span class="s1">&#39;c2&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">c2</span><span class="p">,</span>
+                     <span class="s1">&#39;correlation&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">correlation</span><span class="p">,</span>
+                     <span class="s1">&#39;ipr&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ipr</span><span class="p">,}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">==</span> <span class="o">-</span><span class="mi">2</span><span class="p">:</span>
+            <span class="n">data_dict</span><span class="p">[</span><span class="s1">&#39;onsite_energy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">onsite_energy</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">savez_compressed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_name</span><span class="o">+</span><span class="s1">&#39;.npz&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">data_dict</span><span class="p">)</span></div>
+</div>
+
+
+
+
+<div class="viewcode-block" id="setup_exciton_dynamics">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.setup_exciton_dynamics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">setup_exciton_dynamics</span><span class="p">(</span><span class="n">infile</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="p">{},</span> <span class="n">nsteps</span><span class="o">=</span><span class="mi">300</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run the exciton dynamics simulation.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        infile (str): Input file for dynamics parameters.</span>
+<span class="sd">        key (dict): Input parameters.</span>
+<span class="sd">        nsteps (int): Total number of time steps for the dynamics.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ExcitonDynamicsMC: Configured exciton-dynamics object.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+    <span class="n">key</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;exciton&#39;</span><span class="p">,</span> <span class="p">{}))</span>
+
+    <span class="n">do_mc</span> <span class="o">=</span> <span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;monte_carlo&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">do_mc</span><span class="p">:</span> <span class="c1"># use Monte Carlo sampling</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;monte_carlo&#39;</span><span class="p">,</span> <span class="p">{}))</span>
+    <span class="k">else</span><span class="p">:</span> <span class="c1"># use explicit vibrational phonon modes</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">parameters</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;phonon&#39;</span><span class="p">,</span> <span class="p">{}))</span>
+
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;debug&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;debug&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;random_seed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;random_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;nsteps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;nsteps&#39;</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;exciton_dt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;exciton_dt&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;n_cell&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;n_cell&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;n_cell_param&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;n_cell_param&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;nstate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;nstate&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;propagator&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;propagator&#39;</span><span class="p">,</span> <span class="s1">&#39;split&#39;</span><span class="p">)</span>
+
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;cif&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;cif&#39;</span><span class="p">,</span> <span class="s1">&#39;H2OBPc.cif&#39;</span><span class="p">)</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;json&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="s1">&#39;H2OBPc.cif.json&#39;</span><span class="p">)</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;param_dir&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;param_dir&#39;</span><span class="p">,</span> <span class="s1">&#39;./&#39;</span><span class="p">)</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;write_coords&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;write_coords&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;json&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">load_json</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="s1">&#39;param_dir&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">key</span><span class="p">[</span><span class="s1">&#39;json&#39;</span><span class="p">],</span> <span class="n">to_numpy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;cif&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">process_parameters</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="s1">&#39;cif&#39;</span><span class="p">],</span> <span class="n">key</span><span class="p">[</span><span class="s1">&#39;n_cell_param&#39;</span><span class="p">],</span>
+                                  <span class="n">key</span><span class="p">[</span><span class="s1">&#39;param_dir&#39;</span><span class="p">],</span> <span class="n">key</span><span class="p">[</span><span class="s1">&#39;nstate&#39;</span><span class="p">])</span>
+        <span class="n">save_json</span><span class="p">(</span><span class="n">key</span><span class="p">[</span><span class="s1">&#39;cif&#39;</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;.json&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+    <span class="n">cells</span><span class="p">,</span> <span class="n">neighbor_index</span> <span class="o">=</span> <span class="n">set_model</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;neighbor_index&#39;</span><span class="p">],</span>
+                                      <span class="n">data</span><span class="p">[</span><span class="s1">&#39;distances&#39;</span><span class="p">],</span>
+                                      <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="s1">&#39;AB&#39;</span><span class="p">),</span>
+                                      <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;n_cell&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">]),</span>
+                                      <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;r_cutoff&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;cells&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cells</span>
+    <span class="n">data</span><span class="p">[</span><span class="s1">&#39;neighbor_index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">neighbor_index</span>
+    <span class="n">key</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="c1"># real parameters</span>
+
+    <span class="k">if</span> <span class="n">do_mc</span><span class="p">:</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">ExcitonDynamicsMC</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">ExcitonDynamics</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">obj</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">sys</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">plt</span><span class="p">,</span> <span class="n">broadening</span>
+
+    <span class="n">infile</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">setup_exciton_dynamics</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">obj</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># print the exciton Hamiltonian and spectra for analysis</span>
+        <span class="n">obj</span><span class="o">.</span><span class="n">edstep</span><span class="o">.</span><span class="n">get_hamiltonian</span><span class="p">()</span>
+        <span class="c1">#print_matrix(&#39;Exciton Hamiltonian (au):&#39;, obj.edstep.hamiltonian)</span>
+        <span class="n">e</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">edstep</span><span class="o">.</span><span class="n">cal_spectra</span><span class="p">()</span>
+        <span class="n">e_shift</span> <span class="o">=</span> <span class="mf">0.47</span> <span class="c1"># ev</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">e</span><span class="o">-</span><span class="n">convert_units</span><span class="p">(</span><span class="n">e_shift</span><span class="p">,</span> <span class="s1">&#39;ev&#39;</span><span class="p">,</span> <span class="s1">&#39;eh&#39;</span><span class="p">),</span> <span class="s1">&#39;eh&#39;</span><span class="p">,</span> <span class="s1">&#39;nm&#39;</span><span class="p">)</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+        <span class="n">e</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">broadening</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;voigt&#39;</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">real</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Exciton wavelength (nm)&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Oscillator strength (au)&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+
+    <span class="c1"># write to file directly</span>
+    <span class="c1">#from contextlib import redirect_stdout</span>
+    <span class="c1">#with open(obj.output_name+&#39;.out&#39;, &#39;w&#39;) as f, redirect_stdout(f):</span>
+    <span class="c1">#    obj.kernel()</span>
+    <span class="n">obj</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
+
+    <span class="n">time_line</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">nsteps</span><span class="p">)</span><span class="o">*</span><span class="n">obj</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="s1">&#39;fs&#39;</span><span class="p">)</span>
+
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_line</span><span class="p">,</span> <span class="n">obj</span><span class="o">.</span><span class="n">total_energy</span><span class="p">)</span>
+    <span class="n">r2</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">correlation</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">obj</span><span class="o">.</span><span class="n">correlation</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_line</span><span class="p">,</span> <span class="n">r2</span><span class="p">[:,</span><span class="n">x</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;R$^2$-&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">x</span><span class="p">)))</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_line</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">r2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;R$^2$-tot&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Energy (eV)&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;&lt;R$^2&gt;-&lt;R&gt;^2$ ($</span><span class="se">\\</span><span class="s1">AA^2$)&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Time (fs)&#39;</span><span class="p">)</span>
+
+
+    <span class="n">save_c2_steps</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">5000</span><span class="p">]</span>
+    <span class="n">save_c2_steps</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">save_c2_steps</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">obj</span><span class="o">.</span><span class="n">nsteps</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c2</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">c2</span><span class="p">[</span><span class="n">save_c2_steps</span><span class="p">]):</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="n">save_c2_steps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">nsites</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">c2</span><span class="p">))</span>
+        <span class="c1">#nsites = np.arange(min(nsites), max(nsites)+1)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">nsites</span><span class="p">,</span> <span class="n">c2</span><span class="p">[</span><span class="n">nsites</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;t$=$ </span><span class="si">%d</span><span class="s1"> (fs)&#39;</span> <span class="o">%</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">i</span><span class="o">*</span><span class="n">obj</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="s1">&#39;fs&#39;</span><span class="p">))</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;c$^2$&#39;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Site index&#39;</span><span class="p">)</span>
+    <span class="c1">#ax[2].set_xticks(nsites[::10])</span>
+    <span class="n">ax</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

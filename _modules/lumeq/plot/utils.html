@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.plot.utils &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.plot.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">plt</span><span class="p">,</span> <span class="n">mcolors</span><span class="p">,</span> <span class="n">ticker</span><span class="p">,</span> <span class="n">LineCollection</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">gaussian_kde</span><span class="p">,</span> <span class="n">norm</span>
+
+<div class="viewcode-block" id="get_kwargs">
+<a class="viewcode-back" href="../../../lumeq.plot.html#lumeq.plot.utils.get_kwargs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_kwargs</span><span class="p">(</span><span class="n">marker</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">marker</span><span class="o">=</span><span class="n">marker</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">mec</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">mew</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">clip_on</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="brokenaxes">
+<a class="viewcode-back" href="../../../lumeq.plot.html#lumeq.plot.utils.brokenaxes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">brokenaxes</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">gs</span><span class="p">,</span> <span class="n">xlims</span><span class="p">,</span> <span class="n">ylims</span><span class="p">,</span> <span class="n">ratio</span><span class="o">=</span><span class="p">[</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">],</span> <span class="n">pad</span><span class="o">=</span><span class="mf">.1</span><span class="p">):</span>
+    <span class="n">func</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_gridspec</span> <span class="k">if</span> <span class="n">gs</span><span class="o">==</span><span class="kc">None</span> <span class="k">else</span> <span class="n">gs</span><span class="o">.</span><span class="n">subgridspec</span>
+    <span class="n">nr</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ylims</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ylims</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
+    <span class="n">nc</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xlims</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xlims</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span>
+
+    <span class="k">if</span> <span class="n">nr</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">gs</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">,</span> <span class="n">width_ratios</span><span class="o">=</span><span class="n">ratio</span><span class="p">,</span> <span class="n">wspace</span><span class="o">=</span><span class="n">pad</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">nc</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">gs</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">,</span> <span class="n">height_ratios</span><span class="o">=</span><span class="n">ratio</span><span class="p">,</span> <span class="n">hspace</span><span class="o">=</span><span class="n">pad</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">gs</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">nr</span><span class="p">,</span> <span class="n">nc</span><span class="p">,</span> <span class="n">width_ratios</span><span class="o">=</span><span class="n">ratio</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">height_ratios</span><span class="o">=</span><span class="n">ratio</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                  <span class="n">wspace</span><span class="o">=</span><span class="n">pad</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hspace</span><span class="o">=</span><span class="n">pad</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">axs</span> <span class="o">=</span> <span class="n">gs</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">nr</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># split xaxis</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nc</span><span class="p">):</span>
+            <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">xlims</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ylims</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+            <span class="c1">#axs[i].tick_params(labelright=False)</span>
+        <span class="c1">#axs[-1].yaxis.tick_right()</span>
+    <span class="k">elif</span> <span class="n">nc</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># split yaxis</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nr</span><span class="p">):</span>
+            <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">xlims</span><span class="p">)</span>
+            <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ylims</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">nr</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
+    <span class="k">else</span><span class="p">:</span> <span class="c1"># split both axes</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nr</span><span class="p">):</span>     <span class="c1"># y</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nc</span><span class="p">):</span> <span class="c1"># x</span>
+                <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">xlims</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+                <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ylims</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">j</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span> <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+                <span class="k">if</span> <span class="n">i</span><span class="o">&lt;</span><span class="n">nr</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="n">axs</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
+
+    <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axs</span><span class="o">.</span><span class="n">flat</span><span class="p">:</span>
+        <span class="n">ss</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">get_subplotspec</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">nr</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s1">&#39;top&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="n">is_first_row</span><span class="p">())</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s1">&#39;bottom&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="n">is_last_row</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">nc</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s1">&#39;left&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="n">is_first_col</span><span class="p">())</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">spines</span><span class="p">[</span><span class="s1">&#39;right&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">set_visible</span><span class="p">(</span><span class="n">ss</span><span class="o">.</span><span class="n">is_last_col</span><span class="p">())</span>
+
+
+    <span class="n">d</span> <span class="o">=</span> <span class="mf">.5</span> <span class="c1"># how big to make the diagonal lines in axes coordinates</span>
+    <span class="k">if</span> <span class="n">nr</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">marker</span><span class="o">=</span><span class="p">[(</span><span class="o">-</span><span class="n">d</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">get_kwargs</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">nc</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">marker</span><span class="o">=</span><span class="p">[(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="n">d</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">)]</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">get_kwargs</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">marker</span> <span class="o">=</span> <span class="p">[(</span><span class="o">-</span><span class="n">d</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">get_kwargs</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="n">marker</span><span class="o">=</span><span class="p">[(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="n">d</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">)]</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="n">get_kwargs</span><span class="p">(</span><span class="n">marker</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">transAxes</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">axs</span><span class="o">.</span><span class="n">flat</span></div>
+
+
+
+<div class="viewcode-block" id="add_colorbar_map">
+<a class="viewcode-back" href="../../../lumeq.plot.html#lumeq.plot.utils.add_colorbar_map">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_colorbar_map</span><span class="p">(</span><span class="n">plt</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">color1</span><span class="o">=</span><span class="s1">&#39;royalblue&#39;</span><span class="p">,</span> <span class="n">color2</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">nslice</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+                     <span class="n">vmin</span><span class="o">=</span><span class="mf">.0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">posx</span><span class="o">=</span><span class="mf">.0</span><span class="p">,</span> <span class="n">posy</span><span class="o">=</span><span class="mf">.0</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">):</span>
+    <span class="n">cm</span> <span class="o">=</span> <span class="n">mcolors</span><span class="o">.</span><span class="n">LinearSegmentedColormap</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="s1">&#39;Custom&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">color1</span><span class="p">,</span> <span class="n">color2</span><span class="p">],</span> <span class="n">nslice</span><span class="p">)</span>
+    <span class="n">cNorm</span> <span class="o">=</span> <span class="n">mcolors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">vmax</span><span class="p">)</span>
+    <span class="n">scalarMap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">ScalarMappable</span><span class="p">(</span><span class="n">norm</span><span class="o">=</span><span class="n">cNorm</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cm</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">scalarMap</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">location</span><span class="o">=</span><span class="n">loc</span><span class="p">,</span> <span class="n">anchor</span><span class="o">=</span><span class="p">(</span><span class="n">posx</span><span class="p">,</span><span class="n">posy</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">cm</span></div>
+
+
+
+<div class="viewcode-block" id="make_line_segments">
+<a class="viewcode-back" href="../../../lumeq.plot.html#lumeq.plot.utils.make_line_segments">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_line_segments</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">points</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+    <span class="n">segments</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">points</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">points</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">segments</span></div>
+
+
+
+<div class="viewcode-block" id="gradient_color_line">
+<a class="viewcode-back" href="../../../lumeq.plot.html#lumeq.plot.utils.gradient_color_line">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">gradient_color_line</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">cmap</span><span class="p">,</span> <span class="n">vmin</span><span class="o">=</span><span class="mf">.0</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="n">segments</span> <span class="o">=</span> <span class="n">make_line_segments</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">mcolors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="n">vmin</span><span class="p">,</span> <span class="n">vmax</span><span class="o">=</span><span class="n">vmax</span><span class="p">)</span>
+    <span class="n">line_segments</span> <span class="o">=</span> <span class="n">LineCollection</span><span class="p">(</span><span class="n">segments</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="n">norm</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">cmap</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">weights</span><span class="p">)),</span>
+                                   <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">add_collection</span><span class="p">(</span><span class="n">line_segments</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">line_segments</span></div>
+
+
+
+<div class="viewcode-block" id="broadening">
+<a class="viewcode-back" href="../../../lumeq.plot.html#lumeq.plot.utils.broadening">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">broadening</span><span class="p">(</span><span class="n">centers</span><span class="p">,</span> <span class="n">heighs</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mf">0.0005</span><span class="p">,</span> <span class="n">margin</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;gaussian&#39;</span><span class="p">,</span>
+               <span class="n">npoints</span><span class="o">=</span><span class="mi">1001</span><span class="p">,</span> <span class="n">xrange</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate broadened spectrum from stick spectrum.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        centers (array_like): Positions of the stick spectrum peaks.</span>
+<span class="sd">        heights (array_like): Heights of the stick spectrum peaks.</span>
+<span class="sd">        width (float, optional): Broadening width parameter sigma. Default is 0.0005.</span>
+<span class="sd">        margin (float, list or tuple, optional): Extra margin added to the min and max of centers for x-axis range. Default is 0.05.</span>
+<span class="sd">        method (str, optional): Broadening method. Options are &#39;lorentzian&#39;, &#39;gaussian&#39;, and &#39;voigt&#39;. Default is &#39;gaussian&#39;.</span>
+<span class="sd">        npoints (int, optional): Number of points in the output spectrum. Default is 1001.</span>
+<span class="sd">        xrange (tuple, optional): Tuple specifying the x-axis range (min, max). If None, it is determined from centers and margin.</span>
+<span class="sd">        gamma (float, optional): Lorentzian width parameter. Only used if method is &#39;voigt&#39;.</span>
+<span class="sd">        gamma_table (array_like, optional): Table of gamma values for each peak. Only used if method is &#39;voigt&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        x (numpy.ndarray): x-axis values of the broadened spectrum.</span>
+<span class="sd">        y (numpy.ndarray): y-axis values of the broadened spectrum.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">xrange</span><span class="p">:</span>
+        <span class="n">mi</span><span class="p">,</span> <span class="n">ma</span> <span class="o">=</span> <span class="n">xrange</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">margin</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">margin</span> <span class="o">=</span> <span class="p">(</span><span class="n">margin</span><span class="p">,</span> <span class="n">margin</span><span class="p">)</span>
+        <span class="n">mi</span><span class="p">,</span> <span class="n">ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">centers</span><span class="p">)</span><span class="o">-</span><span class="n">margin</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">centers</span><span class="p">)</span><span class="o">+</span><span class="n">margin</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">mi</span><span class="p">,</span> <span class="n">ma</span><span class="p">,</span> <span class="n">npoints</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="mf">0.</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;lorentzian&#39;</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">centers</span><span class="p">)):</span>
+            <span class="n">y</span> <span class="o">+=</span> <span class="n">heighs</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">*</span> <span class="n">width</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="p">((</span><span class="n">x</span><span class="o">-</span><span class="n">centers</span><span class="p">[</span><span class="n">n</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">width</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;gaussian&#39;</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">centers</span><span class="p">)):</span>
+            <span class="n">y</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="n">width</span> <span class="o">*</span> <span class="n">heighs</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">*</span> <span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">centers</span><span class="p">[</span><span class="n">n</span><span class="p">],</span> <span class="n">width</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;voigt&#39;</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.special</span><span class="w"> </span><span class="kn">import</span> <span class="n">wofz</span>
+        <span class="n">gamma</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">width</span><span class="p">)</span>
+        <span class="n">gamma_table</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;gamma_table&#39;</span><span class="p">,</span>
+                                 <span class="p">[[</span><span class="mf">820.310766e-9</span><span class="p">,</span> <span class="mf">45.9188586e-9</span><span class="p">],</span>
+                                  <span class="p">[</span><span class="mf">853.274140e-9</span><span class="p">,</span> <span class="mf">48.0870613e-9</span><span class="p">],</span>
+                                  <span class="p">[</span><span class="mf">889.567148e-9</span><span class="p">,</span> <span class="mf">38.0147813e-9</span><span class="p">],</span>
+                                  <span class="p">[</span><span class="mf">914.206437e-9</span><span class="p">,</span> <span class="mf">42.7828469e-9</span><span class="p">],</span>
+                                  <span class="p">[</span><span class="mf">945.514185e-9</span><span class="p">,</span> <span class="mf">49.7859967e-9</span><span class="p">]])</span>
+
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">centers</span><span class="p">)):</span>
+            <span class="n">gamma_pair</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">gamma_table</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">g</span><span class="p">:</span> <span class="nb">abs</span><span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="n">centers</span><span class="p">[</span><span class="n">n</span><span class="p">]))</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">centers</span><span class="p">[</span><span class="n">n</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span><span class="o">*</span><span class="n">gamma_pair</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">gamma</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">width</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+            <span class="n">y</span> <span class="o">+=</span> <span class="p">(</span><span class="n">heighs</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">width</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">wofz</span><span class="p">(</span><span class="n">z</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span></div>
+
+
+
+<div class="viewcode-block" id="fit_val">
+<a class="viewcode-back" href="../../../lumeq.plot.html#lumeq.plot.utils.fit_val">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fit_val</span><span class="p">(</span><span class="n">positions</span><span class="p">,</span> <span class="n">heighs</span><span class="p">,</span> <span class="n">broaden</span><span class="p">):</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+    <span class="n">x_min</span> <span class="o">=</span> <span class="n">positions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">50</span>
+    <span class="k">if</span> <span class="n">x_min</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">x_min</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">x_max</span> <span class="o">=</span> <span class="n">positions</span><span class="p">[</span><span class="n">num</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">50</span>
+    <span class="k">if</span> <span class="n">x_max</span> <span class="o">&gt;</span> <span class="mi">4000</span><span class="p">:</span>
+        <span class="n">x_max</span> <span class="o">=</span> <span class="mi">4000</span>
+    <span class="n">ix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">x_max</span><span class="o">-</span><span class="n">x_min</span><span class="p">))</span>
+
+    <span class="n">iy</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">peak</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num</span><span class="p">):</span>
+        <span class="n">iy</span> <span class="o">+=</span> <span class="mf">2.51225</span> <span class="o">*</span> <span class="n">broaden</span> <span class="o">*</span> <span class="n">heighs</span><span class="p">[</span><span class="n">peak</span><span class="p">]</span> \
+             <span class="o">*</span> <span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">ix</span><span class="p">,</span> <span class="n">positions</span><span class="p">[</span><span class="n">peak</span><span class="p">],</span> <span class="n">broaden</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">ix</span><span class="p">,</span> <span class="n">iy</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plot.html">lumeq.plot</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

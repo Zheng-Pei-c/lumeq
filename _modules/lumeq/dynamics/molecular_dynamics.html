@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.dynamics.molecular_dynamics &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.dynamics.molecular_dynamics</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">sys</span><span class="p">,</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">print_matrix</span><span class="p">,</span> <span class="n">convert_units</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.dynamics</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+        <span class="n">ElectronicStep</span><span class="p">,</span>
+        <span class="n">GrassmannStep</span><span class="p">,</span>
+        <span class="n">CurvyStep</span><span class="p">,</span>
+        <span class="n">ExtendedLagStep</span><span class="p">,</span>
+        <span class="n">PhotonStep</span><span class="p">,</span>
+        <span class="n">PhotonStep2</span><span class="p">,</span>
+        <span class="n">NuclearStep</span><span class="p">,</span>
+        <span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">plt</span>
+
+<span class="n">kT_AU_to_Kelvin</span> <span class="o">=</span> <span class="mf">0.25</span> <span class="o">*</span> <span class="mf">9.1093826e-31</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.60217653e-19</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="mf">8.854187817e-12</span> <span class="o">/</span> <span class="mf">6.6260693e-34</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="mf">1.3806505e-23</span>
+
+
+<div class="viewcode-block" id="MolecularDynamics">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MolecularDynamics</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">ed_key</span><span class="o">=</span><span class="p">{},</span> <span class="n">ph_key</span><span class="o">=</span><span class="p">{},</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ed_method</span>  <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;ed_method&#39;</span><span class="p">,</span> <span class="s1">&#39;normal&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ph_method</span>  <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;ph_method&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_time</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;total_time&#39;</span><span class="p">,</span> <span class="mi">4000</span><span class="p">)</span> <span class="c1"># au</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>         <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dt&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span> <span class="c1"># au</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_time</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;running molecular dynamics in </span><span class="si">%5d</span><span class="s1"> steps and total time </span><span class="si">%6.3f</span><span class="s1"> fs</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">,</span> <span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_time</span><span class="p">,</span> <span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="s1">&#39;fs&#39;</span><span class="p">)))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ndstep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_nuclear_step</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">edstep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_electronic_step</span><span class="p">(</span><span class="n">ed_key</span><span class="p">,</span> <span class="n">atmsym</span><span class="o">=</span><span class="n">key</span><span class="p">[</span><span class="s1">&#39;atmsym&#39;</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phstep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_photon_step</span><span class="p">(</span><span class="n">ph_key</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">md_time_total_energy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">md_time_coordinate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndstep</span><span class="o">.</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">md_time_velocity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndstep</span><span class="o">.</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">md_time_dipole</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">md_time_mo_energy</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span>
+
+
+<div class="viewcode-block" id="MolecularDynamics.set_nuclear_step">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics.set_nuclear_step">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_nuclear_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">NuclearStep</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="MolecularDynamics.set_electronic_step">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics.set_electronic_step">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_electronic_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ed_method</span> <span class="o">==</span> <span class="s1">&#39;extended_lag&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ExtendedLagStep</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ed_method</span> <span class="o">==</span> <span class="s1">&#39;curvy&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">CurvyStep</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ed_method</span> <span class="o">==</span> <span class="s1">&#39;grassmann&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">GrassmannStep</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ed_method</span> <span class="o">==</span> <span class="s1">&#39;normal&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ElectronicStep</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="MolecularDynamics.set_photon_step">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics.set_photon_step">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_photon_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_method</span> <span class="o">==</span> <span class="s1">&#39;quantum&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">PhotonStep</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ph_method</span> <span class="o">==</span> <span class="s1">&#39;quantum2&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">PhotonStep2</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="MolecularDynamics.run_dynamics">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics.run_dynamics">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_dynamics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># assign local variables for class attributes</span>
+        <span class="n">ndstep</span><span class="p">,</span> <span class="n">edstep</span><span class="p">,</span> <span class="n">phstep</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndstep</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edstep</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">phstep</span>
+
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">coordinate</span> <span class="c1"># equal sign used here as a pointer!</span>
+        <span class="c1"># coords will change when self.ndstep.coordinate changes!</span>
+
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">photon_energy</span> <span class="o">=</span> <span class="mf">0.</span>
+        <span class="k">if</span> <span class="n">phstep</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;photon frequency (au) is:&#39;</span><span class="p">,</span> <span class="n">phstep</span><span class="o">.</span><span class="n">frequency</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;photon-molecule coupling strength:&#39;</span><span class="p">,</span> <span class="n">phstep</span><span class="o">.</span><span class="n">c_lambda</span><span class="p">)</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;c_lambda&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">phstep</span><span class="o">.</span><span class="n">c_lambda</span>
+            <span class="n">photon_energy</span> <span class="o">=</span> <span class="n">phstep</span><span class="o">.</span><span class="n">energy</span>
+
+        <span class="k">if</span> <span class="s1">&#39;restart&#39;</span> <span class="ow">in</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">init_method</span><span class="p">:</span>
+            <span class="c1"># get dynamical variables from nd class</span>
+            <span class="n">energy</span> <span class="o">=</span> <span class="n">ndstep</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;energy&#39;</span><span class="p">)</span>
+            <span class="n">dipole</span> <span class="o">=</span> <span class="n">ndstep</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;dipole&#39;</span><span class="p">)</span>
+            <span class="n">init_time</span> <span class="o">=</span> <span class="n">ndstep</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;init_time&#39;</span><span class="p">)</span> <span class="c1"># in au!</span>
+            <span class="n">force</span> <span class="o">=</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">force</span>
+
+            <span class="n">etot</span><span class="p">,</span> <span class="n">et</span><span class="p">,</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">kinetic</span> <span class="o">=</span> <span class="n">energy</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">phstep</span><span class="p">:</span>
+                <span class="n">photon_energy</span> <span class="o">=</span> <span class="n">energy</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># default md initial step</span>
+            <span class="n">init_time</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">et</span><span class="p">,</span> <span class="n">force</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">init_electronic_density_static</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">force</span> <span class="o">=</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">project_force</span><span class="p">(</span><span class="n">force</span><span class="p">)</span>
+
+            <span class="n">dipole</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">mf</span><span class="o">.</span><span class="n">dip_moment</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">phstep</span> <span class="ow">and</span> <span class="n">phstep</span><span class="o">.</span><span class="n">init_method</span> <span class="o">==</span> <span class="s1">&#39;minimum&#39;</span><span class="p">:</span>
+                <span class="n">phstep</span><span class="o">.</span><span class="n">get_minimim_displacement</span><span class="p">(</span><span class="n">dipole</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;photon initial coordinate:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">phstep</span><span class="o">.</span><span class="n">coordinate</span><span class="p">)</span>
+
+            <span class="n">etot</span> <span class="o">=</span> <span class="n">et</span> <span class="o">+</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">kinetic</span> <span class="o">+</span> <span class="n">photon_energy</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;current time: </span><span class="si">%7.3f</span><span class="s1"> fs&#39;</span> <span class="o">%</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">init_time</span><span class="p">,</span> <span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="s1">&#39;fs&#39;</span><span class="p">),</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;temperature: </span><span class="si">%4.2f</span><span class="s1"> K&#39;</span> <span class="o">%</span> <span class="nb">float</span><span class="p">(</span><span class="n">ndstep</span><span class="o">.</span><span class="n">temperature</span> <span class="o">*</span> <span class="n">kT_AU_to_Kelvin</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;total energy (au): </span><span class="si">%15.10f</span><span class="s1">  potential: </span><span class="si">%15.10f</span><span class="s1">  kinetic: </span><span class="si">%15.10f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">etot</span><span class="p">,</span> <span class="n">et</span><span class="p">,</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">kinetic</span><span class="p">),</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">phstep</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;photon: </span><span class="si">%15.10f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">photon_energy</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;nuclear force:&#39;</span><span class="p">,</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">force</span><span class="p">)</span>
+        <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;nuclear velocity:&#39;</span><span class="p">,</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span>
+        <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;nuclear coordinate (AA):&#39;</span><span class="p">,</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="s1">&#39;bohr&#39;</span><span class="p">,</span> <span class="s1">&#39;angstrom&#39;</span><span class="p">))</span>
+        <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;molecular dipole:&#39;</span><span class="p">,</span> <span class="n">dipole</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">md_time_total_energy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">etot</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">md_time_coordinate</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">md_time_velocity</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">velocity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">md_time_dipole</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">dipole</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">md_time_mo_energy</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">mf</span><span class="o">.</span><span class="n">mo_energy</span>
+
+
+        <span class="c1"># loop times</span>
+        <span class="k">for</span> <span class="n">ti</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">):</span>
+            <span class="n">ndstep</span><span class="o">.</span><span class="n">update_coordinate_velocity</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">force_func</span><span class="o">=</span><span class="n">edstep</span><span class="o">.</span><span class="n">update_electronic_density_static</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="c1">#coords = self.ndstep.coordinate # dont need to reassign!</span>
+
+            <span class="k">if</span> <span class="n">phstep</span><span class="p">:</span>
+                <span class="c1"># get bilinear coefficient and photon energy</span>
+                <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">phstep</span><span class="o">.</span><span class="n">update_density</span><span class="p">(</span><span class="n">dipole</span><span class="p">,</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="n">et</span><span class="p">,</span> <span class="n">force</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">update_electronic_density_static</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ed_method</span> <span class="o">==</span> <span class="s1">&#39;curvy&#39;</span><span class="p">:</span>
+                <span class="n">et</span><span class="p">,</span> <span class="n">force</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">update_electronic_density_static2</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+            <span class="n">dipole</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">mf</span><span class="o">.</span><span class="n">dip_moment</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+
+            <span class="c1"># velocity_verlet is cumbersome</span>
+            <span class="n">force</span> <span class="o">=</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">update_coordinate_velocity</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">phstep</span><span class="p">:</span>
+                <span class="c1"># get photon energy</span>
+                <span class="n">phstep</span><span class="o">.</span><span class="n">update_density</span><span class="p">(</span><span class="n">dipole</span><span class="p">,</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                <span class="n">photon_energy</span> <span class="o">=</span> <span class="n">phstep</span><span class="o">.</span><span class="n">energy</span>
+
+            <span class="n">etot</span> <span class="o">=</span> <span class="n">et</span> <span class="o">+</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">kinetic</span> <span class="o">+</span> <span class="n">photon_energy</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;current time: </span><span class="si">%7.3f</span><span class="s1"> fs&#39;</span> <span class="o">%</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">init_time</span><span class="o">+</span><span class="n">ti</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="s1">&#39;fs&#39;</span><span class="p">),</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;temperature: </span><span class="si">%4.2f</span><span class="s1"> K&#39;</span> <span class="o">%</span> <span class="nb">float</span><span class="p">(</span><span class="n">ndstep</span><span class="o">.</span><span class="n">temperature</span> <span class="o">*</span> <span class="n">kT_AU_to_Kelvin</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;total energy (au): </span><span class="si">%15.10f</span><span class="s1">  potential: </span><span class="si">%15.10f</span><span class="s1">  kinetic: </span><span class="si">%15.10f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">etot</span><span class="p">,</span> <span class="n">et</span><span class="p">,</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">kinetic</span><span class="p">),</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">phstep</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;photon: </span><span class="si">%15.10f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">photon_energy</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;nuclear force:&#39;</span><span class="p">,</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">force</span><span class="p">)</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;nuclear velocity:&#39;</span><span class="p">,</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;nuclear coordinate (AA):&#39;</span><span class="p">,</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="s1">&#39;bohr&#39;</span><span class="p">,</span> <span class="s1">&#39;angstrom&#39;</span><span class="p">))</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;molecular dipole:&#39;</span><span class="p">,</span> <span class="n">dipole</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">md_time_total_energy</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">etot</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">md_time_coordinate</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">coords</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">md_time_velocity</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">ndstep</span><span class="o">.</span><span class="n">velocity</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">md_time_dipole</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">dipole</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">md_time_mo_energy</span><span class="p">[</span><span class="n">ti</span><span class="p">]</span> <span class="o">=</span> <span class="n">edstep</span><span class="o">.</span><span class="n">mf</span><span class="o">.</span><span class="n">mo_energy</span></div>
+
+
+    <span class="n">kernel</span> <span class="o">=</span> <span class="n">run_dynamics</span>
+
+
+<div class="viewcode-block" id="MolecularDynamics.plot_time_variables">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics.plot_time_variables">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_time_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fig_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">time_line</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">total_time</span><span class="p">,</span> <span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="s1">&#39;fs&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">nsteps</span><span class="p">)</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="mi">6</span><span class="p">),</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">md_time_coordinate</span><span class="p">,</span> <span class="s1">&#39;bohr&#39;</span><span class="p">,</span> <span class="s1">&#39;angstrom&#39;</span><span class="p">)</span>
+        <span class="n">energy</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">md_time_total_energy</span><span class="p">,</span> <span class="s1">&#39;hartree&#39;</span><span class="p">,</span> <span class="s1">&#39;kcal&#39;</span><span class="p">)</span>
+
+        <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_line</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">coords</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">coords</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;He--H$^+$ ($</span><span class="se">\\</span><span class="s1">AA$)&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_line</span><span class="p">,</span> <span class="n">energy</span><span class="o">-</span><span class="n">energy</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Time (fs)&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;$</span><span class="se">\\</span><span class="s1">Delta$E (kcal/mol)&#39;</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">fig_name</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fig_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="plot_time_variables">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.plot_time_variables">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_time_variables</span><span class="p">(</span><span class="n">total_time</span><span class="p">,</span> <span class="n">nsteps</span><span class="p">,</span> <span class="n">dists</span><span class="p">,</span> <span class="n">energies</span><span class="p">):</span>
+    <span class="n">time_line</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">total_time</span><span class="p">,</span> <span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="s1">&#39;fs&#39;</span><span class="p">),</span> <span class="n">nsteps</span><span class="p">)</span>
+    <span class="n">method</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;BO&#39;</span><span class="p">,</span> <span class="s1">&#39;XL-3&#39;</span><span class="p">,</span> <span class="s1">&#39;XL-6&#39;</span><span class="p">,</span> <span class="s1">&#39;XL-9&#39;</span><span class="p">,</span> <span class="s1">&#39;Curvy&#39;</span><span class="p">]</span>
+
+    <span class="n">dists</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dists</span><span class="p">),</span> <span class="s1">&#39;bohr&#39;</span><span class="p">,</span> <span class="s1">&#39;angstrom&#39;</span><span class="p">)</span>
+    <span class="n">energies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">energies</span><span class="p">)</span>
+    <span class="n">energies</span> <span class="o">-=</span> <span class="n">energies</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">11</span><span class="p">,</span><span class="mi">6</span><span class="p">),</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dists</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_line</span><span class="p">,</span> <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">method</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;He--H$^+$ Length ($</span><span class="se">\\</span><span class="s1">AA$)&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">energies</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time_line</span><span class="p">,</span> <span class="n">energies</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">method</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Time (fs)&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Energy (a.u.)&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">&#39;dynamics&#39;</span><span class="p">)</span></div>
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">mdtype</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="mi">0</span>
+
+    <span class="n">key</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;atmsym&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;He&#39;</span><span class="p">]</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;coordinate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.929352</span><span class="p">]]</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;velocity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0008</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0008</span><span class="p">]]</span>
+
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;dt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="c1">#key[&#39;total_time&#39;] = 120</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;total_time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4000</span>
+    <span class="n">key</span><span class="p">[</span><span class="s1">&#39;update_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;velocity_verlet&#39;</span>
+
+    <span class="n">ed_key</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">ed_key</span><span class="p">[</span><span class="s1">&#39;functional&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;hf&#39;</span>
+    <span class="c1">#ed_key[&#39;basis&#39;] = &#39;3-21g&#39;</span>
+    <span class="c1">#ed_key[&#39;charge&#39;] = 0</span>
+    <span class="n">ed_key</span><span class="p">[</span><span class="s1">&#39;basis&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;sto-3g&#39;</span>
+    <span class="n">ed_key</span><span class="p">[</span><span class="s1">&#39;charge&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">ed_key</span><span class="p">[</span><span class="s1">&#39;ortho_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;lowdin&#39;</span> <span class="c1"># &#39;cholesky&#39;</span>
+
+    <span class="k">if</span> <span class="n">mdtype</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="n">MolecularDynamics</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">ed_key</span><span class="p">)</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">run_dynamics</span><span class="p">()</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">plot_time_variables</span><span class="p">(</span><span class="n">fig_name</span><span class="o">=</span><span class="s1">&#39;normal_time_coords&#39;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">mdtype</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;run extended_lag&#39;</span><span class="p">)</span>
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;ed_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;extended_lag&#39;</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="n">MolecularDynamics</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">run_dynamics</span><span class="p">()</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">plot_time_variables</span><span class="p">(</span><span class="n">fig_name</span><span class="o">=</span><span class="s1">&#39;extended_lag_time_coords&#39;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">mdtype</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;run curvy&#39;</span><span class="p">)</span>
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;ed_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;curvy&#39;</span>
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;ortho_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;cholesky&#39;</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="n">MolecularDynamics</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">run_dynamics</span><span class="p">()</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">plot_time_variables</span><span class="p">(</span><span class="n">fig_name</span><span class="o">=</span><span class="s1">&#39;curvy_time_coords&#39;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">mdtype</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;ed_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;grassmann&#39;</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="n">MolecularDynamics</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">run_dynamics</span><span class="p">()</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">plot_time_variables</span><span class="p">(</span><span class="n">fig_name</span><span class="o">=</span><span class="s1">&#39;grassmann_time_coords&#39;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">mdtype</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;update_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;recursive&#39;</span>
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;recursive_numbers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="n">MolecularDynamics</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">ed_key</span><span class="p">)</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">run_dynamics</span><span class="p">()</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">plot_time_variables</span><span class="p">(</span><span class="n">fig_name</span><span class="o">=</span><span class="s1">&#39;normal_time_coords_recursive&#39;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">mdtype</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="n">dists</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">energies</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">md</span> <span class="o">=</span> <span class="n">MolecularDynamics</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">run_dynamics</span><span class="p">()</span>
+
+        <span class="n">dists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">md</span><span class="o">.</span><span class="n">md_time_coordinate</span><span class="p">[:,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">md</span><span class="o">.</span><span class="n">md_time_coordinate</span><span class="p">[:,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">energies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">md</span><span class="o">.</span><span class="n">md_time_total_energy</span><span class="p">)</span>
+
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;ed_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;extended_lag&#39;</span>
+        <span class="k">for</span> <span class="n">xl_nk</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">9</span><span class="p">]:</span>
+
+            <span class="n">key</span><span class="p">[</span><span class="s1">&#39;xl_nk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xl_nk</span>
+            <span class="n">md</span> <span class="o">=</span> <span class="n">MolecularDynamics</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+            <span class="n">md</span><span class="o">.</span><span class="n">run_dynamics</span><span class="p">()</span>
+
+            <span class="n">dists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">md</span><span class="o">.</span><span class="n">md_time_coordinate</span><span class="p">[:,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">md</span><span class="o">.</span><span class="n">md_time_coordinate</span><span class="p">[:,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">energies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">md</span><span class="o">.</span><span class="n">md_time_total_energy</span><span class="p">)</span>
+            <span class="n">energies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">md</span><span class="o">.</span><span class="n">md_time_total_energy2</span><span class="p">)</span>
+
+
+<span class="c1">#        key[&#39;ed_method&#39;] = &#39;curvy&#39;</span>
+<span class="c1">#        key[&#39;ortho_method&#39;] = &#39;cholesky&#39;</span>
+<span class="c1">#        md = MolecularDynamics(key)</span>
+<span class="c1">#        md.run_dynamics()</span>
+<span class="c1">#        dists.append( md.md_time_coordinate[:,1,-1] - md.md_time_coordinate[:,0,-1])</span>
+<span class="c1">#        energies.append( md.md_time_total_energy)</span>
+
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;ed_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;grassmann&#39;</span>
+        <span class="n">key</span><span class="p">[</span><span class="s1">&#39;ortho_method&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;lowdin&#39;</span>
+        <span class="n">md</span> <span class="o">=</span> <span class="n">MolecularDynamics</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="n">md</span><span class="o">.</span><span class="n">run_dynamics</span><span class="p">()</span>
+        <span class="n">dists</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">md</span><span class="o">.</span><span class="n">md_time_coordinate</span><span class="p">[:,</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">md</span><span class="o">.</span><span class="n">md_time_coordinate</span><span class="p">[:,</span><span class="mi">0</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">energies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">md</span><span class="o">.</span><span class="n">md_time_total_energy</span><span class="p">)</span>
+
+
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s1">&#39;bond.txt&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dists</span><span class="p">))</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s1">&#39;energy.txt&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">energies</span><span class="p">))</span>
+        <span class="n">plot_time_variables</span><span class="p">(</span><span class="n">md</span><span class="o">.</span><span class="n">total_time</span><span class="p">,</span> <span class="n">md</span><span class="o">.</span><span class="n">nsteps</span><span class="p">,</span> <span class="n">dists</span><span class="p">,</span> <span class="n">energies</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">mdtype</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="n">dists</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="s1">&#39;bond.txt&#39;</span><span class="p">)</span>
+        <span class="n">energies</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="s1">&#39;energy.txt&#39;</span><span class="p">)</span>
+        <span class="n">total_time</span><span class="p">,</span> <span class="n">dt</span> <span class="o">=</span> <span class="n">key</span><span class="p">[</span><span class="s1">&#39;total_time&#39;</span><span class="p">],</span> <span class="n">key</span><span class="p">[</span><span class="s1">&#39;dt&#39;</span><span class="p">]</span>
+        <span class="n">plot_time_variables</span><span class="p">(</span><span class="n">total_time</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_time</span><span class="o">/</span><span class="n">dt</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dists</span><span class="p">,</span> <span class="n">energies</span><span class="p">)</span>
+
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.plot.plot_wave_energy_temperature &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.plot.plot_wave_energy_temperature</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">os</span><span class="p">,</span> <span class="n">sys</span><span class="p">,</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_units</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">plt</span><span class="p">,</span> <span class="n">mcolors</span><span class="p">,</span> <span class="n">ticker</span>
+
+<div class="viewcode-block" id="plot_wave_energy_frequency">
+<a class="viewcode-back" href="../../../lumeq.plot.html#lumeq.plot.plot_wave_energy_temperature.plot_wave_energy_frequency">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_wave_energy_frequency</span><span class="p">():</span>
+    <span class="c1"># 1nm to 1mm (1e6nm)</span>
+    <span class="n">wave_names</span> <span class="o">=</span> <span class="p">{</span><span class="c1">#&#39;X-ray&#39;:    [0.01,  10],  # nm X-ray # 100 keV--100 eV</span>
+                  <span class="s1">&#39;Extrem-UV&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span>     <span class="mi">100</span><span class="p">],</span> <span class="c1"># nm extreme UV       1</span>
+                  <span class="s1">&#39;Vacuum-UV&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span>   <span class="mi">190</span><span class="p">],</span> <span class="c1"># nm vacuum UV</span>
+                  <span class="s1">&#39;Deep-UV&#39;</span><span class="p">:</span>   <span class="p">[</span><span class="mi">190</span><span class="p">,</span>   <span class="mi">280</span><span class="p">],</span> <span class="c1"># nm deep UV          3</span>
+                  <span class="s1">&#39;Mid-UV&#39;</span><span class="p">:</span>    <span class="p">[</span><span class="mi">280</span><span class="p">,</span>   <span class="mi">315</span><span class="p">],</span> <span class="c1"># nm mid UV</span>
+                  <span class="s1">&#39;Near-UV&#39;</span><span class="p">:</span>   <span class="p">[</span><span class="mi">315</span><span class="p">,</span>   <span class="mi">380</span><span class="p">],</span> <span class="c1"># nm near UV          5 #</span>
+                  <span class="s1">&#39;violet&#39;</span><span class="p">:</span>    <span class="p">[</span><span class="mi">380</span><span class="p">,</span>   <span class="mi">435</span><span class="p">],</span> <span class="c1"># nm violet           6</span>
+                  <span class="s1">&#39;blue&#39;</span><span class="p">:</span>      <span class="p">[</span><span class="mi">435</span><span class="p">,</span>   <span class="mi">500</span><span class="p">],</span> <span class="c1"># nm blue</span>
+                  <span class="s1">&#39;cyan&#39;</span><span class="p">:</span>      <span class="p">[</span><span class="mi">500</span><span class="p">,</span>   <span class="mi">520</span><span class="p">],</span> <span class="c1"># nm cyan</span>
+                  <span class="s1">&#39;green&#39;</span><span class="p">:</span>     <span class="p">[</span><span class="mi">520</span><span class="p">,</span>   <span class="mi">565</span><span class="p">],</span> <span class="c1"># nm green</span>
+                  <span class="s1">&#39;yellow&#39;</span><span class="p">:</span>    <span class="p">[</span><span class="mi">565</span><span class="p">,</span>   <span class="mi">590</span><span class="p">],</span> <span class="c1"># nm yellow</span>
+                  <span class="s1">&#39;orange&#39;</span><span class="p">:</span>    <span class="p">[</span><span class="mi">590</span><span class="p">,</span>   <span class="mi">625</span><span class="p">],</span> <span class="c1"># nm orange</span>
+                  <span class="s1">&#39;red&#39;</span><span class="p">:</span>       <span class="p">[</span><span class="mi">625</span><span class="p">,</span>   <span class="mi">780</span><span class="p">],</span> <span class="c1"># nm red             12 #</span>
+                  <span class="s1">&#39;Near-IR I&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">780</span><span class="p">,</span>  <span class="mi">1400</span><span class="p">],</span> <span class="c1"># nm near infrared I 13</span>
+                  <span class="s1">&#39;Near-IR II&#39;</span><span class="p">:[</span><span class="mi">1400</span><span class="p">,</span> <span class="mi">3000</span><span class="p">],</span> <span class="c1"># nm near infrared II   #</span>
+                  <span class="s1">&#39;Mid-IR&#39;</span><span class="p">:</span>    <span class="p">[</span><span class="mi">3</span><span class="p">,</span>    <span class="mi">50</span>  <span class="p">],</span> <span class="c1"># um mid infrared    15</span>
+                  <span class="s1">&#39;Far-IR&#39;</span><span class="p">:</span>    <span class="p">[</span><span class="mi">50</span><span class="p">,</span>   <span class="mi">1000</span><span class="p">],</span> <span class="c1"># um far infrared    16</span>
+                  <span class="p">}</span>
+    <span class="n">wavelengths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="n">v0</span><span class="p">,</span> <span class="n">v1</span><span class="p">]</span> <span class="ow">in</span> <span class="n">wave_names</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">wavelengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">v0</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="p">(</span><span class="n">v1</span><span class="o">-</span><span class="n">v0</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="p">))</span>
+    <span class="c1">#wavelengths = np.hstack(wavelengths)</span>
+    <span class="n">wavelengths</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">wavelengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">wavelengths</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+                   <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">wavelengths</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">12</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">wavelengths</span><span class="p">[</span><span class="mi">12</span><span class="p">:</span><span class="mi">14</span><span class="p">]),</span>
+                   <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">wavelengths</span><span class="p">[</span><span class="mi">14</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">hstack</span><span class="p">(</span><span class="n">wavelengths</span><span class="p">[</span><span class="mi">15</span><span class="p">]),</span>
+                   <span class="p">]</span>
+    <span class="c1">#print(wavelengths.shape)</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">wavelengths</span><span class="p">)</span>
+    <span class="n">energy</span><span class="p">,</span> <span class="n">frequency</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">time</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">n</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">n</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">n</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">n</span>
+
+    <span class="n">units</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;l&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;nm&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">n</span><span class="p">,</span>
+             <span class="s1">&#39;e&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;eV&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">n</span><span class="p">,</span>
+             <span class="s1">&#39;f&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;cm-1&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">n</span><span class="p">,</span>
+             <span class="s1">&#39;T&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;K&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">n</span><span class="p">,</span>
+             <span class="s1">&#39;t&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;fs&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">n</span><span class="p">,</span>
+             <span class="p">}</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;um&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;e&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">3</span><span class="p">]</span>  <span class="o">=</span> <span class="s1">&#39;kcal&#39;</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;e&#39;</span><span class="p">][</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;meV&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>   <span class="o">=</span> <span class="s1">&#39;as&#39;</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>   <span class="o">=</span> <span class="s1">&#39;au&#39;</span>
+
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">length</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">wavelengths</span><span class="p">):</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;e&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="n">frequency</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;e&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;f&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">temperature</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;e&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">time</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;e&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+
+
+
+    <span class="n">fig_name</span> <span class="o">=</span> <span class="s1">&#39;spectrum_reference&#39;</span>
+    <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="s1">&#39;constrained&#39;</span><span class="p">)</span>
+    <span class="c1">#fig = plt.figure()</span>
+    <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">wave_names</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">length</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">wavelengths</span><span class="p">):</span>
+        <span class="n">ax1</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplot</span><span class="p">(</span><span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span><span class="p">,</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ax2</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twinx</span><span class="p">()</span>
+        <span class="n">ax3</span> <span class="o">=</span> <span class="n">ax1</span><span class="o">.</span><span class="n">twiny</span><span class="p">()</span>
+
+        <span class="n">ax1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">)</span>
+        <span class="c1"># has save curve as energy except 2, just for yticks</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">temperature</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">time</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># have save curve as energy, get yticks</span>
+            <span class="n">ax3</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Time (&#39;</span><span class="o">+</span><span class="n">units</span><span class="p">[</span><span class="s1">&#39;t&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ax3</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">frequency</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;g&#39;</span><span class="p">)</span>
+            <span class="n">ax3</span><span class="o">.</span><span class="n">invert_xaxis</span><span class="p">()</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;cm$^{-1}$&#39;</span> <span class="k">if</span> <span class="s1">&#39;-1&#39;</span> <span class="ow">in</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;f&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">else</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;f&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">ax3</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Frequency (&#39;</span><span class="o">+</span><span class="n">unit</span><span class="o">+</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">50</span><span class="p">,</span> <span class="mi">250</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span> <span class="mi">750</span><span class="p">,</span> <span class="mi">1000</span><span class="p">])</span>
+
+        <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;$</span><span class="se">\\</span><span class="s1">mu$m&#39;</span> <span class="k">if</span> <span class="s1">&#39;um&#39;</span> <span class="ow">in</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">else</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;l&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Wavelength (&#39;</span><span class="o">+</span><span class="n">unit</span><span class="o">+</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Energy (&#39;</span><span class="o">+</span><span class="n">units</span><span class="p">[</span><span class="s1">&#39;e&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+        <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Temperature (&#39;</span><span class="o">+</span><span class="n">units</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;)&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">i</span><span class="o">==</span><span class="mi">2</span><span class="p">:</span> <span class="c1"># y2 has mismatched ticks</span>
+            <span class="n">yticks</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">ax1</span><span class="o">.</span><span class="n">get_ylim</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;e&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="n">yticks</span><span class="p">])</span>
+            <span class="n">ax2</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([</span><span class="mi">20000</span><span class="p">,</span> <span class="mi">40000</span><span class="p">,</span> <span class="mi">60000</span><span class="p">])</span>
+
+        <span class="n">alpha</span> <span class="o">=</span> <span class="mf">.15</span> <span class="k">if</span> <span class="n">i</span><span class="o">==</span><span class="mi">2</span> <span class="k">else</span> <span class="mf">.4</span>
+        <span class="n">ax1</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">ls</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">v0</span><span class="p">,</span> <span class="n">v1</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">wave_names</span><span class="o">.</span><span class="n">items</span><span class="p">())[</span><span class="mi">5</span><span class="p">:</span><span class="mi">12</span><span class="p">]:</span>
+                <span class="n">width</span> <span class="o">=</span> <span class="n">v1</span> <span class="o">-</span> <span class="n">v0</span>
+                <span class="c1">#ax1.bar(v0, hight, width, color=&#39;none&#39;, edgecolor=key, align=&#39;edge&#39;, alpha=.85, hatch=&#39;|&#39;, zorder=0)</span>
+                <span class="n">ax1</span><span class="o">.</span><span class="n">axvspan</span><span class="p">(</span><span class="n">v0</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">.8</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">wave_names</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">12</span><span class="p">:</span><span class="mi">14</span><span class="p">]</span>
+            <span class="p">(</span><span class="n">xloc0</span><span class="p">,</span> <span class="n">xloc1</span><span class="p">),</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">xloc2</span><span class="p">)</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">wave_names</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">12</span><span class="p">:</span><span class="mi">14</span><span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">xloc0</span><span class="p">,</span> <span class="n">xloc1</span><span class="p">,</span> <span class="n">xloc2</span> <span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">vlines</span><span class="p">(</span><span class="n">xloc1</span><span class="p">,</span> <span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">((</span><span class="n">xloc0</span><span class="o">+</span><span class="n">xloc1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">((</span><span class="n">xloc1</span><span class="o">+</span><span class="n">xloc2</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="p">(</span><span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">keys</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">length</span><span class="p">),</span> <span class="p">(</span><span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">wave_names</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="n">i</span><span class="p">],</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ax1</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">length</span><span class="p">),</span> <span class="p">(</span><span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">energy</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">wave_names</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="n">i</span><span class="o">+</span><span class="mi">10</span><span class="p">],</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+<span class="c1">#    plt.show()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">fig_name</span><span class="o">+</span><span class="s1">&#39;.png&#39;</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">plot_wave_energy_frequency</span><span class="p">()</span>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  <li><a href="../plot.html">lumeq.plot</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

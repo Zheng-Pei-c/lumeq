@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.property.grids &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.property.grids</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">sys</span><span class="p">,</span> <span class="n">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">lib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf.dft</span><span class="w"> </span><span class="kn">import</span> <span class="n">numint</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf.tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cubegen</span>
+
+<div class="viewcode-block" id="creat_mesh_grids">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.grids.creat_mesh_grids">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">creat_mesh_grids</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span> <span class="n">nxyz</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create mesh grids for numerical integration.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mf: PySCF mean-field object.</span>
+<span class="sd">        nxyz (list, optional): Cubic-grid parameters ``[nx, ny, nz, resolution]``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: ``(cc, coords, weights, ngrids)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nxyz</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># default DFT mesh grids and weights</span>
+        <span class="n">cc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">grids</span><span class="o">.</span><span class="n">coords</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">grids</span><span class="o">.</span><span class="n">weights</span>
+        <span class="n">ngrids</span> <span class="o">=</span> <span class="n">weights</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cc</span> <span class="o">=</span> <span class="n">cubegen</span><span class="o">.</span><span class="n">Cube</span><span class="p">(</span><span class="n">mf</span><span class="o">.</span><span class="n">mol</span><span class="p">,</span> <span class="n">nx</span><span class="o">=</span><span class="n">nxyz</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ny</span><span class="o">=</span><span class="n">nxyz</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">nz</span><span class="o">=</span><span class="n">nxyz</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">resolution</span><span class="o">=</span><span class="n">nxyz</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">get_coords</span><span class="p">()</span>
+        <span class="n">ngrids</span> <span class="o">=</span> <span class="n">cc</span><span class="o">.</span><span class="n">get_ngrids</span><span class="p">()</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">ngrids</span><span class="p">)</span>
+                <span class="o">*</span> <span class="p">(</span><span class="n">cc</span><span class="o">.</span><span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">cc</span><span class="o">.</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="o">*</span> <span class="p">(</span><span class="n">cc</span><span class="o">.</span><span class="n">ys</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">cc</span><span class="o">.</span><span class="n">ys</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="o">*</span> <span class="p">(</span><span class="n">cc</span><span class="o">.</span><span class="n">zs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">cc</span><span class="o">.</span><span class="n">zs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;nx: &#39;</span><span class="p">,</span> <span class="n">cc</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="s1">&#39; ny: &#39;</span><span class="p">,</span> <span class="n">cc</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="s1">&#39; nz: &#39;</span><span class="p">,</span> <span class="n">cc</span><span class="o">.</span><span class="n">nz</span><span class="p">)</span>
+
+    <span class="c1">#print(&#39;ngrids: &#39;, ngrids)</span>
+    <span class="k">return</span> <span class="n">cc</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">ngrids</span></div>
+
+
+
+
+<div class="viewcode-block" id="Grids">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.grids.Grids">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Grids</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mf</span><span class="p">,</span> <span class="n">nxyz</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the Grids object.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            mf: PySCF mean-field object.</span>
+<span class="sd">            nxyz (list, optional): Cubic-grid parameters ``[nx, ny, nz, resolution]``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cc</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">ngrids</span> <span class="o">=</span> <span class="n">creat_mesh_grids</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span> <span class="n">nxyz</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cc</span> <span class="o">=</span> <span class="n">cc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coords</span> <span class="o">=</span> <span class="n">coords</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ngrids</span> <span class="o">=</span> <span class="n">ngrids</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mol</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mol</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ao_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ao_on_grids</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Grids.ao_on_grids">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.grids.Grids.ao_on_grids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ao_on_grids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the atomic orbital values and their derivatives on the grids.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Atomic-orbital values and their derivatives on the grids.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># ao and its derivatives</span>
+        <span class="c1">#ao_value = self.mol.eval_gto(&#39;GTOval_sph_deriv1&#39;, self.coords)</span>
+        <span class="c1"># if we need to seperate batch</span>
+        <span class="n">ao_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ngrids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol</span><span class="o">.</span><span class="n">nao_nr</span><span class="p">()))</span>
+        <span class="n">blksize</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">8000</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ngrids</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ip0</span><span class="p">,</span> <span class="n">ip1</span> <span class="ow">in</span> <span class="n">lib</span><span class="o">.</span><span class="n">prange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ngrids</span><span class="p">,</span> <span class="n">blksize</span><span class="p">):</span>
+            <span class="n">ao_value</span><span class="p">[:,</span><span class="n">ip0</span><span class="p">:</span><span class="n">ip1</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mol</span><span class="o">.</span><span class="n">eval_gto</span><span class="p">(</span><span class="s1">&#39;GTOval_sph_deriv1&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">ip0</span><span class="p">:</span><span class="n">ip1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">ao_value</span></div>
+
+
+
+<div class="viewcode-block" id="Grids.orbital_on_grids">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.grids.Grids.orbital_on_grids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">orbital_on_grids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the molecular orbital values and their derivatives on the grids.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            mo_coeff (numpy.ndarray): Molecular-orbital coefficients.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Molecular-orbital values and their derivatives on the grids.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># mo and its derivatives</span>
+        <span class="n">mo_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xgm,mp-&gt;xgp&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ao_value</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="p">)</span>
+        <span class="c1">#mo_value = np.zeros((4, self.ngrids, mo_coeff.shape[1]))</span>
+        <span class="c1">#blksize = min(8000, self.ngrids)</span>
+        <span class="c1">#for ip0, ip1 in lib.prange(0, self.ngrids, blksize):</span>
+        <span class="c1">#    mo_value[:,ip0:ip1,:] = np.einsum(&#39;pi,im-&gt;pm&#39;, self.ao_value[:,ip0:ip1,:], mo_coeff)</span>
+        <span class="k">return</span> <span class="n">mo_value</span></div>
+
+
+
+<div class="viewcode-block" id="Grids.density_on_grids">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.grids.Grids.density_on_grids">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">density_on_grids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">xctype</span><span class="o">=</span><span class="s1">&#39;GGA&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the electron density and its derivatives on the grids.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dm (numpy.ndarray): Density matrix.</span>
+<span class="sd">            xctype (str): Exchange-correlation functional type, e.g. ``&#39;LDA&#39;`` or ``&#39;GGA&#39;``.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Electron density and its derivatives on the grids.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># rho and its derivatives</span>
+        <span class="c1">#rho_value = numint.eval_rho(self.mol, self.ao_value, dm, xctype=xctype)</span>
+        <span class="n">rho_value</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ngrids</span><span class="p">))</span>
+        <span class="n">blksize</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">8000</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ngrids</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ip0</span><span class="p">,</span> <span class="n">ip1</span> <span class="ow">in</span> <span class="n">lib</span><span class="o">.</span><span class="n">prange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ngrids</span><span class="p">,</span> <span class="n">blksize</span><span class="p">):</span>
+            <span class="n">rho_value</span><span class="p">[:,</span><span class="n">ip0</span><span class="p">:</span><span class="n">ip1</span><span class="p">]</span> <span class="o">=</span> <span class="n">numint</span><span class="o">.</span><span class="n">eval_rho</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ao_value</span><span class="p">[:,</span><span class="n">ip0</span><span class="p">:</span><span class="n">ip1</span><span class="p">,:],</span> <span class="n">dm</span><span class="p">,</span> <span class="n">xctype</span><span class="o">=</span><span class="n">xctype</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rho_value</span></div>
+
+
+
+<div class="viewcode-block" id="Grids.plot_grid_values">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.grids.Grids.plot_grid_values">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_grid_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;density&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                         <span class="n">nums</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the grid values in 3D space.</span>
+<span class="sd">        Cubegen</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            values (numpy.ndarray): Grid values to plot.</span>
+<span class="sd">            title (str): Plot title.</span>
+<span class="sd">            filename (str): Cube-file prefix for saving the plot.</span>
+<span class="sd">            nums (int, optional): Number of datasets to write when ``values`` contains multiple grids.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cc</span><span class="o">.</span><span class="n">nx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cc</span><span class="o">.</span><span class="n">ny</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cc</span><span class="o">.</span><span class="n">nz</span>
+        <span class="n">filename</span> <span class="o">+=</span> <span class="n">title</span>
+
+        <span class="k">if</span> <span class="s1">&#39;orbital&#39;</span> <span class="ow">in</span> <span class="n">title</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">iorb</span> <span class="ow">in</span> <span class="n">orb_nums</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">values</span><span class="p">[:,</span> <span class="n">iorb</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span><span class="n">ny</span><span class="p">,</span><span class="n">nz</span><span class="p">),</span> <span class="n">filename</span><span class="o">+</span><span class="s1">&#39;_orb&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">iorb</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;.cube&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">nums</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nums</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span><span class="n">ny</span><span class="p">,</span><span class="n">nz</span><span class="p">),</span> <span class="n">filename</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;.cube&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cc</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">values</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nx</span><span class="p">,</span><span class="n">ny</span><span class="p">,</span><span class="n">nz</span><span class="p">),</span> <span class="n">filename</span><span class="o">+</span><span class="s1">&#39;.cube&#39;</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

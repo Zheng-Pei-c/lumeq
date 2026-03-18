@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.property.orbital_property &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.property.orbital_property</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">os</span><span class="p">,</span> <span class="n">sys</span><span class="p">,</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_units</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.pyscf_helper</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.unit_conversion</span><span class="w"> </span><span class="kn">import</span> <span class="n">EV2J</span><span class="p">,</span> <span class="n">E_MASS</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">scf</span><span class="p">,</span> <span class="n">tdscf</span><span class="p">,</span> <span class="n">gto</span><span class="p">,</span> <span class="n">lib</span>
+
+<div class="viewcode-block" id="cal_orbital_property">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.orbital_property.cal_orbital_property">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cal_orbital_property</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mf</span><span class="p">):</span>
+    <span class="n">orbital_property</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">units</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">nbas</span><span class="p">,</span> <span class="n">nocc</span><span class="p">,</span> <span class="n">nvir</span><span class="p">,</span> <span class="n">nov</span> <span class="o">=</span> <span class="n">get_basis_info</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+    <span class="n">coeff</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span><span class="p">[:,:</span><span class="n">nocc</span><span class="p">]</span>
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_energy</span><span class="p">[:</span><span class="n">nocc</span><span class="p">]</span>
+    <span class="c1">#print_matrix(&#39;mo energy occ:&#39;, energy[:nocc])</span>
+    <span class="c1">#print_matrix(&#39;mo energy:&#39;, energy)</span>
+
+    <span class="c1"># these two approaches give same values</span>
+    <span class="c1">#time = 2.*np.pi / (-energy)</span>
+    <span class="c1">#time = convert_units(time, &#39;au&#39;, &#39;fs&#39;)</span>
+    <span class="c1">#print(&#39;time:&#39;, time)</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="o">-</span><span class="n">convert_units</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="s1">&#39;hartree&#39;</span><span class="p">,</span> <span class="s1">&#39;fs&#39;</span><span class="p">)</span> <span class="c1"># it is period</span>
+    <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;time:&#39;</span><span class="p">,</span> <span class="n">time</span><span class="p">)</span>
+    <span class="n">orbital_property</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;fs&#39;</span>
+
+    <span class="n">length</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">intor</span><span class="p">(</span><span class="s1">&#39;int1e_r&#39;</span><span class="p">,</span> <span class="n">comp</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;mi,xmn,ni-&gt;ix&#39;</span><span class="p">,</span> <span class="n">coeff</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">coeff</span><span class="p">)</span>
+    <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;length:&#39;</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="s1">&#39;bohr&#39;</span><span class="p">,</span> <span class="s1">&#39;aa&#39;</span><span class="p">)</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">orbital_property</span><span class="p">[</span><span class="s1">&#39;length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">length</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;length&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;aa&#39;</span>
+
+    <span class="n">length2</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">intor</span><span class="p">(</span><span class="s1">&#39;int1e_rr&#39;</span><span class="p">)</span>
+    <span class="n">length2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;mi,xmn,ni-&gt;ix&#39;</span><span class="p">,</span> <span class="n">coeff</span><span class="p">,</span> <span class="n">length2</span><span class="p">,</span> <span class="n">coeff</span><span class="p">)</span>
+    <span class="n">length2</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">length2</span><span class="p">,</span> <span class="s1">&#39;bohr&#39;</span><span class="p">,</span> <span class="s1">&#39;aa&#39;</span><span class="p">)</span>
+    <span class="n">orbital_property</span><span class="p">[</span><span class="s1">&#39;length2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">length2</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;length2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;aa&#39;</span>
+
+    <span class="n">velocity</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span><span class="n">convert_units</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;length&#39;</span><span class="p">],</span> <span class="s1">&#39;nm&#39;</span><span class="p">)</span> <span class="o">/</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">units</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">],</span> <span class="s1">&#39;ns&#39;</span><span class="p">)</span>
+    <span class="n">orbital_property</span><span class="p">[</span><span class="s1">&#39;velocity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">velocity</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;velocity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;m/s&#39;</span>
+    <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;velocity:&#39;</span><span class="p">,</span> <span class="n">velocity</span><span class="p">)</span>
+
+    <span class="n">kinetic</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">intor</span><span class="p">(</span><span class="s1">&#39;int1e_kin&#39;</span><span class="p">)</span>
+    <span class="n">kinetic</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;mi,mn,ni-&gt;i&#39;</span><span class="p">,</span> <span class="n">coeff</span><span class="p">,</span> <span class="n">kinetic</span><span class="p">,</span> <span class="n">coeff</span><span class="p">)</span>
+    <span class="n">kinetic</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">kinetic</span><span class="p">,</span> <span class="s1">&#39;hartree&#39;</span><span class="p">,</span> <span class="s1">&#39;ev&#39;</span><span class="p">)</span>
+    <span class="n">orbital_property</span><span class="p">[</span><span class="s1">&#39;kinetic&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kinetic</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;kinetic&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;ev&#39;</span>
+
+    <span class="n">velocity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">kinetic</span><span class="o">/</span><span class="n">EV2J</span><span class="o">/</span><span class="n">E_MASS</span><span class="p">)</span>
+    <span class="n">orbital_property</span><span class="p">[</span><span class="s1">&#39;velocity2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">velocity</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;velocity2&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;m/s&#39;</span>
+
+    <span class="n">momentum</span> <span class="o">=</span> <span class="o">-</span><span class="n">mol</span><span class="o">.</span><span class="n">intor</span><span class="p">(</span><span class="s1">&#39;int1e_ipovlp&#39;</span><span class="p">,</span> <span class="n">comp</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">momentum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;mi,xmn,ni-&gt;ix&#39;</span><span class="p">,</span> <span class="n">coeff</span><span class="p">,</span> <span class="n">momentum</span><span class="p">,</span> <span class="n">coeff</span><span class="p">)</span>
+    <span class="c1">#print(&#39;momentum:&#39;, momentum)</span>
+    <span class="n">orbital_property</span><span class="p">[</span><span class="s1">&#39;velocity3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">momentum</span><span class="o">/</span><span class="n">convert_units</span><span class="p">(</span><span class="n">E_MASS</span><span class="p">,</span> <span class="s1">&#39;kg&#39;</span><span class="p">,</span> <span class="s1">&#39;dalton&#39;</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;velocity3&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;m/s&#39;</span>
+
+    <span class="n">energy</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="s1">&#39;hartree&#39;</span><span class="p">,</span> <span class="s1">&#39;ev&#39;</span><span class="p">)</span>
+    <span class="n">orbital_property</span><span class="p">[</span><span class="s1">&#39;energy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">energy</span>
+    <span class="n">units</span><span class="p">[</span><span class="s1">&#39;energy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;eV&#39;</span>
+
+    <span class="n">orbital_property</span><span class="p">[</span><span class="s1">&#39;units&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">units</span>
+    <span class="k">return</span> <span class="n">orbital_property</span></div>
+
+
+
+<div class="viewcode-block" id="cal_property_from_scratch">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.orbital_property.cal_property_from_scratch">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cal_property_from_scratch</span><span class="p">(</span><span class="n">infile</span><span class="p">):</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+    <span class="n">mol</span><span class="p">,</span> <span class="n">mf</span> <span class="o">=</span> <span class="n">run_pyscf_final</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cal_orbital_property</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mf</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">infile</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">orbital_property</span> <span class="o">=</span> <span class="n">cal_property_from_scratch</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

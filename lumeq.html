@@ -1,0 +1,1066 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lumeq package &mdash; lumeq  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lumeq.dynamics package" href="lumeq.dynamics.html" />
+    <link rel="prev" title="Usage" href="usage.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            lumeq
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">lumeq package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html">lumeq.dynamics package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.embedding.html">lumeq.embedding package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html">lumeq.opt package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.plot.html">lumeq.plot package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html">lumeq.polariton package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html">lumeq.property package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.spins.html">lumeq.spins package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html">lumeq.utils package</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lumeq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">lumeq package</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/Zheng-Pei-c/lumeq/edit/main/docs/lumeq.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="lumeq-package">
+<h1>lumeq package<a class="headerlink" href="#lumeq-package" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="lumeq.dynamics.html">lumeq.dynamics package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html#module-lumeq.dynamics.dimers_in_crystal">lumeq.dynamics.dimers_in_crystal module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.dimers_in_crystal.add_molecule"><code class="docutils literal notranslate"><span class="pre">add_molecule()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.dimers_in_crystal.add_molecules_cell"><code class="docutils literal notranslate"><span class="pre">add_molecules_cell()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.dimers_in_crystal.cal_dipole_interactions"><code class="docutils literal notranslate"><span class="pre">cal_dipole_interactions()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.dimers_in_crystal.dipole_dipole_interaction"><code class="docutils literal notranslate"><span class="pre">dipole_dipole_interaction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.dimers_in_crystal.get_center_of_mass"><code class="docutils literal notranslate"><span class="pre">get_center_of_mass()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.dimers_in_crystal.read_unit_cell_info"><code class="docutils literal notranslate"><span class="pre">read_unit_cell_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.dimers_in_crystal.translate_molecule"><code class="docutils literal notranslate"><span class="pre">translate_molecule()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.dimers_in_crystal.write_eda_files"><code class="docutils literal notranslate"><span class="pre">write_eda_files()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.dimers_in_crystal.write_xyz_files"><code class="docutils literal notranslate"><span class="pre">write_xyz_files()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html#module-lumeq.dynamics.electronic_dynamics_gs">lumeq.dynamics.electronic_dynamics_gs module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep"><code class="docutils literal notranslate"><span class="pre">CurvyStep</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.cal_electronic_energy_force"><code class="docutils literal notranslate"><span class="pre">CurvyStep.cal_electronic_energy_force()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.cy_get_mass_on_basis"><code class="docutils literal notranslate"><span class="pre">CurvyStep.cy_get_mass_on_basis()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.cy_orbital_response"><code class="docutils literal notranslate"><span class="pre">CurvyStep.cy_orbital_response()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.cy_update_delta"><code class="docutils literal notranslate"><span class="pre">CurvyStep.cy_update_delta()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.cy_update_density"><code class="docutils literal notranslate"><span class="pre">CurvyStep.cy_update_density()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.euler_step"><code class="docutils literal notranslate"><span class="pre">CurvyStep.euler_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.get_electronic_kinetic_energy"><code class="docutils literal notranslate"><span class="pre">CurvyStep.get_electronic_kinetic_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.init_electronic_density_static"><code class="docutils literal notranslate"><span class="pre">CurvyStep.init_electronic_density_static()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.leapfrog_step"><code class="docutils literal notranslate"><span class="pre">CurvyStep.leapfrog_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.update_electronic_density_static"><code class="docutils literal notranslate"><span class="pre">CurvyStep.update_electronic_density_static()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.update_electronic_density_static2"><code class="docutils literal notranslate"><span class="pre">CurvyStep.update_electronic_density_static2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.CurvyStep.velocity_verlet_step"><code class="docutils literal notranslate"><span class="pre">CurvyStep.velocity_verlet_step()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ElectronicStep"><code class="docutils literal notranslate"><span class="pre">ElectronicStep</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ElectronicStep.cal_electronic_force"><code class="docutils literal notranslate"><span class="pre">ElectronicStep.cal_electronic_force()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ElectronicStep.get_ortho_basis"><code class="docutils literal notranslate"><span class="pre">ElectronicStep.get_ortho_basis()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ElectronicStep.init_electronic_density_static"><code class="docutils literal notranslate"><span class="pre">ElectronicStep.init_electronic_density_static()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ElectronicStep.setup_electronic_basis"><code class="docutils literal notranslate"><span class="pre">ElectronicStep.setup_electronic_basis()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ElectronicStep.update_electronic_density_dynamics"><code class="docutils literal notranslate"><span class="pre">ElectronicStep.update_electronic_density_dynamics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ElectronicStep.update_electronic_density_static"><code class="docutils literal notranslate"><span class="pre">ElectronicStep.update_electronic_density_static()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ExtendedLagStep"><code class="docutils literal notranslate"><span class="pre">ExtendedLagStep</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ExtendedLagStep.init_electronic_density_static"><code class="docutils literal notranslate"><span class="pre">ExtendedLagStep.init_electronic_density_static()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ExtendedLagStep.init_xl_variables"><code class="docutils literal notranslate"><span class="pre">ExtendedLagStep.init_xl_variables()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ExtendedLagStep.static_extended_lagrange"><code class="docutils literal notranslate"><span class="pre">ExtendedLagStep.static_extended_lagrange()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ExtendedLagStep.update_electronic_density_static"><code class="docutils literal notranslate"><span class="pre">ExtendedLagStep.update_electronic_density_static()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ExtendedLagStep.xl_auxiliary_density_dotdot"><code class="docutils literal notranslate"><span class="pre">ExtendedLagStep.xl_auxiliary_density_dotdot()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ExtendedLagStep.xl_build_fock"><code class="docutils literal notranslate"><span class="pre">ExtendedLagStep.xl_build_fock()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.ExtendedLagStep.xl_build_fock_init"><code class="docutils literal notranslate"><span class="pre">ExtendedLagStep.xl_build_fock_init()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.GrassmannStep"><code class="docutils literal notranslate"><span class="pre">GrassmannStep</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.GrassmannStep.init_electronic_density_static"><code class="docutils literal notranslate"><span class="pre">GrassmannStep.init_electronic_density_static()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.GrassmannStep.interpolation"><code class="docutils literal notranslate"><span class="pre">GrassmannStep.interpolation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.GrassmannStep.update_electronic_density_static"><code class="docutils literal notranslate"><span class="pre">GrassmannStep.update_electronic_density_static()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.GrassmannStep.update_gamma_lagrange"><code class="docutils literal notranslate"><span class="pre">GrassmannStep.update_gamma_lagrange()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.cal_electronic_energy1"><code class="docutils literal notranslate"><span class="pre">cal_electronic_energy1()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.cal_electronic_energy2"><code class="docutils literal notranslate"><span class="pre">cal_electronic_energy2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.cal_electronic_force"><code class="docutils literal notranslate"><span class="pre">cal_electronic_force()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.cal_idempotency"><code class="docutils literal notranslate"><span class="pre">cal_idempotency()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.cal_pulay_force"><code class="docutils literal notranslate"><span class="pre">cal_pulay_force()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.density_purification"><code class="docutils literal notranslate"><span class="pre">density_purification()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.electronic_dynamics_gs.run_pyscf_gs"><code class="docutils literal notranslate"><span class="pre">run_pyscf_gs()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html#module-lumeq.dynamics.exciton_dynamics">lumeq.dynamics.exciton_dynamics module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton"><code class="docutils literal notranslate"><span class="pre">Exciton</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.analyze_wf_property"><code class="docutils literal notranslate"><span class="pre">Exciton.analyze_wf_property()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.cal_energy"><code class="docutils literal notranslate"><span class="pre">Exciton.cal_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.cal_ipr_value"><code class="docutils literal notranslate"><span class="pre">Exciton.cal_ipr_value()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.cal_r_correlation"><code class="docutils literal notranslate"><span class="pre">Exciton.cal_r_correlation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.cal_spectra"><code class="docutils literal notranslate"><span class="pre">Exciton.cal_spectra()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.check_sanity"><code class="docutils literal notranslate"><span class="pre">Exciton.check_sanity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.convert_parameter_units"><code class="docutils literal notranslate"><span class="pre">Exciton.convert_parameter_units()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.exciton_couplings"><code class="docutils literal notranslate"><span class="pre">Exciton.exciton_couplings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.exciton_diagonal"><code class="docutils literal notranslate"><span class="pre">Exciton.exciton_diagonal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.get_hamiltonian"><code class="docutils literal notranslate"><span class="pre">Exciton.get_hamiltonian()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.get_initial_coefficients"><code class="docutils literal notranslate"><span class="pre">Exciton.get_initial_coefficients()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.print_site_coords"><code class="docutils literal notranslate"><span class="pre">Exciton.print_site_coords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.process_parameters"><code class="docutils literal notranslate"><span class="pre">Exciton.process_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.Exciton.update_coefficients"><code class="docutils literal notranslate"><span class="pre">Exciton.update_coefficients()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamics"><code class="docutils literal notranslate"><span class="pre">ExcitonDynamics</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamics.kernel"><code class="docutils literal notranslate"><span class="pre">ExcitonDynamics.kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamics.set_dynamics_class"><code class="docutils literal notranslate"><span class="pre">ExcitonDynamics.set_dynamics_class()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamicsMC"><code class="docutils literal notranslate"><span class="pre">ExcitonDynamicsMC</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamicsMC.kernel"><code class="docutils literal notranslate"><span class="pre">ExcitonDynamicsMC.kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonDynamicsMC.set_dynamics_class"><code class="docutils literal notranslate"><span class="pre">ExcitonDynamicsMC.set_dynamics_class()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonMC"><code class="docutils literal notranslate"><span class="pre">ExcitonMC</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonMC.get_sampler"><code class="docutils literal notranslate"><span class="pre">ExcitonMC.get_sampler()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonMC.split_operator"><code class="docutils literal notranslate"><span class="pre">ExcitonMC.split_operator()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonMC.update_parameters"><code class="docutils literal notranslate"><span class="pre">ExcitonMC.update_parameters()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonStep"><code class="docutils literal notranslate"><span class="pre">ExcitonStep</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonStep.cal_force"><code class="docutils literal notranslate"><span class="pre">ExcitonStep.cal_force()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonStep.exciton_couplings"><code class="docutils literal notranslate"><span class="pre">ExcitonStep.exciton_couplings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.ExcitonStep.exciton_diagonal"><code class="docutils literal notranslate"><span class="pre">ExcitonStep.exciton_diagonal()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.exciton_dynamics.setup_exciton_dynamics"><code class="docutils literal notranslate"><span class="pre">setup_exciton_dynamics()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html#module-lumeq.dynamics.molecular_dynamics">lumeq.dynamics.molecular_dynamics module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics"><code class="docutils literal notranslate"><span class="pre">MolecularDynamics</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics.kernel"><code class="docutils literal notranslate"><span class="pre">MolecularDynamics.kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics.plot_time_variables"><code class="docutils literal notranslate"><span class="pre">MolecularDynamics.plot_time_variables()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics.run_dynamics"><code class="docutils literal notranslate"><span class="pre">MolecularDynamics.run_dynamics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics.set_electronic_step"><code class="docutils literal notranslate"><span class="pre">MolecularDynamics.set_electronic_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics.set_nuclear_step"><code class="docutils literal notranslate"><span class="pre">MolecularDynamics.set_nuclear_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.MolecularDynamics.set_photon_step"><code class="docutils literal notranslate"><span class="pre">MolecularDynamics.set_photon_step()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.molecular_dynamics.plot_time_variables"><code class="docutils literal notranslate"><span class="pre">plot_time_variables()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html#module-lumeq.dynamics.oscillator_dynamics">lumeq.dynamics.oscillator_dynamics module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep"><code class="docutils literal notranslate"><span class="pre">NuclearStep</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.convert_parameter_units"><code class="docutils literal notranslate"><span class="pre">NuclearStep.convert_parameter_units()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.get_potential_energy"><code class="docutils literal notranslate"><span class="pre">NuclearStep.get_potential_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.init_coordinate_velocity"><code class="docutils literal notranslate"><span class="pre">NuclearStep.init_coordinate_velocity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.init_velocity_random"><code class="docutils literal notranslate"><span class="pre">NuclearStep.init_velocity_random()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.init_velocity_thermo"><code class="docutils literal notranslate"><span class="pre">NuclearStep.init_velocity_thermo()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.project_force"><code class="docutils literal notranslate"><span class="pre">NuclearStep.project_force()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.project_velocity"><code class="docutils literal notranslate"><span class="pre">NuclearStep.project_velocity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.update_coordinate_velocity"><code class="docutils literal notranslate"><span class="pre">NuclearStep.update_coordinate_velocity()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.OscillatorStep"><code class="docutils literal notranslate"><span class="pre">OscillatorStep</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.OscillatorStep.convert_parameter_units"><code class="docutils literal notranslate"><span class="pre">OscillatorStep.convert_parameter_units()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.OscillatorStep.get_phonon_hamiltonian"><code class="docutils literal notranslate"><span class="pre">OscillatorStep.get_phonon_hamiltonian()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.angular_property"><code class="docutils literal notranslate"><span class="pre">angular_property()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.get_boltzmann_beta"><code class="docutils literal notranslate"><span class="pre">get_boltzmann_beta()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator"><code class="docutils literal notranslate"><span class="pre">harmonic_oscillator</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.euler_step"><code class="docutils literal notranslate"><span class="pre">harmonic_oscillator.euler_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.get_energy"><code class="docutils literal notranslate"><span class="pre">harmonic_oscillator.get_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.get_kinetic_energy"><code class="docutils literal notranslate"><span class="pre">harmonic_oscillator.get_kinetic_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.get_potential_energy"><code class="docutils literal notranslate"><span class="pre">harmonic_oscillator.get_potential_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.init_coordinate_velocity"><code class="docutils literal notranslate"><span class="pre">harmonic_oscillator.init_coordinate_velocity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.leapfrog_step"><code class="docutils literal notranslate"><span class="pre">harmonic_oscillator.leapfrog_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.recursive_exploration_step"><code class="docutils literal notranslate"><span class="pre">harmonic_oscillator.recursive_exploration_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.update_coordinate_velocity"><code class="docutils literal notranslate"><span class="pre">harmonic_oscillator.update_coordinate_velocity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.velocity_verlet_step"><code class="docutils literal notranslate"><span class="pre">harmonic_oscillator.velocity_verlet_step()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.remove_trans_rotat_force"><code class="docutils literal notranslate"><span class="pre">remove_trans_rotat_force()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.remove_trans_rotat_velocity"><code class="docutils literal notranslate"><span class="pre">remove_trans_rotat_velocity()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html#module-lumeq.dynamics.photon_dynamics">lumeq.dynamics.photon_dynamics module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.photon_dynamics.PhotonStep"><code class="docutils literal notranslate"><span class="pre">PhotonStep</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.photon_dynamics.PhotonStep.get_initial_density"><code class="docutils literal notranslate"><span class="pre">PhotonStep.get_initial_density()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.photon_dynamics.PhotonStep.update_density"><code class="docutils literal notranslate"><span class="pre">PhotonStep.update_density()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.photon_dynamics.PhotonStep2"><code class="docutils literal notranslate"><span class="pre">PhotonStep2</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.photon_dynamics.PhotonStep2.convert_parameter_units"><code class="docutils literal notranslate"><span class="pre">PhotonStep2.convert_parameter_units()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.photon_dynamics.PhotonStep2.get_minimim_displacement"><code class="docutils literal notranslate"><span class="pre">PhotonStep2.get_minimim_displacement()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.photon_dynamics.PhotonStep2.update_density"><code class="docutils literal notranslate"><span class="pre">PhotonStep2.update_density()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.photon_dynamics.get_trans_amplitude"><code class="docutils literal notranslate"><span class="pre">get_trans_amplitude()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html#module-lumeq.dynamics.process_exciton_parameters">lumeq.dynamics.process_exciton_parameters module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.process_exciton_parameters.process_parameters"><code class="docutils literal notranslate"><span class="pre">process_parameters()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.process_exciton_parameters.read_energy_coupling"><code class="docutils literal notranslate"><span class="pre">read_energy_coupling()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.process_exciton_parameters.set_model"><code class="docutils literal notranslate"><span class="pre">set_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.dynamics.html#lumeq.dynamics.process_exciton_parameters.sort_index"><code class="docutils literal notranslate"><span class="pre">sort_index()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html#module-lumeq.dynamics">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="lumeq.embedding.html">lumeq.embedding package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.embedding.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.embedding.html#module-lumeq.embedding.fragment_entangle">lumeq.embedding.fragment_entangle module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.fragment_entangle.EmbeddingMeanField"><code class="docutils literal notranslate"><span class="pre">EmbeddingMeanField</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.fragment_entangle.EmbeddingMeanField.emb_basis_dmet"><code class="docutils literal notranslate"><span class="pre">EmbeddingMeanField.emb_basis_dmet()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.fragment_entangle.EmbeddingMeanField.get_eomf"><code class="docutils literal notranslate"><span class="pre">EmbeddingMeanField.get_eomf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.fragment_entangle.fragment_localization"><code class="docutils literal notranslate"><span class="pre">fragment_localization()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.fragment_entangle.get_embedding_energy"><code class="docutils literal notranslate"><span class="pre">get_embedding_energy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.fragment_entangle.get_embedding_orbital"><code class="docutils literal notranslate"><span class="pre">get_embedding_orbital()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.fragment_entangle.get_embedding_system"><code class="docutils literal notranslate"><span class="pre">get_embedding_system()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.fragment_entangle.get_localized_orbital"><code class="docutils literal notranslate"><span class="pre">get_localized_orbital()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.fragment_entangle.get_localized_orbital_rdm"><code class="docutils literal notranslate"><span class="pre">get_localized_orbital_rdm()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.embedding.html#module-lumeq.embedding.mol_lo_tools">lumeq.embedding.mol_lo_tools module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.mol_lo_tools.lo_weight_on_ao"><code class="docutils literal notranslate"><span class="pre">lo_weight_on_ao()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.mol_lo_tools.lo_weight_on_atom"><code class="docutils literal notranslate"><span class="pre">lo_weight_on_atom()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.mol_lo_tools.lo_weight_on_frag"><code class="docutils literal notranslate"><span class="pre">lo_weight_on_frag()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.mol_lo_tools.partition_lo_to_atms"><code class="docutils literal notranslate"><span class="pre">partition_lo_to_atms()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.mol_lo_tools.partition_lo_to_frags"><code class="docutils literal notranslate"><span class="pre">partition_lo_to_frags()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.mol_lo_tools.partition_lo_to_imps"><code class="docutils literal notranslate"><span class="pre">partition_lo_to_imps()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.embedding.html#module-lumeq.embedding.orbital_entropy">lumeq.embedding.orbital_entropy module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.orbital_entropy.get_1rdm"><code class="docutils literal notranslate"><span class="pre">get_1rdm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.orbital_entropy.get_2rdm"><code class="docutils literal notranslate"><span class="pre">get_2rdm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.orbital_entropy.get_orbital_entropy_info"><code class="docutils literal notranslate"><span class="pre">get_orbital_entropy_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.orbital_entropy.get_rdm_entropy"><code class="docutils literal notranslate"><span class="pre">get_rdm_entropy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.embedding.html#lumeq.embedding.orbital_entropy.normalize_wf"><code class="docutils literal notranslate"><span class="pre">normalize_wf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.embedding.html#module-lumeq.embedding.td_embeddinng">lumeq.embedding.td_embeddinng module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.embedding.html#module-lumeq.embedding">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="lumeq.opt.html">lumeq.opt package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html#module-lumeq.opt.grassmann">lumeq.opt.grassmann module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Grassmann"><code class="docutils literal notranslate"><span class="pre">Grassmann</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Grassmann.barzilai_borwein_step"><code class="docutils literal notranslate"><span class="pre">Grassmann.barzilai_borwein_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Grassmann.init_guess"><code class="docutils literal notranslate"><span class="pre">Grassmann.init_guess()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Grassmann.kernel"><code class="docutils literal notranslate"><span class="pre">Grassmann.kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Grassmann.polak_ribiere_step"><code class="docutils literal notranslate"><span class="pre">Grassmann.polak_ribiere_step()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Involution_Grassmann"><code class="docutils literal notranslate"><span class="pre">Involution_Grassmann</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Involution_Grassmann.init_guess"><code class="docutils literal notranslate"><span class="pre">Involution_Grassmann.init_guess()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Involution_Grassmann.project_tangent_space"><code class="docutils literal notranslate"><span class="pre">Involution_Grassmann.project_tangent_space()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Involution_Grassmann.update"><code class="docutils literal notranslate"><span class="pre">Involution_Grassmann.update()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Projection_Grassmann"><code class="docutils literal notranslate"><span class="pre">Projection_Grassmann</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Projection_Grassmann.init_guess"><code class="docutils literal notranslate"><span class="pre">Projection_Grassmann.init_guess()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Projection_Grassmann.project_tangent_space"><code class="docutils literal notranslate"><span class="pre">Projection_Grassmann.project_tangent_space()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Quotient_Grassmann"><code class="docutils literal notranslate"><span class="pre">Quotient_Grassmann</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Quotient_Grassmann.conjugate_gradient_step"><code class="docutils literal notranslate"><span class="pre">Quotient_Grassmann.conjugate_gradient_step()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Quotient_Grassmann.init_guess"><code class="docutils literal notranslate"><span class="pre">Quotient_Grassmann.init_guess()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Quotient_Grassmann.project_tangent_space"><code class="docutils literal notranslate"><span class="pre">Quotient_Grassmann.project_tangent_space()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Quotient_Grassmann.tangent_parallel_transport"><code class="docutils literal notranslate"><span class="pre">Quotient_Grassmann.tangent_parallel_transport()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.Quotient_Grassmann.update"><code class="docutils literal notranslate"><span class="pre">Quotient_Grassmann.update()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.cs_decompose"><code class="docutils literal notranslate"><span class="pre">cs_decompose()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.geodesic_exp"><code class="docutils literal notranslate"><span class="pre">geodesic_exp()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.geodesic_svd"><code class="docutils literal notranslate"><span class="pre">geodesic_svd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.grassmann.geodesic_svd_compact"><code class="docutils literal notranslate"><span class="pre">geodesic_svd_compact()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html#module-lumeq.opt.monte_carlo">lumeq.opt.monte_carlo module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.diffusion_walker"><code class="docutils literal notranslate"><span class="pre">diffusion_walker()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.importance_sampling"><code class="docutils literal notranslate"><span class="pre">importance_sampling()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.log_prob"><code class="docutils literal notranslate"><span class="pre">log_prob()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.metropolis"><code class="docutils literal notranslate"><span class="pre">metropolis()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.metropolis_pi"><code class="docutils literal notranslate"><span class="pre">metropolis_pi()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.run_dmc"><code class="docutils literal notranslate"><span class="pre">run_dmc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.run_pimc"><code class="docutils literal notranslate"><span class="pre">run_pimc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.run_vmc"><code class="docutils literal notranslate"><span class="pre">run_vmc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.toy_qm"><code class="docutils literal notranslate"><span class="pre">toy_qm</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.toy_qm.action"><code class="docutils literal notranslate"><span class="pre">toy_qm.action()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.toy_qm.kinetic_energy"><code class="docutils literal notranslate"><span class="pre">toy_qm.kinetic_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.toy_qm.local_energy"><code class="docutils literal notranslate"><span class="pre">toy_qm.local_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.toy_qm.log_prob"><code class="docutils literal notranslate"><span class="pre">toy_qm.log_prob()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.toy_qm.log_psi"><code class="docutils literal notranslate"><span class="pre">toy_qm.log_psi()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.toy_qm.potential_energy"><code class="docutils literal notranslate"><span class="pre">toy_qm.potential_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.monte_carlo.toy_qm.psi"><code class="docutils literal notranslate"><span class="pre">toy_qm.psi()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html#module-lumeq.opt.mrsf_roks">lumeq.opt.mrsf_roks module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.MO_BASE"><code class="docutils literal notranslate"><span class="pre">MO_BASE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.MRSF_CIS"><code class="docutils literal notranslate"><span class="pre">MRSF_CIS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.MRSF_TDA"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.MRSF_TDA.analyze"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.analyze()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.MRSF_TDA.gen_vind"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.gen_vind()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.MRSF_TDA.init_guess"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.init_guess()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.MRSF_TDA.kernel"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.MRSF_TDA.singlet"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.singlet</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.MRSF_TDA.to_gpu"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.to_gpu()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.analyze"><code class="docutils literal notranslate"><span class="pre">analyze()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.gen_tda_hop"><code class="docutils literal notranslate"><span class="pre">gen_tda_hop()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.gen_tda_operation"><code class="docutils literal notranslate"><span class="pre">gen_tda_operation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.mrsf_dimension_transform"><code class="docutils literal notranslate"><span class="pre">mrsf_dimension_transform()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_roks.spin_square"><code class="docutils literal notranslate"><span class="pre">spin_square()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html#module-lumeq.opt.mrsf_uks">lumeq.opt.mrsf_uks module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.MRSF_CIS"><code class="docutils literal notranslate"><span class="pre">MRSF_CIS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.MRSF_TDA"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.MRSF_TDA.analyze"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.analyze()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.MRSF_TDA.gen_vind"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.gen_vind()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.MRSF_TDA.init_guess"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.init_guess()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.MRSF_TDA.kernel"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.MRSF_TDA.positive_eig_threshold"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.positive_eig_threshold</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.MRSF_TDA.singlet"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.singlet</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.MRSF_TDA.to_gpu"><code class="docutils literal notranslate"><span class="pre">MRSF_TDA.to_gpu()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.analyze"><code class="docutils literal notranslate"><span class="pre">analyze()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.convert_roks_to_uks"><code class="docutils literal notranslate"><span class="pre">convert_roks_to_uks()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.gen_tda_hop"><code class="docutils literal notranslate"><span class="pre">gen_tda_hop()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.mrsf_uks.gen_tda_operation"><code class="docutils literal notranslate"><span class="pre">gen_tda_operation()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html#module-lumeq.opt.optimization">lumeq.opt.optimization module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.cg_fletcher_reeves"><code class="docutils literal notranslate"><span class="pre">cg_fletcher_reeves()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.cg_polak_ribiere"><code class="docutils literal notranslate"><span class="pre">cg_polak_ribiere()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.choose_direction"><code class="docutils literal notranslate"><span class="pre">choose_direction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.conjugate_gradient"><code class="docutils literal notranslate"><span class="pre">conjugate_gradient()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.gradient_descent"><code class="docutils literal notranslate"><span class="pre">gradient_descent()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.line_search"><code class="docutils literal notranslate"><span class="pre">line_search()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.ls_armijo"><code class="docutils literal notranslate"><span class="pre">ls_armijo()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.ls_backtracking"><code class="docutils literal notranslate"><span class="pre">ls_backtracking()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.ls_newton_raphson"><code class="docutils literal notranslate"><span class="pre">ls_newton_raphson()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.ls_steepest"><code class="docutils literal notranslate"><span class="pre">ls_steepest()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.newton_2nd"><code class="docutils literal notranslate"><span class="pre">newton_2nd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.optimization.trust_region"><code class="docutils literal notranslate"><span class="pre">trust_region()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html#module-lumeq.opt.riemannian">lumeq.opt.riemannian module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann"><code class="docutils literal notranslate"><span class="pre">Grassmann()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.check_sanity"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.check_sanity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.check_tangent"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.check_tangent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.dimension"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.dimension</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.dist"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.dist</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.exp"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.exp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.get_tangent"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.get_tangent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.horizontal_lift"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.horizontal_lift()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.inverse_retraction_polar"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.inverse_retraction_polar()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.log"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.newton_2nd"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.newton_2nd()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.projection"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.projection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.retraction_polar"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.retraction_polar()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.retraction_qr"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.retraction_qr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.tangent_solver"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.tangent_solver()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.transport"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.transport()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.weingarten"><code class="docutils literal notranslate"><span class="pre">Grassmann_Quotient.weingarten()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.check_sanity"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup.check_sanity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.eigenvalue"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup.eigenvalue</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.exp"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup.exp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.func"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup.func()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.func_grad"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup.func_grad()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.log"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup.log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.projection"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup.projection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.retraction_cayley"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup.retraction_cayley()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.retraction_norm"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup.retraction_norm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.retraction_polar"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup.retraction_polar()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.retraction_qr"><code class="docutils literal notranslate"><span class="pre">OrthogonalGroup.retraction_qr()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian"><code class="docutils literal notranslate"><span class="pre">Riemannian</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.check_tangent"><code class="docutils literal notranslate"><span class="pre">Riemannian.check_tangent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.conjugate_gradient"><code class="docutils literal notranslate"><span class="pre">Riemannian.conjugate_gradient()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.dimension"><code class="docutils literal notranslate"><span class="pre">Riemannian.dimension</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.dist"><code class="docutils literal notranslate"><span class="pre">Riemannian.dist</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.exp"><code class="docutils literal notranslate"><span class="pre">Riemannian.exp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.geodesic"><code class="docutils literal notranslate"><span class="pre">Riemannian.geodesic()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.gradient_descent"><code class="docutils literal notranslate"><span class="pre">Riemannian.gradient_descent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.inverse_retraction"><code class="docutils literal notranslate"><span class="pre">Riemannian.inverse_retraction()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.log"><code class="docutils literal notranslate"><span class="pre">Riemannian.log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.norm"><code class="docutils literal notranslate"><span class="pre">Riemannian.norm</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.projection"><code class="docutils literal notranslate"><span class="pre">Riemannian.projection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.retraction"><code class="docutils literal notranslate"><span class="pre">Riemannian.retraction()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.riemannian_gradient"><code class="docutils literal notranslate"><span class="pre">Riemannian.riemannian_gradient()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.riemannian_hessian"><code class="docutils literal notranslate"><span class="pre">Riemannian.riemannian_hessian()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.to_tangent_space"><code class="docutils literal notranslate"><span class="pre">Riemannian.to_tangent_space()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.transport"><code class="docutils literal notranslate"><span class="pre">Riemannian.transport()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Riemannian.weingarten"><code class="docutils literal notranslate"><span class="pre">Riemannian.weingarten()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel"><code class="docutils literal notranslate"><span class="pre">Stiefel</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.check_sanity"><code class="docutils literal notranslate"><span class="pre">Stiefel.check_sanity()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.check_tangent"><code class="docutils literal notranslate"><span class="pre">Stiefel.check_tangent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.dimension"><code class="docutils literal notranslate"><span class="pre">Stiefel.dimension</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.dist"><code class="docutils literal notranslate"><span class="pre">Stiefel.dist</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.exp"><code class="docutils literal notranslate"><span class="pre">Stiefel.exp()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.inverse_retraction_polar"><code class="docutils literal notranslate"><span class="pre">Stiefel.inverse_retraction_polar()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.inverse_retraction_qr"><code class="docutils literal notranslate"><span class="pre">Stiefel.inverse_retraction_qr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.log"><code class="docutils literal notranslate"><span class="pre">Stiefel.log()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.projection"><code class="docutils literal notranslate"><span class="pre">Stiefel.projection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.retraction_polar"><code class="docutils literal notranslate"><span class="pre">Stiefel.retraction_polar()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.retraction_qr"><code class="docutils literal notranslate"><span class="pre">Stiefel.retraction_qr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.Stiefel.weingarten"><code class="docutils literal notranslate"><span class="pre">Stiefel.weingarten()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.get_random_matrix"><code class="docutils literal notranslate"><span class="pre">get_random_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.opt.html#lumeq.opt.riemannian.solve_sylvester"><code class="docutils literal notranslate"><span class="pre">solve_sylvester()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html#module-lumeq.opt">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="lumeq.plot.html">lumeq.plot package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.plot.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.plot.html#module-lumeq.plot.plot_iteration">lumeq.plot.plot_iteration module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.plot.html#module-lumeq.plot.plot_orbital_property">lumeq.plot.plot_orbital_property module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.plot_orbital_property.plot_orbital_property"><code class="docutils literal notranslate"><span class="pre">plot_orbital_property()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.plot.html#module-lumeq.plot.plot_wave_energy_temperature">lumeq.plot.plot_wave_energy_temperature module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.plot_wave_energy_temperature.plot_wave_energy_frequency"><code class="docutils literal notranslate"><span class="pre">plot_wave_energy_frequency()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.plot.html#module-lumeq.plot.utils">lumeq.plot.utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.utils.add_colorbar_map"><code class="docutils literal notranslate"><span class="pre">add_colorbar_map()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.utils.broadening"><code class="docutils literal notranslate"><span class="pre">broadening()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.utils.brokenaxes"><code class="docutils literal notranslate"><span class="pre">brokenaxes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.utils.fit_val"><code class="docutils literal notranslate"><span class="pre">fit_val()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.utils.get_kwargs"><code class="docutils literal notranslate"><span class="pre">get_kwargs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.utils.gradient_color_line"><code class="docutils literal notranslate"><span class="pre">gradient_color_line()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.utils.make_line_segments"><code class="docutils literal notranslate"><span class="pre">make_line_segments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.plot.html#module-lumeq.plot.vibrational_spectra">lumeq.plot.vibrational_spectra module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.vibrational_spectra.autocorrelation"><code class="docutils literal notranslate"><span class="pre">autocorrelation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.vibrational_spectra.cal_spectra"><code class="docutils literal notranslate"><span class="pre">cal_spectra()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.vibrational_spectra.fft_acf"><code class="docutils literal notranslate"><span class="pre">fft_acf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.vibrational_spectra.get_dipole_dev"><code class="docutils literal notranslate"><span class="pre">get_dipole_dev()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.vibrational_spectra.infrared"><code class="docutils literal notranslate"><span class="pre">infrared()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.vibrational_spectra.plot_spectra"><code class="docutils literal notranslate"><span class="pre">plot_spectra()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.vibrational_spectra.smooth"><code class="docutils literal notranslate"><span class="pre">smooth()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.plot.html#module-lumeq.plot">Module contents</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.plot.html#lumeq.plot.get_plot_colors"><code class="docutils literal notranslate"><span class="pre">get_plot_colors()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="lumeq.polariton.html">lumeq.polariton package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html#module-lumeq.polariton.condensate">lumeq.polariton.condensate module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.condensate.bose_einstein_distribution"><code class="docutils literal notranslate"><span class="pre">bose_einstein_distribution()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html#module-lumeq.polariton.greens_func">lumeq.polariton.greens_func module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.greens_func.absorption_spectra"><code class="docutils literal notranslate"><span class="pre">absorption_spectra()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.greens_func.density_of_states_e"><code class="docutils literal notranslate"><span class="pre">density_of_states_e()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.greens_func.density_of_states_p"><code class="docutils literal notranslate"><span class="pre">density_of_states_p()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.greens_func.greens_func_e"><code class="docutils literal notranslate"><span class="pre">greens_func_e()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.greens_func.greens_func_e0_gauss"><code class="docutils literal notranslate"><span class="pre">greens_func_e0_gauss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.greens_func.greens_func_e0_lorentz"><code class="docutils literal notranslate"><span class="pre">greens_func_e0_lorentz()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.greens_func.greens_func_p"><code class="docutils literal notranslate"><span class="pre">greens_func_p()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.greens_func.plot_sigma"><code class="docutils literal notranslate"><span class="pre">plot_sigma()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.greens_func.self_energy_same_coupling"><code class="docutils literal notranslate"><span class="pre">self_energy_same_coupling()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html#module-lumeq.polariton.qed_ks">lumeq.polariton.qed_ks module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.get_dse_2e"><code class="docutils literal notranslate"><span class="pre">get_dse_2e()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.get_dse_2e_xyz"><code class="docutils literal notranslate"><span class="pre">get_dse_2e_xyz()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.get_dse_elec_nuc"><code class="docutils literal notranslate"><span class="pre">get_dse_elec_nuc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.get_energy_nuc_dip"><code class="docutils literal notranslate"><span class="pre">get_energy_nuc_dip()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.get_lambda2"><code class="docutils literal notranslate"><span class="pre">get_lambda2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.get_multipole_matrix"><code class="docutils literal notranslate"><span class="pre">get_multipole_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.get_nuclear_dipoles"><code class="docutils literal notranslate"><span class="pre">get_nuclear_dipoles()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.get_scaled_lambda"><code class="docutils literal notranslate"><span class="pre">get_scaled_lambda()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton"><code class="docutils literal notranslate"><span class="pre">polariton</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton.get_multipole_matrix"><code class="docutils literal notranslate"><span class="pre">polariton.get_multipole_matrix()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton.nuc_grad_method"><code class="docutils literal notranslate"><span class="pre">polariton.nuc_grad_method()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_cs"><code class="docutils literal notranslate"><span class="pre">polariton_cs</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_cs.Gradients"><code class="docutils literal notranslate"><span class="pre">polariton_cs.Gradients()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_cs.Hessian"><code class="docutils literal notranslate"><span class="pre">polariton_cs.Hessian()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_cs.energy_elec"><code class="docutils literal notranslate"><span class="pre">polariton_cs.energy_elec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_cs.gen_response"><code class="docutils literal notranslate"><span class="pre">polariton_cs.gen_response()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_cs.get_coupling_energy"><code class="docutils literal notranslate"><span class="pre">polariton_cs.get_coupling_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_cs.get_hcore"><code class="docutils literal notranslate"><span class="pre">polariton_cs.get_hcore()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_cs.get_veff"><code class="docutils literal notranslate"><span class="pre">polariton_cs.get_veff()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_ns"><code class="docutils literal notranslate"><span class="pre">polariton_ns</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_ns.Gradients"><code class="docutils literal notranslate"><span class="pre">polariton_ns.Gradients()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_ns.energy_elec"><code class="docutils literal notranslate"><span class="pre">polariton_ns.energy_elec()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_ns.energy_nuc"><code class="docutils literal notranslate"><span class="pre">polariton_ns.energy_nuc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_ns.get_coupling_energy"><code class="docutils literal notranslate"><span class="pre">polariton_ns.get_coupling_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_ns.get_hcore"><code class="docutils literal notranslate"><span class="pre">polariton_ns.get_hcore()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.polariton_ns.get_veff"><code class="docutils literal notranslate"><span class="pre">polariton_ns.get_veff()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks.print_qed_dse_energy"><code class="docutils literal notranslate"><span class="pre">print_qed_dse_energy()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html#module-lumeq.polariton.qed_ks_grad">lumeq.polariton.qed_ks_grad module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.Gradients"><code class="docutils literal notranslate"><span class="pre">Gradients</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.Gradients.dse_fock_d1"><code class="docutils literal notranslate"><span class="pre">Gradients.dse_fock_d1()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.Gradients.get_veff"><code class="docutils literal notranslate"><span class="pre">Gradients.get_veff()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.Gradients2"><code class="docutils literal notranslate"><span class="pre">Gradients2</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.Gradients2.dse_fock_d1"><code class="docutils literal notranslate"><span class="pre">Gradients2.dse_fock_d1()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.Gradients2.grad_nuc"><code class="docutils literal notranslate"><span class="pre">Gradients2.grad_nuc()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.cal_multipole_matrix_d1"><code class="docutils literal notranslate"><span class="pre">cal_multipole_matrix_d1()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.cal_multipole_matrix_fd"><code class="docutils literal notranslate"><span class="pre">cal_multipole_matrix_fd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.finite_difference"><code class="docutils literal notranslate"><span class="pre">finite_difference()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.get_dse_2e"><code class="docutils literal notranslate"><span class="pre">get_dse_2e()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.get_dse_elec_nuc_d1"><code class="docutils literal notranslate"><span class="pre">get_dse_elec_nuc_d1()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.get_dse_elec_nuc_grad"><code class="docutils literal notranslate"><span class="pre">get_dse_elec_nuc_grad()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.get_grad_nuc_dip"><code class="docutils literal notranslate"><span class="pre">get_grad_nuc_dip()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.get_multipole_matrix_d1"><code class="docutils literal notranslate"><span class="pre">get_multipole_matrix_d1()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_grad.get_nuclear_dipoles_d1"><code class="docutils literal notranslate"><span class="pre">get_nuclear_dipoles_d1()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html#module-lumeq.polariton.qed_ks_hess">lumeq.polariton.qed_ks_hess module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_hess.Hessian"><code class="docutils literal notranslate"><span class="pre">Hessian</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_hess.Hessian.make_h1"><code class="docutils literal notranslate"><span class="pre">Hessian.make_h1()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_hess.Hessian.partial_hess_elec"><code class="docutils literal notranslate"><span class="pre">Hessian.partial_hess_elec()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_hess.dse_fock_d1_s"><code class="docutils literal notranslate"><span class="pre">dse_fock_d1_s()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_hess.fd_orbital_rotation_mo1"><code class="docutils literal notranslate"><span class="pre">fd_orbital_rotation_mo1()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_hess.get_dse_2e_a"><code class="docutils literal notranslate"><span class="pre">get_dse_2e_a()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_hess.get_multipole_matrix_d2"><code class="docutils literal notranslate"><span class="pre">get_multipole_matrix_d2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_hess.make_h1"><code class="docutils literal notranslate"><span class="pre">make_h1()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_hess.partial_hess_elec"><code class="docutils literal notranslate"><span class="pre">partial_hess_elec()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_hess.resemble_deriv_on_atoms"><code class="docutils literal notranslate"><span class="pre">resemble_deriv_on_atoms()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html#module-lumeq.polariton.qed_ks_response">lumeq.polariton.qed_ks_response module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_response.cphf_with_freq"><code class="docutils literal notranslate"><span class="pre">cphf_with_freq()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_ks_response.get_polarizability"><code class="docutils literal notranslate"><span class="pre">get_polarizability()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html#module-lumeq.polariton.qed_thermo">lumeq.polariton.qed_thermo module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_thermo.get_g1_d1"><code class="docutils literal notranslate"><span class="pre">get_g1_d1()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_thermo.harmonic_analysis"><code class="docutils literal notranslate"><span class="pre">harmonic_analysis()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.qed_thermo.project_trans_rotation"><code class="docutils literal notranslate"><span class="pre">project_trans_rotation()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html#module-lumeq.polariton.td_gks_soc">lumeq.polariton.td_gks_soc module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.td_gks_soc.GHF"><code class="docutils literal notranslate"><span class="pre">GHF</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.td_gks_soc.GHF.gen_response"><code class="docutils literal notranslate"><span class="pre">GHF.gen_response()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.td_gks_soc.get_ab"><code class="docutils literal notranslate"><span class="pre">get_ab()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.polariton.html#lumeq.polariton.td_gks_soc.make_h01_soc1e"><code class="docutils literal notranslate"><span class="pre">make_h01_soc1e()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html#module-lumeq.polariton">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="lumeq.property.html">lumeq.property package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html#module-lumeq.property.chaos_rmt">lumeq.property.chaos_rmt module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.chaos_rmt.spectral_form_factor"><code class="docutils literal notranslate"><span class="pre">spectral_form_factor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.chaos_rmt.stat_poisson"><code class="docutils literal notranslate"><span class="pre">stat_poisson()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.chaos_rmt.stat_wigner"><code class="docutils literal notranslate"><span class="pre">stat_wigner()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.chaos_rmt.unfold_level_spacing"><code class="docutils literal notranslate"><span class="pre">unfold_level_spacing()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.chaos_rmt.unfold_parameter"><code class="docutils literal notranslate"><span class="pre">unfold_parameter()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html#module-lumeq.property.energy_density_plot">lumeq.property.energy_density_plot module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity"><code class="docutils literal notranslate"><span class="pre">EnergyDensity</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.becke_partition"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.becke_partition()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.cal_density_matrices"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.cal_density_matrices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.cal_excitation_lambda_factor"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.cal_excitation_lambda_factor()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.cal_excited_state"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.cal_excited_state()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.cal_overlap_detach_attach_density"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.cal_overlap_detach_attach_density()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.check_energy_core"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.check_energy_core()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.check_energy_coulomb_exchange"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.check_energy_coulomb_exchange()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.check_energy_functional"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.check_energy_functional()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.check_energy_jk"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.check_energy_jk()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.check_energy_xc"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.check_energy_xc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.check_transtion_density"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.check_transtion_density()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.creat_mesh_grids"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.creat_mesh_grids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.decompose_energy_density"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.decompose_energy_density()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.decompose_energy_density_es"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.decompose_energy_density_es()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.decompose_energy_density_gs"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.decompose_energy_density_gs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.density_on_grids"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.density_on_grids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.energy_density_core"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.energy_density_core()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.energy_density_coulomb_exchange"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.energy_density_coulomb_exchange()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.energy_density_coulomb_only"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.energy_density_coulomb_only()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.energy_density_exchange_rsh"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.energy_density_exchange_rsh()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.energy_density_functional"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.energy_density_functional()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.energy_density_j_only"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.energy_density_j_only()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.energy_density_jk"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.energy_density_jk()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.energy_density_k_rsh"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.energy_density_k_rsh()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.energy_density_xc"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.energy_density_xc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.grab_es_density_on_grids"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.grab_es_density_on_grids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.grab_gs_density_on_grids"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.grab_gs_density_on_grids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.group_hirshfeld_partition"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.group_hirshfeld_partition()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.mayer_bond_order"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.mayer_bond_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.partition_energy_or_charge"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.partition_energy_or_charge()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.plot_es_energy_density"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.plot_es_energy_density()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.plot_gs_energy_density"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.plot_gs_energy_density()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.relaxed_z_kernel"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.relaxed_z_kernel()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.sum_energy_density_component"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.sum_energy_density_component()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.energy_density_plot.EnergyDensity.use_auxilary_basis"><code class="docutils literal notranslate"><span class="pre">EnergyDensity.use_auxilary_basis()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html#module-lumeq.property.grids">lumeq.property.grids module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.grids.Grids"><code class="docutils literal notranslate"><span class="pre">Grids</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.grids.Grids.ao_on_grids"><code class="docutils literal notranslate"><span class="pre">Grids.ao_on_grids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.grids.Grids.density_on_grids"><code class="docutils literal notranslate"><span class="pre">Grids.density_on_grids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.grids.Grids.orbital_on_grids"><code class="docutils literal notranslate"><span class="pre">Grids.orbital_on_grids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.property.html#lumeq.property.grids.Grids.plot_grid_values"><code class="docutils literal notranslate"><span class="pre">Grids.plot_grid_values()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.grids.creat_mesh_grids"><code class="docutils literal notranslate"><span class="pre">creat_mesh_grids()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html#module-lumeq.property.orbital_property">lumeq.property.orbital_property module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.orbital_property.cal_orbital_property"><code class="docutils literal notranslate"><span class="pre">cal_orbital_property()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.orbital_property.cal_property_from_scratch"><code class="docutils literal notranslate"><span class="pre">cal_property_from_scratch()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html#module-lumeq.property.rdm_analysis">lumeq.property.rdm_analysis module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.rdm_analysis.assemble_amplitudes"><code class="docutils literal notranslate"><span class="pre">assemble_amplitudes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.rdm_analysis.cal_dipoles"><code class="docutils literal notranslate"><span class="pre">cal_dipoles()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.rdm_analysis.cal_rdm1"><code class="docutils literal notranslate"><span class="pre">cal_rdm1()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.rdm_analysis.get_attach_dm"><code class="docutils literal notranslate"><span class="pre">get_attach_dm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.rdm_analysis.get_detach_dm"><code class="docutils literal notranslate"><span class="pre">get_detach_dm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.rdm_analysis.get_difference_dm"><code class="docutils literal notranslate"><span class="pre">get_difference_dm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.rdm_analysis.get_transition_dm"><code class="docutils literal notranslate"><span class="pre">get_transition_dm()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html#module-lumeq.property.sapt_dispersion">lumeq.property.sapt_dispersion module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.sapt_dispersion.build_trans_density"><code class="docutils literal notranslate"><span class="pre">build_trans_density()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.sapt_dispersion.cal_sapt"><code class="docutils literal notranslate"><span class="pre">cal_sapt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.sapt_dispersion.cal_sapt_r"><code class="docutils literal notranslate"><span class="pre">cal_sapt_r()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.sapt_dispersion.cal_sapt_u"><code class="docutils literal notranslate"><span class="pre">cal_sapt_u()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.sapt_dispersion.get_xys_in_ao"><code class="docutils literal notranslate"><span class="pre">get_xys_in_ao()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.sapt_dispersion.run_tddft"><code class="docutils literal notranslate"><span class="pre">run_tddft()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html#module-lumeq.property.wf_overlap">lumeq.property.wf_overlap module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.wf_overlap.cal_wf_overlap"><code class="docutils literal notranslate"><span class="pre">cal_wf_overlap()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.wf_overlap.cal_wf_overlap_r"><code class="docutils literal notranslate"><span class="pre">cal_wf_overlap_r()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.wf_overlap.cal_wf_overlap_r0"><code class="docutils literal notranslate"><span class="pre">cal_wf_overlap_r0()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.wf_overlap.cal_wf_overlap_sf"><code class="docutils literal notranslate"><span class="pre">cal_wf_overlap_sf()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.wf_overlap.cal_wf_overlap_u"><code class="docutils literal notranslate"><span class="pre">cal_wf_overlap_u()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.wf_overlap.change_phase"><code class="docutils literal notranslate"><span class="pre">change_phase()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.property.html#lumeq.property.wf_overlap.sign_fixing"><code class="docutils literal notranslate"><span class="pre">sign_fixing()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html#module-lumeq.property">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="lumeq.spins.html">lumeq.spins package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.spins.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.spins.html#module-lumeq.spins.circuit">lumeq.spins.circuit module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.circuit.beta_layer"><code class="docutils literal notranslate"><span class="pre">beta_layer()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.circuit.create_circuit"><code class="docutils literal notranslate"><span class="pre">create_circuit()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.circuit.create_qubits_1d"><code class="docutils literal notranslate"><span class="pre">create_qubits_1d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.circuit.create_qubits_2d"><code class="docutils literal notranslate"><span class="pre">create_qubits_2d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.circuit.gamma_layer"><code class="docutils literal notranslate"><span class="pre">gamma_layer()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.spins.html#module-lumeq.spins.infinite_mps_block">lumeq.spins.infinite_mps_block module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.infinite_mps_block.apply_gate_on_mps"><code class="docutils literal notranslate"><span class="pre">apply_gate_on_mps()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.infinite_mps_block.build_evolution_gate"><code class="docutils literal notranslate"><span class="pre">build_evolution_gate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.infinite_mps_block.contract_from_left"><code class="docutils literal notranslate"><span class="pre">contract_from_left()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.infinite_mps_block.contract_from_right"><code class="docutils literal notranslate"><span class="pre">contract_from_right()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.infinite_mps_block.evaluate_energy_mps"><code class="docutils literal notranslate"><span class="pre">evaluate_energy_mps()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.infinite_mps_block.evaluate_energy_rdm"><code class="docutils literal notranslate"><span class="pre">evaluate_energy_rdm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.infinite_mps_block.get_mps_2rdm"><code class="docutils literal notranslate"><span class="pre">get_mps_2rdm()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.infinite_mps_block.normalize_mps"><code class="docutils literal notranslate"><span class="pre">normalize_mps()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.infinite_mps_block.normalize_mps_2"><code class="docutils literal notranslate"><span class="pre">normalize_mps_2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.infinite_mps_block.run_tebd"><code class="docutils literal notranslate"><span class="pre">run_tebd()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.infinite_mps_block.update_ortho_mps"><code class="docutils literal notranslate"><span class="pre">update_ortho_mps()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.spins.html#module-lumeq.spins.matrix_product_state">lumeq.spins.matrix_product_state module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.matrix_product_state.dmrg_opt_gs"><code class="docutils literal notranslate"><span class="pre">dmrg_opt_gs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.matrix_product_state.dmrg_sweep"><code class="docutils literal notranslate"><span class="pre">dmrg_sweep()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.matrix_product_state.get_hamil_from_mpo"><code class="docutils literal notranslate"><span class="pre">get_hamil_from_mpo()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.matrix_product_state.mpo_hamil_disordered"><code class="docutils literal notranslate"><span class="pre">mpo_hamil_disordered()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.matrix_product_state.mpo_hamil_uniform"><code class="docutils literal notranslate"><span class="pre">mpo_hamil_uniform()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.matrix_product_state.mpo_spin_correlation"><code class="docutils literal notranslate"><span class="pre">mpo_spin_correlation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.matrix_product_state.mps_canonical"><code class="docutils literal notranslate"><span class="pre">mps_canonical()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.matrix_product_state.mps_canonical_left"><code class="docutils literal notranslate"><span class="pre">mps_canonical_left()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.matrix_product_state.mps_canonical_right"><code class="docutils literal notranslate"><span class="pre">mps_canonical_right()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.matrix_product_state.zipper_from_left"><code class="docutils literal notranslate"><span class="pre">zipper_from_left()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.matrix_product_state.zipper_from_right"><code class="docutils literal notranslate"><span class="pre">zipper_from_right()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.spins.html#module-lumeq.spins.qaoa">lumeq.spins.qaoa module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.qaoa.QAOA"><code class="docutils literal notranslate"><span class="pre">QAOA</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.qaoa.QAOA.draw_circuit"><code class="docutils literal notranslate"><span class="pre">QAOA.draw_circuit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.qaoa.QAOA.energy_evaluation"><code class="docutils literal notranslate"><span class="pre">QAOA.energy_evaluation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.qaoa.QAOA.energy_expectation"><code class="docutils literal notranslate"><span class="pre">QAOA.energy_expectation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.qaoa.QAOA.fd_gradient_evaluation"><code class="docutils literal notranslate"><span class="pre">QAOA.fd_gradient_evaluation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.qaoa.QAOA.optimizer"><code class="docutils literal notranslate"><span class="pre">QAOA.optimizer()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.qaoa.QAOA.resolve_circuit_params"><code class="docutils literal notranslate"><span class="pre">QAOA.resolve_circuit_params()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.qaoa.QAOA_Ising"><code class="docutils literal notranslate"><span class="pre">QAOA_Ising</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.qaoa.QAOA_Ising.energy_expectation"><code class="docutils literal notranslate"><span class="pre">QAOA_Ising.energy_expectation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.qaoa.QAOA_Ising.resolve_circuit_params"><code class="docutils literal notranslate"><span class="pre">QAOA_Ising.resolve_circuit_params()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.spins.html#module-lumeq.spins.spin_hamil">lumeq.spins.spin_hamil module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.spin_hamil.get_prod_spin_list"><code class="docutils literal notranslate"><span class="pre">get_prod_spin_list()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.spin_hamil.get_spin"><code class="docutils literal notranslate"><span class="pre">get_spin()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.spin_hamil.get_spin_mat"><code class="docutils literal notranslate"><span class="pre">get_spin_mat()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.spin_hamil.get_spins"><code class="docutils literal notranslate"><span class="pre">get_spins()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.spin_hamil.hamil_heisenberg_1d"><code class="docutils literal notranslate"><span class="pre">hamil_heisenberg_1d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.spin_hamil.hamil_x_1d"><code class="docutils literal notranslate"><span class="pre">hamil_x_1d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.spin_hamil.hamil_xxz_1d"><code class="docutils literal notranslate"><span class="pre">hamil_xxz_1d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.spin_hamil.hamil_xyz_1d"><code class="docutils literal notranslate"><span class="pre">hamil_xyz_1d()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.spins.html#lumeq.spins.spin_hamil.hamil_zeeman_1d"><code class="docutils literal notranslate"><span class="pre">hamil_zeeman_1d()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.spins.html#module-lumeq.spins">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="lumeq.utils.html">lumeq.utils package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.cg_coeffs">lumeq.utils.cg_coeffs module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.cg_coeffs.clebsch_gordan_coeff_direct"><code class="docutils literal notranslate"><span class="pre">clebsch_gordan_coeff_direct()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.cg_coeffs.clebsch_gordan_coeff_recur"><code class="docutils literal notranslate"><span class="pre">clebsch_gordan_coeff_recur()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.cg_coeffs.ladder_coeff"><code class="docutils literal notranslate"><span class="pre">ladder_coeff()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.cg_coeffs.print_cg_coeff"><code class="docutils literal notranslate"><span class="pre">print_cg_coeff()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.data_io">lumeq.utils.data_io module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.data_io.load_json"><code class="docutils literal notranslate"><span class="pre">load_json()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.data_io.save_json"><code class="docutils literal notranslate"><span class="pre">save_json()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.fdiff">lumeq.utils.fdiff module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.fdiff.change_matrix_phase_c"><code class="docutils literal notranslate"><span class="pre">change_matrix_phase_c()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.fdiff.change_matrix_phase_rc"><code class="docutils literal notranslate"><span class="pre">change_matrix_phase_rc()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.fdiff.change_number_phase"><code class="docutils literal notranslate"><span class="pre">change_number_phase()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.fdiff.change_wf_phase"><code class="docutils literal notranslate"><span class="pre">change_wf_phase()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.fdiff.fdiff"><code class="docutils literal notranslate"><span class="pre">fdiff</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.fdiff.fdiff.coeff"><code class="docutils literal notranslate"><span class="pre">fdiff.coeff</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.fdiff.fdiff.compute"><code class="docutils literal notranslate"><span class="pre">fdiff.compute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.fdiff.fdiff.get_d"><code class="docutils literal notranslate"><span class="pre">fdiff.get_d()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.fdiff.fdiff.get_x"><code class="docutils literal notranslate"><span class="pre">fdiff.get_x()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.get_cx">lumeq.utils.get_cx module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.monitor_performance">lumeq.utils.monitor_performance module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.monitor_performance.monitor_performance"><code class="docutils literal notranslate"><span class="pre">monitor_performance()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.monitor_performance.set_performance_log"><code class="docutils literal notranslate"><span class="pre">set_performance_log()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.ortho_basis">lumeq.utils.ortho_basis module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.ortho_basis.get_ortho_basis"><code class="docutils literal notranslate"><span class="pre">get_ortho_basis()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.ortho_basis.get_ortho_basis_deriv"><code class="docutils literal notranslate"><span class="pre">get_ortho_basis_deriv()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.parser">lumeq.utils.parser module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.parser.convert_string"><code class="docutils literal notranslate"><span class="pre">convert_string()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.parser.parser"><code class="docutils literal notranslate"><span class="pre">parser()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.parser.put_keys_kwargs_to_object"><code class="docutils literal notranslate"><span class="pre">put_keys_kwargs_to_object()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.parser.put_keys_to_kwargs"><code class="docutils literal notranslate"><span class="pre">put_keys_to_kwargs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.parser.put_keys_to_object"><code class="docutils literal notranslate"><span class="pre">put_keys_to_object()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.parser.put_kwargs_to_keys"><code class="docutils literal notranslate"><span class="pre">put_kwargs_to_keys()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.parser.put_kwargs_to_object"><code class="docutils literal notranslate"><span class="pre">put_kwargs_to_object()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.parser.read_keyword_block"><code class="docutils literal notranslate"><span class="pre">read_keyword_block()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.print_matrix">lumeq.utils.print_matrix module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.print_matrix.print_matrix"><code class="docutils literal notranslate"><span class="pre">print_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.print_matrix.print_statistics"><code class="docutils literal notranslate"><span class="pre">print_statistics()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.pyscf_helper">lumeq.utils.pyscf_helper module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.MoleculeInput"><code class="docutils literal notranslate"><span class="pre">MoleculeInput</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.MoleculeInput.atom"><code class="docutils literal notranslate"><span class="pre">MoleculeInput.atom</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.MoleculeInput.charge"><code class="docutils literal notranslate"><span class="pre">MoleculeInput.charge</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.MoleculeInput.coords"><code class="docutils literal notranslate"><span class="pre">MoleculeInput.coords</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.MoleculeInput.spin"><code class="docutils literal notranslate"><span class="pre">MoleculeInput.spin</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.MoleculeInput.symbols"><code class="docutils literal notranslate"><span class="pre">MoleculeInput.symbols</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.MoleculeInput.unit"><code class="docutils literal notranslate"><span class="pre">MoleculeInput.unit</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput"><code class="docutils literal notranslate"><span class="pre">QEDInput</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.cavity_freq"><code class="docutils literal notranslate"><span class="pre">QEDInput.cavity_freq</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.cavity_mode"><code class="docutils literal notranslate"><span class="pre">QEDInput.cavity_mode</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.cavity_model"><code class="docutils literal notranslate"><span class="pre">QEDInput.cavity_model</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.debug"><code class="docutils literal notranslate"><span class="pre">QEDInput.debug</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.freq_window"><code class="docutils literal notranslate"><span class="pre">QEDInput.freq_window</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.nstates"><code class="docutils literal notranslate"><span class="pre">QEDInput.nstates</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.resonance_state"><code class="docutils literal notranslate"><span class="pre">QEDInput.resonance_state</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.solver_algorithm"><code class="docutils literal notranslate"><span class="pre">QEDInput.solver_algorithm</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.solver_conv_prop"><code class="docutils literal notranslate"><span class="pre">QEDInput.solver_conv_prop</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.solver_conv_thresh"><code class="docutils literal notranslate"><span class="pre">QEDInput.solver_conv_thresh</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.target_states"><code class="docutils literal notranslate"><span class="pre">QEDInput.target_states</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.uniform_field"><code class="docutils literal notranslate"><span class="pre">QEDInput.uniform_field</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.QEDInput.verbose"><code class="docutils literal notranslate"><span class="pre">QEDInput.verbose</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput"><code class="docutils literal notranslate"><span class="pre">SCFInput</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.basis"><code class="docutils literal notranslate"><span class="pre">SCFInput.basis</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.convergence"><code class="docutils literal notranslate"><span class="pre">SCFInput.convergence</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.debug"><code class="docutils literal notranslate"><span class="pre">SCFInput.debug</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.e_field"><code class="docutils literal notranslate"><span class="pre">SCFInput.e_field</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.functional"><code class="docutils literal notranslate"><span class="pre">SCFInput.functional</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.grids_prune"><code class="docutils literal notranslate"><span class="pre">SCFInput.grids_prune</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.h"><code class="docutils literal notranslate"><span class="pre">SCFInput.h</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.jobtype"><code class="docutils literal notranslate"><span class="pre">SCFInput.jobtype</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.max_cycle"><code class="docutils literal notranslate"><span class="pre">SCFInput.max_cycle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.max_memory"><code class="docutils literal notranslate"><span class="pre">SCFInput.max_memory</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.method"><code class="docutils literal notranslate"><span class="pre">SCFInput.method</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.unrestricted"><code class="docutils literal notranslate"><span class="pre">SCFInput.unrestricted</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SCFInput.verbose"><code class="docutils literal notranslate"><span class="pre">SCFInput.verbose</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SystemInput"><code class="docutils literal notranslate"><span class="pre">SystemInput</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SystemInput.molecules"><code class="docutils literal notranslate"><span class="pre">SystemInput.molecules</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.SystemInput.nfrag"><code class="docutils literal notranslate"><span class="pre">SystemInput.nfrag</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.TDInput"><code class="docutils literal notranslate"><span class="pre">TDInput</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.TDInput.cis_n_roots"><code class="docutils literal notranslate"><span class="pre">TDInput.cis_n_roots</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.TDInput.cis_singlets"><code class="docutils literal notranslate"><span class="pre">TDInput.cis_singlets</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.TDInput.cis_triplets"><code class="docutils literal notranslate"><span class="pre">TDInput.cis_triplets</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.TDInput.max_cycle"><code class="docutils literal notranslate"><span class="pre">TDInput.max_cycle</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.TDInput.max_space"><code class="docutils literal notranslate"><span class="pre">TDInput.max_space</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.TDInput.method"><code class="docutils literal notranslate"><span class="pre">TDInput.method</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.TDInput.rpa"><code class="docutils literal notranslate"><span class="pre">TDInput.rpa</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.TDInput.verbose"><code class="docutils literal notranslate"><span class="pre">TDInput.verbose</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.build_atom"><code class="docutils literal notranslate"><span class="pre">build_atom()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.build_molecule"><code class="docutils literal notranslate"><span class="pre">build_molecule()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.final_print_energy"><code class="docutils literal notranslate"><span class="pre">final_print_energy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.find_oscillator_strength"><code class="docutils literal notranslate"><span class="pre">find_oscillator_strength()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.find_transition_dipole"><code class="docutils literal notranslate"><span class="pre">find_transition_dipole()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.get_basis_info"><code class="docutils literal notranslate"><span class="pre">get_basis_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.get_center_of_mass"><code class="docutils literal notranslate"><span class="pre">get_center_of_mass()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.get_frgm_idx"><code class="docutils literal notranslate"><span class="pre">get_frgm_idx()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.get_jobtype"><code class="docutils literal notranslate"><span class="pre">get_jobtype()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.get_photon_info"><code class="docutils literal notranslate"><span class="pre">get_photon_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.justify_photon_info"><code class="docutils literal notranslate"><span class="pre">justify_photon_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.run_pyscf_dft"><code class="docutils literal notranslate"><span class="pre">run_pyscf_dft()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.run_pyscf_dft_tddft"><code class="docutils literal notranslate"><span class="pre">run_pyscf_dft_tddft()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.run_pyscf_final"><code class="docutils literal notranslate"><span class="pre">run_pyscf_final()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.run_pyscf_tddft"><code class="docutils literal notranslate"><span class="pre">run_pyscf_tddft()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.run_pyscf_tdqed"><code class="docutils literal notranslate"><span class="pre">run_pyscf_tdqed()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.setup_molecules"><code class="docutils literal notranslate"><span class="pre">setup_molecules()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.setup_scf_input"><code class="docutils literal notranslate"><span class="pre">setup_scf_input()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.pyscf_helper.setup_td_input"><code class="docutils literal notranslate"><span class="pre">setup_td_input()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.read_files">lumeq.utils.read_files module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.read_files.istype"><code class="docutils literal notranslate"><span class="pre">istype()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.read_files.read_array"><code class="docutils literal notranslate"><span class="pre">read_array()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.read_files.read_matrix"><code class="docutils literal notranslate"><span class="pre">read_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.read_files.read_number"><code class="docutils literal notranslate"><span class="pre">read_number()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.read_files.read_time"><code class="docutils literal notranslate"><span class="pre">read_time()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.sampling">lumeq.utils.sampling module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sampling.Sampler"><code class="docutils literal notranslate"><span class="pre">Sampler</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sampling.Sampler.correlated_sample"><code class="docutils literal notranslate"><span class="pre">Sampler.correlated_sample()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sampling.Sampler.get_covariance"><code class="docutils literal notranslate"><span class="pre">Sampler.get_covariance()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sampling.Sampler.sample"><code class="docutils literal notranslate"><span class="pre">Sampler.sample()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.sec_mole">lumeq.utils.sec_mole module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.align_principal_axes"><code class="docutils literal notranslate"><span class="pre">align_principal_axes()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.cal_dihedral_angle"><code class="docutils literal notranslate"><span class="pre">cal_dihedral_angle()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.get_center_property"><code class="docutils literal notranslate"><span class="pre">get_center_property()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.get_charge_or_mass"><code class="docutils literal notranslate"><span class="pre">get_charge_or_mass()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.get_molecular_center"><code class="docutils literal notranslate"><span class="pre">get_molecular_center()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.get_moment_of_inertia"><code class="docutils literal notranslate"><span class="pre">get_moment_of_inertia()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.get_rotation_matrix"><code class="docutils literal notranslate"><span class="pre">get_rotation_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.get_symbols_coords"><code class="docutils literal notranslate"><span class="pre">get_symbols_coords()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.read_geometries_standard"><code class="docutils literal notranslate"><span class="pre">read_geometries_standard()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.read_geometry"><code class="docutils literal notranslate"><span class="pre">read_geometry()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.read_molecule"><code class="docutils literal notranslate"><span class="pre">read_molecule()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.read_symbols_coords"><code class="docutils literal notranslate"><span class="pre">read_symbols_coords()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.rotate_molecule"><code class="docutils literal notranslate"><span class="pre">rotate_molecule()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.standard_orientation"><code class="docutils literal notranslate"><span class="pre">standard_orientation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.standard_orientation2"><code class="docutils literal notranslate"><span class="pre">standard_orientation2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.switch_atoms"><code class="docutils literal notranslate"><span class="pre">switch_atoms()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.translate_molecule"><code class="docutils literal notranslate"><span class="pre">translate_molecule()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.write_geometry"><code class="docutils literal notranslate"><span class="pre">write_geometry()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.write_mol_info"><code class="docutils literal notranslate"><span class="pre">write_mol_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.write_mol_info_geometry"><code class="docutils literal notranslate"><span class="pre">write_mol_info_geometry()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.write_rem_info"><code class="docutils literal notranslate"><span class="pre">write_rem_info()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.sec_mole.write_symbols_coords"><code class="docutils literal notranslate"><span class="pre">write_symbols_coords()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.unit_conversion">lumeq.utils.unit_conversion module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.unit_conversion.convert_different_units"><code class="docutils literal notranslate"><span class="pre">convert_different_units()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.unit_conversion.convert_other_property"><code class="docutils literal notranslate"><span class="pre">convert_other_property()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.unit_conversion.convert_property_to_energy"><code class="docutils literal notranslate"><span class="pre">convert_property_to_energy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.unit_conversion.convert_same_units"><code class="docutils literal notranslate"><span class="pre">convert_same_units()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.unit_conversion.convert_units"><code class="docutils literal notranslate"><span class="pre">convert_units()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.unit_conversion.default_unit_index"><code class="docutils literal notranslate"><span class="pre">default_unit_index()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.unit_conversion.find_properties"><code class="docutils literal notranslate"><span class="pre">find_properties()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.utils">lumeq.utils.utils module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.utils.collect_lists"><code class="docutils literal notranslate"><span class="pre">collect_lists()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.utils.ishermitian"><code class="docutils literal notranslate"><span class="pre">ishermitian()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.utils.random_matrix"><code class="docutils literal notranslate"><span class="pre">random_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.utils.swap_largest_to_diagonal"><code class="docutils literal notranslate"><span class="pre">swap_largest_to_diagonal()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils.wick_contraction">lumeq.utils.wick_contraction module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.combine_same_terms"><code class="docutils literal notranslate"><span class="pre">combine_same_terms()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.commutator"><code class="docutils literal notranslate"><span class="pre">commutator()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.contract_hamil_delta"><code class="docutils literal notranslate"><span class="pre">contract_hamil_delta()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.find_delta_sign"><code class="docutils literal notranslate"><span class="pre">find_delta_sign()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.get_list"><code class="docutils literal notranslate"><span class="pre">get_list()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.get_orbital_index"><code class="docutils literal notranslate"><span class="pre">get_orbital_index()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.get_spin_label"><code class="docutils literal notranslate"><span class="pre">get_spin_label()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.get_spin_orbital_index"><code class="docutils literal notranslate"><span class="pre">get_spin_orbital_index()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.has_pattern"><code class="docutils literal notranslate"><span class="pre">has_pattern()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.index_to_operators"><code class="docutils literal notranslate"><span class="pre">index_to_operators()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.is_annihilator"><code class="docutils literal notranslate"><span class="pre">is_annihilator()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.is_creator"><code class="docutils literal notranslate"><span class="pre">is_creator()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.is_same_pattern"><code class="docutils literal notranslate"><span class="pre">is_same_pattern()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.plot_wick_diagram"><code class="docutils literal notranslate"><span class="pre">plot_wick_diagram()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.print_math"><code class="docutils literal notranslate"><span class="pre">print_math()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.remove_dagger"><code class="docutils literal notranslate"><span class="pre">remove_dagger()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.sqo_evaluation"><code class="docutils literal notranslate"><span class="pre">sqo_evaluation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.wick_contraction"><code class="docutils literal notranslate"><span class="pre">wick_contraction()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.wick_delta"><code class="docutils literal notranslate"><span class="pre">wick_delta()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lumeq.utils.html#lumeq.utils.wick_contraction.wick_pairs"><code class="docutils literal notranslate"><span class="pre">wick_pairs()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html#module-lumeq.utils">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="usage.html" class="btn btn-neutral float-left" title="Usage" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lumeq.dynamics.html" class="btn btn-neutral float-right" title="lumeq.dynamics package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Zheng Pei.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

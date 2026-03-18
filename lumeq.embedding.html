@@ -1,0 +1,525 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lumeq.embedding package &mdash; lumeq  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lumeq.opt package" href="lumeq.opt.html" />
+    <link rel="prev" title="lumeq.dynamics package" href="lumeq.dynamics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            lumeq
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="lumeq.html">lumeq package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html">lumeq.dynamics package</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">lumeq.embedding package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.embedding.fragment_entangle">lumeq.embedding.fragment_entangle module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.fragment_entangle.EmbeddingMeanField"><code class="docutils literal notranslate"><span class="pre">EmbeddingMeanField</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.fragment_entangle.fragment_localization"><code class="docutils literal notranslate"><span class="pre">fragment_localization()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.fragment_entangle.get_embedding_energy"><code class="docutils literal notranslate"><span class="pre">get_embedding_energy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.fragment_entangle.get_embedding_orbital"><code class="docutils literal notranslate"><span class="pre">get_embedding_orbital()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.fragment_entangle.get_embedding_system"><code class="docutils literal notranslate"><span class="pre">get_embedding_system()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.fragment_entangle.get_localized_orbital"><code class="docutils literal notranslate"><span class="pre">get_localized_orbital()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.fragment_entangle.get_localized_orbital_rdm"><code class="docutils literal notranslate"><span class="pre">get_localized_orbital_rdm()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.embedding.mol_lo_tools">lumeq.embedding.mol_lo_tools module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.mol_lo_tools.lo_weight_on_ao"><code class="docutils literal notranslate"><span class="pre">lo_weight_on_ao()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.mol_lo_tools.lo_weight_on_atom"><code class="docutils literal notranslate"><span class="pre">lo_weight_on_atom()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.mol_lo_tools.lo_weight_on_frag"><code class="docutils literal notranslate"><span class="pre">lo_weight_on_frag()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.mol_lo_tools.partition_lo_to_atms"><code class="docutils literal notranslate"><span class="pre">partition_lo_to_atms()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.mol_lo_tools.partition_lo_to_frags"><code class="docutils literal notranslate"><span class="pre">partition_lo_to_frags()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.mol_lo_tools.partition_lo_to_imps"><code class="docutils literal notranslate"><span class="pre">partition_lo_to_imps()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.embedding.orbital_entropy">lumeq.embedding.orbital_entropy module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.orbital_entropy.get_1rdm"><code class="docutils literal notranslate"><span class="pre">get_1rdm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.orbital_entropy.get_2rdm"><code class="docutils literal notranslate"><span class="pre">get_2rdm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.orbital_entropy.get_orbital_entropy_info"><code class="docutils literal notranslate"><span class="pre">get_orbital_entropy_info()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.orbital_entropy.get_rdm_entropy"><code class="docutils literal notranslate"><span class="pre">get_rdm_entropy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.embedding.orbital_entropy.normalize_wf"><code class="docutils literal notranslate"><span class="pre">normalize_wf()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.embedding.td_embeddinng">lumeq.embedding.td_embeddinng module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.embedding">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html">lumeq.opt package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.plot.html">lumeq.plot package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html">lumeq.polariton package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html">lumeq.property package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.spins.html">lumeq.spins package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html">lumeq.utils package</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lumeq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="lumeq.html">lumeq package</a></li>
+      <li class="breadcrumb-item active">lumeq.embedding package</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/Zheng-Pei-c/lumeq/edit/main/docs/lumeq.embedding.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="lumeq-embedding-package">
+<h1>lumeq.embedding package<a class="headerlink" href="#lumeq-embedding-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-lumeq.embedding.fragment_entangle">
+<span id="lumeq-embedding-fragment-entangle-module"></span><h2>lumeq.embedding.fragment_entangle module<a class="headerlink" href="#module-lumeq.embedding.fragment_entangle" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="lumeq.embedding.fragment_entangle.EmbeddingMeanField">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">EmbeddingMeanField</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frgm_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pipek_mezey'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_orb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/fragment_entangle.html#EmbeddingMeanField"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.fragment_entangle.EmbeddingMeanField" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Embedding system class of mean field ground-state</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.embedding.fragment_entangle.EmbeddingMeanField.emb_basis_dmet">
+<span class="sig-name descname"><span class="pre">emb_basis_dmet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ifrgm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">embed_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/fragment_entangle.html#EmbeddingMeanField.emb_basis_dmet"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.fragment_entangle.EmbeddingMeanField.emb_basis_dmet" title="Link to this definition"></a></dt>
+<dd><p>Build embedding basis for a given fragment</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> – Converged PySCF mean-field object. This should be the same
+object passed during initialization.</p></li>
+<li><p><strong>ifrgm</strong> (<em>int</em>) – Index of the fragment chosen as the impurity.</p></li>
+<li><p><strong>embed_method</strong> (<em>int</em>) – Embedding method selector. <code class="docutils literal notranslate"><span class="pre">0</span></code> corresponds to
+DMET.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Embedding-orbital coefficients in the AO basis and density
+matrix in the EO basis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.embedding.fragment_entangle.EmbeddingMeanField.get_eomf">
+<span class="sig-name descname"><span class="pre">get_eomf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/fragment_entangle.html#EmbeddingMeanField.get_eomf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.fragment_entangle.EmbeddingMeanField.get_eomf" title="Link to this definition"></a></dt>
+<dd><p>Build the embedded mean-field object with reduced MO space,
+ready to be used for excited-state calculations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mf</strong> – Mean-field object, the same class used previously.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Embedded mean-field object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>object</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.fragment_entangle.fragment_localization">
+<span class="sig-name descname"><span class="pre">fragment_localization</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frgm_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pipek_mezey'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_orb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/fragment_entangle.html#fragment_localization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.fragment_entangle.fragment_localization" title="Link to this definition"></a></dt>
+<dd><p>Get the localized orbitals and density matrix for fragment analysis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> – PySCF mean-field object such as HF/DFT.</p></li>
+<li><p><strong>frgm_list</strong> (<em>list</em>) – Atom indices in each fragment.</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – Localization method.</p></li>
+<li><p><strong>extra_orb</strong> (<em>int</em>) – Number of virtual orbitals added in the density-matrix build.</p></li>
+<li><p><strong>min_weight</strong> (<em>float</em>) – Threshold for the fragment LO partition.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Localized-orbital basis coefficients <code class="docutils literal notranslate"><span class="pre">C^{AO,LO}</span></code>.
+dm_lo_in_ao: Density matrix in the LO basis.
+frgm_lo_idx (list): Local-orbital indices for each fragment.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>coeff_lo_in_ao</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.fragment_entangle.get_embedding_energy">
+<span class="sig-name descname"><span class="pre">get_embedding_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff_eo_in_ao</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dm_eo_in_ao</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">neo_imp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_orb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/fragment_entangle.html#get_embedding_energy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.fragment_entangle.get_embedding_energy" title="Link to this definition"></a></dt>
+<dd><p>Calculate electronic energy of the impurity in the embedding orbital basis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> – Converged PySCF mean-field object.</p></li>
+<li><p><strong>coeff_eo_in_ao</strong> – Embedding-orbital coefficients <code class="docutils literal notranslate"><span class="pre">C^{AO,EO}</span></code> in AO basis.</p></li>
+<li><p><strong>dm_eo_in_ao</strong> – Density matrix <code class="docutils literal notranslate"><span class="pre">P^{EO,EO}</span></code> in the EO basis.</p></li>
+<li><p><strong>neo_imp</strong> (<em>int</em>) – Number of impurity embedding orbitals.</p></li>
+<li><p><strong>extra_orb</strong> (<em>int</em>) – Number of virtual MO orbitals in the top-level SCF.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Embedded-system energy, occupied EO count, EO energies, and EO coefficients.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.fragment_entangle.get_embedding_orbital">
+<span class="sig-name descname"><span class="pre">get_embedding_orbital</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm_lo_in_ao</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff_lo_in_ao</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ovlp_ao</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imp_lo_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">env_lo_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/fragment_entangle.html#get_embedding_orbital"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.fragment_entangle.get_embedding_orbital" title="Link to this definition"></a></dt>
+<dd><p>Embedding orbital construction from the density matrix in localized orbital basis</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm_lo_in_ao</strong> (<em>numpy.ndarray</em>) – Density matrix in the localized-orbital
+basis.</p></li>
+<li><p><strong>coeff_lo_in_ao</strong> (<em>numpy.ndarray</em>) – Localized-orbital basis coefficients.</p></li>
+<li><p><strong>ovlp_ao</strong> (<em>numpy.ndarray</em>) – Overlap matrix in the AO basis.</p></li>
+<li><p><strong>imp_lo_idx</strong> (<em>list</em>) – Impurity localized-orbital indices from
+<code class="docutils literal notranslate"><span class="pre">frgm_lo_idx</span></code>.</p></li>
+<li><p><strong>env_lo_idx</strong> (<em>list</em>) – Environment localized-orbital indices from
+<code class="docutils literal notranslate"><span class="pre">frgm_lo_idx</span></code>.</p></li>
+<li><p><strong>method</strong> (<em>int</em>) – Bath-orbital selection method. <code class="docutils literal notranslate"><span class="pre">0</span></code> uses singular
+vectors of the off-diagonal block of the density matrix in the LO
+basis, and <code class="docutils literal notranslate"><span class="pre">1</span></code> uses eigenvectors of the environment diagonal block
+of the density matrix in the LO basis.</p></li>
+<li><p><strong>threshold</strong> (<em>float</em>) – Cutoff for singular values or eigenvalues.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Embedding-orbital coefficients <code class="docutils literal notranslate"><span class="pre">C^{AO,EO}</span></code> in the AO basis and
+density matrix <code class="docutils literal notranslate"><span class="pre">P^{EO,EO}</span></code> in the EO basis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.fragment_entangle.get_embedding_system">
+<span class="sig-name descname"><span class="pre">get_embedding_system</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frgm_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ifrgm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_orb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/fragment_entangle.html#get_embedding_system"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.fragment_entangle.get_embedding_system" title="Link to this definition"></a></dt>
+<dd><p>Embedding energy calculation for a given fragment</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> – PySCF mean-field object.</p></li>
+<li><p><strong>frgm_idx</strong> (<em>list</em>) – Atomic indices for each fragment.</p></li>
+<li><p><strong>ifrgm</strong> (<em>int</em>) – Fragment index treated as the impurity. If <code class="docutils literal notranslate"><span class="pre">-1</span></code>, loop over all fragments.</p></li>
+<li><p><strong>extra_orb</strong> (<em>int</em>) – Number of extra orbitals to include in the density matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>For a chosen fragment, returns the values from</dt><dd><p><code class="docutils literal notranslate"><span class="pre">get_embedding_energy</span></code>. Otherwise computes the whole-system energy.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.fragment_entangle.get_localized_orbital">
+<span class="sig-name descname"><span class="pre">get_localized_orbital</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pipek_mezey'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/fragment_entangle.html#get_localized_orbital"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.fragment_entangle.get_localized_orbital" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.fragment_entangle.get_localized_orbital_rdm">
+<span class="sig-name descname"><span class="pre">get_localized_orbital_rdm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coeff_lo_in_ao</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff_mo_in_ao</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ovlp_ao</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nocc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extra_orb</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/fragment_entangle.html#get_localized_orbital_rdm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.fragment_entangle.get_localized_orbital_rdm" title="Link to this definition"></a></dt>
+<dd><p>Compute total density matrix alpha+beta in localized orbital (LO) basis
+S^{1/2} P S^{1/2} = C_lo^T S C_mo occ C_mo occ^T S C_lo</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>coeff_lo_in_ao</strong> – LO basis coefficients <code class="docutils literal notranslate"><span class="pre">C^{AO,LO}</span></code>.</p></li>
+<li><p><strong>coeff_mo_in_ao</strong> – MO coefficients <code class="docutils literal notranslate"><span class="pre">C^{AO,MO}</span></code> in AO basis.</p></li>
+<li><p><strong>ovlp_ao</strong> – AO overlap matrix <code class="docutils literal notranslate"><span class="pre">S</span></code>.</p></li>
+<li><p><strong>nocc</strong> (<em>int</em>) – Number of occupied orbitals.</p></li>
+<li><p><strong>scale</strong> (<em>float</em>) – Scaling factor, <code class="docutils literal notranslate"><span class="pre">2</span></code> for the restricted case.</p></li>
+<li><p><strong>extra_orb</strong> (<em>int</em>) – Number of virtual orbitals added to the density matrix.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Density matrix <code class="docutils literal notranslate"><span class="pre">P^{LO,LO}</span></code> in the LO basis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-lumeq.embedding.mol_lo_tools">
+<span id="lumeq-embedding-mol-lo-tools-module"></span><h2>lumeq.embedding.mol_lo_tools module<a class="headerlink" href="#module-lumeq.embedding.mol_lo_tools" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.mol_lo_tools.lo_weight_on_ao">
+<span class="sig-name descname"><span class="pre">lo_weight_on_ao</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mole</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff_ao_lo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ovlp_ao</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/mol_lo_tools.html#lo_weight_on_ao"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.mol_lo_tools.lo_weight_on_ao" title="Link to this definition"></a></dt>
+<dd><p>A function to calculate the weight of local orbitals on atomic orbitals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mol</strong> (<em>pyscf.gto.Mole</em>) – The molecule object.</p></li>
+<li><p><strong>coeff_ao_lo</strong> (<em>numpy.ndarray</em>) – The coefficient matrix to transform atomic orbitals
+to local orbitals.</p></li>
+<li><p><strong>ovlp_ao</strong> (<em>numpy.ndarray</em>) – The overlap matrix of atomic orbitals.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The weight of local orbitals on atomic orbitals.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>w2_ao_lo (numpy.ndarray)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.mol_lo_tools.lo_weight_on_atom">
+<span class="sig-name descname"><span class="pre">lo_weight_on_atom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mole</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff_ao_lo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ovlp_ao</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/mol_lo_tools.html#lo_weight_on_atom"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.mol_lo_tools.lo_weight_on_atom" title="Link to this definition"></a></dt>
+<dd><p>A function to calculate the weight of local orbitals on atomic orbitals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mol</strong> (<em>pyscf.gto.Mole</em>) – The molecule object.</p></li>
+<li><p><strong>coeff_ao_lo</strong> (<em>numpy.ndarray</em>) – The coefficient matrix to transform atomic orbitals
+to local orbitals.</p></li>
+<li><p><strong>ovlp_ao</strong> (<em>numpy.ndarray</em>) – The overlap matrix of atomic orbitals.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The weight of local orbitals on each atom.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>w2_atm_lo (numpy.ndarray)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.mol_lo_tools.lo_weight_on_frag">
+<span class="sig-name descname"><span class="pre">lo_weight_on_frag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frag_atms_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mole</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff_ao_lo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ovlp_ao</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/mol_lo_tools.html#lo_weight_on_frag"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.mol_lo_tools.lo_weight_on_frag" title="Link to this definition"></a></dt>
+<dd><p>A function to calculate the weight of local orbitals on fragments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frag_atms_list</strong> (<em>list</em>) – A list of atoms in each fragment.</p></li>
+<li><p><strong>mol</strong> (<em>pyscf.gto.Mole</em>) – The molecule object.</p></li>
+<li><p><strong>coeff_ao_lo</strong> (<em>numpy.ndarray</em>) – The coefficient matrix to transform atomic orbitals
+to local orbitals.</p></li>
+<li><p><strong>ovlp_ao</strong> (<em>numpy.ndarray</em>) – The overlap matrix of atomic orbitals.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The weight of local orbitals on each fragment.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>w2_frag_lo (numpy.ndarray)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.mol_lo_tools.partition_lo_to_atms">
+<span class="sig-name descname"><span class="pre">partition_lo_to_atms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mole</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff_ao_lo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w2_atm_lo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.9</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/mol_lo_tools.html#partition_lo_to_atms"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.mol_lo_tools.partition_lo_to_atms" title="Link to this definition"></a></dt>
+<dd><p>A function to partition local orbitals to atoms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mol</strong> (<em>pyscf.gto.Mole</em>) – The molecule object.</p></li>
+<li><p><strong>coeff_ao_lo</strong> (<em>numpy.ndarray</em>) – The coefficient matrix to transform atomic orbitals
+to local orbitals.</p></li>
+<li><p><strong>w2_atm_lo</strong> (<em>numpy.ndarray</em>) – The weight of local orbitals on each atom.</p></li>
+<li><p><strong>min_weight</strong> (<em>float</em>) – The minimum weight of local orbitals on each atom.
+If the max weight is smaller than min_weight, the
+local orbital will not be assigned to the atom.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The list of local orbital indices on each atom.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>lo_idx_on_atm_list (list)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.mol_lo_tools.partition_lo_to_frags">
+<span class="sig-name descname"><span class="pre">partition_lo_to_frags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frag_atms_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mole</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff_ao_lo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w2_frag_lo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.9</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/mol_lo_tools.html#partition_lo_to_frags"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.mol_lo_tools.partition_lo_to_frags" title="Link to this definition"></a></dt>
+<dd><p>A function to partition local orbitals to fragments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frag_atms_list</strong> (<em>list</em>) – The list of atoms in each fragment.</p></li>
+<li><p><strong>mol</strong> (<em>pyscf.gto.Mole</em>) – The molecule object.</p></li>
+<li><p><strong>coeff_ao_lo</strong> (<em>numpy.ndarray</em>) – The coefficient matrix to transform atomic orbitals
+to local orbitals.</p></li>
+<li><p><strong>w2_frag_lo</strong> (<em>numpy.ndarray</em>) – The weight of local orbitals on each atom.</p></li>
+<li><p><strong>min_weight</strong> (<em>float</em>) – The minimum weight of local orbitals on each atom.
+If the max weight is smaller than min_weight, the
+local orbital will not be assigned to the atom.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The list of local orbital indices on each fragment.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>lo_idx_on_frag_list (list)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.mol_lo_tools.partition_lo_to_imps">
+<span class="sig-name descname"><span class="pre">partition_lo_to_imps</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frag_atms_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mole</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff_ao_lo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w2_frag_lo</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.9</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lumeq.embedding.mol_lo_tools.partition_lo_to_imps" title="Link to this definition"></a></dt>
+<dd><p>A function to partition local orbitals to fragments.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>frag_atms_list</strong> (<em>list</em>) – The list of atoms in each fragment.</p></li>
+<li><p><strong>mol</strong> (<em>pyscf.gto.Mole</em>) – The molecule object.</p></li>
+<li><p><strong>coeff_ao_lo</strong> (<em>numpy.ndarray</em>) – The coefficient matrix to transform atomic orbitals
+to local orbitals.</p></li>
+<li><p><strong>w2_frag_lo</strong> (<em>numpy.ndarray</em>) – The weight of local orbitals on each atom.</p></li>
+<li><p><strong>min_weight</strong> (<em>float</em>) – The minimum weight of local orbitals on each atom.
+If the max weight is smaller than min_weight, the
+local orbital will not be assigned to the atom.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The list of local orbital indices on each fragment.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>lo_idx_on_frag_list (list)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-lumeq.embedding.orbital_entropy">
+<span id="lumeq-embedding-orbital-entropy-module"></span><h2>lumeq.embedding.orbital_entropy module<a class="headerlink" href="#module-lumeq.embedding.orbital_entropy" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.orbital_entropy.get_1rdm">
+<span class="sig-name descname"><span class="pre">get_1rdm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/orbital_entropy.html#get_1rdm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.orbital_entropy.get_1rdm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.orbital_entropy.get_2rdm">
+<span class="sig-name descname"><span class="pre">get_2rdm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/orbital_entropy.html#get_2rdm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.orbital_entropy.get_2rdm" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.orbital_entropy.get_orbital_entropy_info">
+<span class="sig-name descname"><span class="pre">get_orbital_entropy_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imethod</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/orbital_entropy.html#get_orbital_entropy_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.orbital_entropy.get_orbital_entropy_info" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.orbital_entropy.get_rdm_entropy">
+<span class="sig-name descname"><span class="pre">get_rdm_entropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/orbital_entropy.html#get_rdm_entropy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.orbital_entropy.get_rdm_entropy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.embedding.orbital_entropy.normalize_wf">
+<span class="sig-name descname"><span class="pre">normalize_wf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/embedding/orbital_entropy.html#normalize_wf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.embedding.orbital_entropy.normalize_wf" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-lumeq.embedding.td_embeddinng">
+<span id="lumeq-embedding-td-embeddinng-module"></span><h2>lumeq.embedding.td_embeddinng module<a class="headerlink" href="#module-lumeq.embedding.td_embeddinng" title="Link to this heading"></a></h2>
+</section>
+<section id="module-lumeq.embedding">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-lumeq.embedding" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="lumeq.dynamics.html" class="btn btn-neutral float-left" title="lumeq.dynamics package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lumeq.opt.html" class="btn btn-neutral float-right" title="lumeq.opt package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Zheng Pei.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

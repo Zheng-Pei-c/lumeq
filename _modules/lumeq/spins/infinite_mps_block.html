@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.spins.infinite_mps_block &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.spins.infinite_mps_block</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">print_matrix</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">LinearOperator</span><span class="p">,</span> <span class="n">eigsh</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">linalg</span> <span class="k">as</span> <span class="n">LA</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">monitor_performance</span>
+
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">mu and nu indicate the left and right envrionment density matrices</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="contract_from_left">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.infinite_mps_block.contract_from_left">[docs]</a>
+<span class="nd">@monitor_performance</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">contract_from_left</span><span class="p">(</span><span class="n">mu_ba</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">pick_eig</span><span class="o">=</span><span class="s1">&#39;LM&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Update the left environment density matrix for a two-site unit cell.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mu_ba (numpy.ndarray): Left environment density matrix on the BA bond.</span>
+<span class="sd">        s_ab (numpy.ndarray): Bond weights from site A to site B.</span>
+<span class="sd">        s_ba (numpy.ndarray): Bond weights from site B to site A.</span>
+<span class="sd">        mps_a (numpy.ndarray): MPS tensor on site A.</span>
+<span class="sd">        mps_b (numpy.ndarray): MPS tensor on site B.</span>
+<span class="sd">        pick_eig (str): Eigenvalue selection mode passed to ``eigsh``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Updated ``(mu_ba, mu_ab)`` density matrices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">chi_ba</span> <span class="o">=</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">mu_ba</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">chi_ba</span><span class="p">:</span>
+        <span class="n">v0</span> <span class="o">=</span> <span class="n">mu_ba</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="c1"># return an independent copy</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">v0</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">chi_ba</span><span class="p">)</span><span class="o">/</span><span class="n">chi_ba</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="c1"># change in place</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">left_iter</span><span class="p">(</span><span class="n">mu_ba</span><span class="p">):</span>
+        <span class="c1"># mu_ba would be iteratively solved from scipy eigs function</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,i,j,ikl,jkm,l,m,lno,mnp-&gt;op&#39;</span><span class="p">,</span>
+                         <span class="n">mu_ba</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">chi_ba</span><span class="p">,</span><span class="n">chi_ba</span><span class="p">),</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span>
+                         <span class="n">mps_a</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">mps_a</span><span class="p">,</span>
+                         <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">mps_b</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">mps_b</span><span class="p">,</span>
+                         <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">d</span><span class="p">,</span> <span class="n">mu_ba</span> <span class="o">=</span> <span class="n">eigsh</span><span class="p">(</span><span class="n">LinearOperator</span><span class="p">((</span><span class="n">chi_ba</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="n">chi_ba</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="n">matvec</span><span class="o">=</span><span class="n">left_iter</span><span class="p">),</span>
+                     <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="n">pick_eig</span><span class="p">,</span> <span class="n">v0</span><span class="o">=</span><span class="n">v0</span><span class="p">)</span>
+
+    <span class="c1"># normalize the environment density matrix</span>
+    <span class="n">mu_ba</span> <span class="o">=</span> <span class="n">mu_ba</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">chi_ba</span><span class="p">,</span> <span class="n">chi_ba</span><span class="p">)</span>
+    <span class="n">mu_ba</span> <span class="o">=</span> <span class="n">mu_ba</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">mu_ba</span><span class="p">)</span>
+
+    <span class="c1"># compute mu_ab density matrix</span>
+    <span class="n">mu_ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,i,j,ikl,jkm-&gt;lm&#39;</span><span class="p">,</span>
+                      <span class="n">mu_ba</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">mu_ab</span> <span class="o">=</span> <span class="n">mu_ab</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">mu_ab</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mu_ba</span><span class="p">,</span> <span class="n">mu_ab</span></div>
+
+
+
+<div class="viewcode-block" id="contract_from_right">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.infinite_mps_block.contract_from_right">[docs]</a>
+<span class="nd">@monitor_performance</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">contract_from_right</span><span class="p">(</span><span class="n">nu_ab</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">pick_eig</span><span class="o">=</span><span class="s1">&#39;LM&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Update the right environment density matrix for a two-site unit cell.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        nu_ab (numpy.ndarray): Right environment density matrix on the AB bond.</span>
+<span class="sd">        s_ab (numpy.ndarray): Bond weights from site A to site B.</span>
+<span class="sd">        s_ba (numpy.ndarray): Bond weights from site B to site A.</span>
+<span class="sd">        mps_a (numpy.ndarray): MPS tensor on site A.</span>
+<span class="sd">        mps_b (numpy.ndarray): MPS tensor on site B.</span>
+<span class="sd">        pick_eig (str): Eigenvalue selection mode passed to ``eigsh``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Updated ``(nu_ab, nu_ba)`` density matrices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">chi_ab</span> <span class="o">=</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">nu_ab</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">chi_ab</span><span class="p">:</span>
+        <span class="n">v0</span> <span class="o">=</span> <span class="n">nu_ab</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="c1"># return an independent copy</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">v0</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">chi_ab</span><span class="p">)</span><span class="o">/</span><span class="n">chi_ab</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span> <span class="c1"># change in place</span>
+
+    <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span> <span class="o">=</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">mps_b</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">right_iter</span><span class="p">(</span><span class="n">mu_ba</span><span class="p">):</span>
+        <span class="c1"># nu_ab would be iteratively solved from scipy eigs function</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,i,j,ikl,jkm,l,m,lno,mnp-&gt;op&#39;</span><span class="p">,</span>
+                         <span class="n">nu_ab</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">chi_ab</span><span class="p">,</span><span class="n">chi_ab</span><span class="p">),</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span>
+                         <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span>
+                         <span class="n">s_ba</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">mps_b</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span>
+                         <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">d</span><span class="p">,</span> <span class="n">nu_ab</span> <span class="o">=</span> <span class="n">eigsh</span><span class="p">(</span><span class="n">LinearOperator</span><span class="p">((</span><span class="n">chi_ab</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="n">chi_ab</span><span class="o">**</span><span class="mi">2</span><span class="p">),</span> <span class="n">matvec</span><span class="o">=</span><span class="n">right_iter</span><span class="p">),</span>
+                     <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="n">pick_eig</span><span class="p">,</span> <span class="n">v0</span><span class="o">=</span><span class="n">v0</span><span class="p">)</span>
+
+    <span class="c1"># normalize the environment density matrix</span>
+    <span class="n">nu_ab</span> <span class="o">=</span> <span class="n">nu_ab</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">chi_ab</span><span class="p">,</span> <span class="n">chi_ab</span><span class="p">)</span>
+    <span class="n">nu_ab</span> <span class="o">=</span> <span class="n">nu_ab</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">nu_ab</span><span class="p">)</span>
+
+    <span class="c1"># compute nu_ba density matrix</span>
+    <span class="n">nu_ba</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,i,j,ikl,jkm-&gt;lm&#39;</span><span class="p">,</span>
+                      <span class="n">nu_ab</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">nu_ba</span> <span class="o">=</span> <span class="n">nu_ba</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">trace</span><span class="p">(</span><span class="n">nu_ba</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nu_ab</span><span class="p">,</span> <span class="n">nu_ba</span></div>
+
+
+
+<div class="viewcode-block" id="update_ortho_mps">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.infinite_mps_block.update_ortho_mps">[docs]</a>
+<span class="nd">@monitor_performance</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_ortho_mps</span><span class="p">(</span><span class="n">rho_left</span><span class="p">,</span> <span class="n">rho_right</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">mps_left</span><span class="p">,</span> <span class="n">mps_right</span><span class="p">,</span>
+                     <span class="n">tol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Bring the two-site MPS linker into canonical form.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        rho_left (numpy.ndarray): Left environment density matrix.</span>
+<span class="sd">        rho_right (numpy.ndarray): Right environment density matrix.</span>
+<span class="sd">        weight (numpy.ndarray): Bond weights between the two sites.</span>
+<span class="sd">        mps_left (numpy.ndarray): Left MPS tensor.</span>
+<span class="sd">        mps_right (numpy.ndarray): Right MPS tensor.</span>
+<span class="sd">        tol (float): Eigenvalue cutoff for the environment density matrices.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Updated ``(weight, mps_left, mps_right)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">diag</span><span class="p">(</span><span class="n">rho</span><span class="p">):</span>
+        <span class="n">e</span><span class="p">,</span> <span class="n">vec</span> <span class="o">=</span> <span class="n">LA</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">rho</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">e</span> <span class="o">&gt;</span> <span class="n">tol</span><span class="p">)[</span><span class="mi">0</span><span class="p">][::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># ordering from large to small</span>
+        <span class="n">e</span><span class="p">,</span> <span class="n">vec</span> <span class="o">=</span> <span class="n">e</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">vec</span><span class="p">[:,</span><span class="n">idx</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="n">vec</span>
+
+    <span class="c1"># diagonalize environment density matrices</span>
+    <span class="c1"># square-rooted eigenvalues</span>
+    <span class="n">l_e</span><span class="p">,</span> <span class="n">l_vec</span> <span class="o">=</span> <span class="n">diag</span><span class="p">(</span><span class="n">rho_left</span><span class="p">)</span>
+    <span class="n">r_e</span><span class="p">,</span> <span class="n">r_vec</span> <span class="o">=</span> <span class="n">diag</span><span class="p">(</span><span class="n">rho_right</span><span class="p">)</span>
+
+    <span class="c1"># update weight matrix (s_ab or s_ba)</span>
+    <span class="c1"># with sqrt(eigenvalues) of the density matrix</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ji,j,jk,k-&gt;ik&#39;</span><span class="p">,</span> <span class="n">l_e</span><span class="p">,</span> <span class="n">l_vec</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">weight</span><span class="p">,</span>
+                                          <span class="n">r_vec</span><span class="p">,</span> <span class="n">r_e</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">LA</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="n">s</span> <span class="o">/</span> <span class="n">LA</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="c1"># update MPSs at A and B sites</span>
+    <span class="n">mps_left</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijk,kl,l,lm-&gt;ijm&#39;</span><span class="p">,</span> <span class="n">mps_left</span><span class="p">,</span> <span class="n">l_vec</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="n">l_e</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">mps_right</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,j,kj,klm-&gt;ilm&#39;</span><span class="p">,</span> <span class="n">vt</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="n">r_e</span><span class="p">,</span> <span class="n">r_vec</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">mps_right</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">weight</span><span class="p">,</span> <span class="n">mps_left</span><span class="p">,</span> <span class="n">mps_right</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_mps">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.infinite_mps_block.normalize_mps">[docs]</a>
+<span class="nd">@monitor_performance</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_mps</span><span class="p">(</span><span class="n">s_left</span><span class="p">,</span> <span class="n">s_right</span><span class="p">,</span> <span class="n">mps</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Normalize a single-site MPS tensor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        s_left (numpy.ndarray): Left bond weights.</span>
+<span class="sd">        s_right (numpy.ndarray): Right bond weights.</span>
+<span class="sd">        mps (numpy.ndarray): MPS tensor to normalize.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: Normalized MPS tensor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">s_left</span><span class="p">,</span> <span class="n">s_right</span> <span class="o">=</span> <span class="n">s_left</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">s_right</span><span class="o">**</span><span class="mi">2</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ijk,ijk,k-&gt;&#39;</span><span class="p">,</span> <span class="n">s_left</span><span class="p">,</span> <span class="n">mps</span><span class="p">,</span> <span class="n">mps</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">s_right</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mps</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_mps_2">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.infinite_mps_block.normalize_mps_2">[docs]</a>
+<span class="nd">@monitor_performance</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_mps_2</span><span class="p">(</span><span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Normalize both site tensors in a two-site unit cell.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        s_ab (numpy.ndarray): Bond weights from site A to site B.</span>
+<span class="sd">        s_ba (numpy.ndarray): Bond weights from site B to site A.</span>
+<span class="sd">        mps_a (numpy.ndarray): MPS tensor on site A.</span>
+<span class="sd">        mps_b (numpy.ndarray): MPS tensor on site B.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Normalized ``(mps_a, mps_b)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span> <span class="o">=</span> <span class="n">s_ab</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">s_ba</span><span class="o">**</span><span class="mi">2</span>
+
+    <span class="c1"># MPS_A norm</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ijk,ijk,k-&gt;&#39;</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">mps_a</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span>
+
+    <span class="c1"># MPS_B norm</span>
+    <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ijk,ijk,k-&gt;&#39;</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">mps_b</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">mps_b</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span></div>
+
+
+
+<div class="viewcode-block" id="get_mps_2rdm">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.infinite_mps_block.get_mps_2rdm">[docs]</a>
+<span class="nd">@monitor_performance</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_mps_2rdm</span><span class="p">(</span><span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Build the two-site reduced density matrices for the unit cell.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        s_ab (numpy.ndarray): Bond weights from site A to site B.</span>
+<span class="sd">        s_ba (numpy.ndarray): Bond weights from site B to site A.</span>
+<span class="sd">        mps_a (numpy.ndarray): MPS tensor on site A.</span>
+<span class="sd">        mps_b (numpy.ndarray): MPS tensor on site B.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Reduced density matrices ``(rho_ab, rho_ba)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">s_ab2</span><span class="p">,</span> <span class="n">s_ba2</span> <span class="o">=</span> <span class="n">s_ab</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">s_ba</span><span class="o">**</span><span class="mi">2</span>
+
+    <span class="n">rho_ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ijl,ikm,l,m,lnp,mop,p-&gt;jnko&#39;</span><span class="p">,</span>
+                       <span class="n">s_ba2</span><span class="p">,</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span>
+                       <span class="n">mps_b</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">s_ba2</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">rho_ba</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ijl,ikm,l,m,lnp,mop,p-&gt;jnko&#39;</span><span class="p">,</span>
+                       <span class="n">s_ab2</span><span class="p">,</span> <span class="n">mps_b</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span>
+                       <span class="n">mps_a</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">s_ab2</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">rho_ab</span><span class="p">,</span> <span class="n">rho_ba</span></div>
+
+
+
+<div class="viewcode-block" id="evaluate_energy_mps">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.infinite_mps_block.evaluate_energy_mps">[docs]</a>
+<span class="nd">@monitor_performance</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_energy_mps</span><span class="p">(</span><span class="n">mpo_ab</span><span class="p">,</span> <span class="n">mpo_ba</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Evaluate the average two-site energy directly from the MPS tensors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mpo_ab (numpy.ndarray): MPO tensor for the AB pattern.</span>
+<span class="sd">        mpo_ba (numpy.ndarray): MPO tensor for the BA pattern.</span>
+<span class="sd">        s_ab (numpy.ndarray): Bond weights from site A to site B.</span>
+<span class="sd">        s_ba (numpy.ndarray): Bond weights from site B to site A.</span>
+<span class="sd">        mps_a (numpy.ndarray): MPS tensor on site A.</span>
+<span class="sd">        mps_b (numpy.ndarray): MPS tensor on site B.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        float: Average of the AB and BA energies.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">s_ab2</span><span class="p">,</span> <span class="n">s_ba2</span> <span class="o">=</span> <span class="n">s_ab</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span> <span class="n">s_ba</span><span class="o">**</span><span class="mi">2</span>
+
+    <span class="n">e_ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ijl,ikm,l,m,jnko,lnp,mop,p-&gt;&#39;</span><span class="p">,</span>
+                     <span class="n">s_ba2</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">mpo_ab</span><span class="p">,</span>
+                     <span class="n">mps_b</span><span class="p">,</span> <span class="n">mps_b</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">s_ba2</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">e_ba</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ijl,ikm,l,m,jnko,lnp,mop,p-&gt;&#39;</span><span class="p">,</span>
+                     <span class="n">s_ab2</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">mps_b</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mpo_ba</span><span class="p">,</span>
+                     <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">s_ab2</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="mf">.5</span><span class="o">*</span><span class="p">(</span><span class="n">e_ab</span><span class="o">+</span><span class="n">e_ba</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="evaluate_energy_rdm">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.infinite_mps_block.evaluate_energy_rdm">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_energy_rdm</span><span class="p">(</span><span class="n">mpo_ab</span><span class="p">,</span> <span class="n">mpo_ba</span><span class="p">,</span> <span class="n">rho_ab</span><span class="p">,</span> <span class="n">rho_ba</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get energy of the two sites A and B</span>
+<span class="sd">    using the density matrix from get_mps_2rdm function.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mpo_ab, mpo_ba (matrix product operators (MPO) of AB and BA):</span>
+<span class="sd">        rho_ab, rho_ba (density matrix of AB and BA):</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        averaged energy of AB and BA</span>
+<span class="sd">    </span>
+<span class="sd">&quot;&quot;&quot;</span>
+    <span class="n">e_ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;jnko,jnko-&gt;&#39;</span><span class="p">,</span> <span class="n">mpo_ab</span><span class="p">,</span> <span class="n">rho_ab</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">e_ba</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;jnko,jnko-&gt;&#39;</span><span class="p">,</span> <span class="n">mpo_ba</span><span class="p">,</span> <span class="n">rho_ba</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="mf">.5</span><span class="o">*</span><span class="p">(</span><span class="n">e_ab</span><span class="o">+</span><span class="n">e_ba</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="apply_gate_on_mps">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.infinite_mps_block.apply_gate_on_mps">[docs]</a>
+<span class="nd">@monitor_performance</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">apply_gate_on_mps</span><span class="p">(</span><span class="n">gate_ab</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">chi</span><span class="p">,</span> <span class="n">tol</span><span class="o">=</span><span class="mf">1e-7</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Apply a two-site evolution gate to the AB MPS tensors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        gate_ab (numpy.ndarray): Two-site gate on the AB pattern.</span>
+<span class="sd">        s_ab (numpy.ndarray): Bond weights from site A to site B.</span>
+<span class="sd">        s_ba (numpy.ndarray): Bond weights from site B to site A.</span>
+<span class="sd">        mps_a (numpy.ndarray): MPS tensor on site A.</span>
+<span class="sd">        mps_b (numpy.ndarray): MPS tensor on site B.</span>
+<span class="sd">        chi (int): Maximum retained bond dimension after truncation.</span>
+<span class="sd">        tol (float): Lower bound used when inverting small singular values.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Updated ``(s_ab, mps_a, mps_b)`` after applying the gate.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># ensure weights are above tolerance threshold</span>
+    <span class="n">s_ba_trim</span> <span class="o">=</span> <span class="n">s_ba</span> <span class="o">*</span> <span class="p">(</span><span class="n">s_ba</span> <span class="o">&gt;</span> <span class="n">tol</span><span class="p">)</span> <span class="o">+</span> <span class="n">tol</span> <span class="o">*</span> <span class="p">(</span><span class="n">s_ba</span> <span class="o">&lt;</span> <span class="n">tol</span><span class="p">)</span>
+
+    <span class="n">nd</span> <span class="o">=</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># real physical dimension, depending on spin type</span>
+    <span class="n">chi_ba</span> <span class="o">=</span> <span class="n">s_ba_trim</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">mps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ijk,k,klm,m,jlno-&gt;inom&#39;</span><span class="p">,</span> <span class="n">s_ba_trim</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span>
+                    <span class="n">s_ba_trim</span><span class="p">,</span> <span class="n">gate_ab</span><span class="p">,</span> <span class="n">optimize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">LA</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">mps</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nd</span><span class="o">*</span><span class="n">chi_ba</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">chi</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)))</span> <span class="c1"># truncate space!!! # s in descending order</span>
+    <span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">u</span><span class="p">[:,</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">chi_ba</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">vt</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">chi_ba</span><span class="p">)</span>
+
+    <span class="c1"># update weights</span>
+    <span class="n">s_ab</span> <span class="o">=</span> <span class="n">s</span> <span class="o">/</span> <span class="n">LA</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="c1"># update MPSs removing environment weights</span>
+    <span class="n">s_ba_trim</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">s_ba_trim</span>
+    <span class="n">mps_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ij-&gt;ij&#39;</span><span class="p">,</span> <span class="n">s_ba_trim</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">chi_ba</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">mps_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,j-&gt;ij&#39;</span><span class="p">,</span> <span class="n">vt</span><span class="p">,</span> <span class="n">s_ba_trim</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">chi_ba</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span></div>
+
+
+
+<div class="viewcode-block" id="build_evolution_gate">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.infinite_mps_block.build_evolution_gate">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_evolution_gate</span><span class="p">(</span><span class="n">ham</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="s1">&#39;imag&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build evolution gate from given Hamiltonian</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ham (numpy.ndarray): Hamiltonian matrix.</span>
+<span class="sd">        tau (float): Time-evolution step.</span>
+<span class="sd">        itype (str): Evolution type. Use ``&#39;imag&#39;`` for imaginary-time</span>
+<span class="sd">            evolution and ``&#39;real&#39;`` for real-time evolution.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: Matrix exponential of the evolution operator.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># ham has dimension as (d,d,d,d)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">expm</span>
+    <span class="n">fac</span> <span class="o">=</span> <span class="mi">1</span><span class="n">j</span> <span class="k">if</span> <span class="n">itype</span><span class="o">==</span><span class="s1">&#39;real&#39;</span> <span class="k">else</span> <span class="o">-</span><span class="mf">1.</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">ham</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">expm</span><span class="p">(</span><span class="n">fac</span><span class="o">*</span><span class="n">tau</span><span class="o">*</span><span class="n">ham</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">d</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">d</span><span class="p">,</span><span class="n">d</span><span class="p">,</span><span class="n">d</span><span class="p">,</span><span class="n">d</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="run_tebd">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.infinite_mps_block.run_tebd">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_tebd</span><span class="p">(</span><span class="n">ham_ab</span><span class="p">,</span> <span class="n">ham_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span>
+             <span class="n">mu_ba</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nu_ab</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tau</span><span class="o">=</span><span class="mf">.1</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="s1">&#39;imag&#39;</span><span class="p">,</span>
+             <span class="n">nmax</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">midstep</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Run TEBD for an infinite two-site unit-cell MPS.&quot;&quot;&quot;</span>
+    <span class="n">gate_ab</span> <span class="o">=</span> <span class="n">build_evolution_gate</span><span class="p">(</span><span class="n">ham_ab</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="n">itype</span><span class="p">)</span>
+    <span class="n">gate_ba</span> <span class="o">=</span> <span class="n">build_evolution_gate</span><span class="p">(</span><span class="n">ham_ba</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="n">itype</span><span class="p">)</span>
+
+    <span class="c1"># initialize envrionment density matrices</span>
+    <span class="n">chi1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">chi2</span> <span class="o">=</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">mu_ba</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">chi1</span><span class="p">)</span> <span class="o">/</span> <span class="n">chi1</span>
+    <span class="n">nu_ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">chi2</span><span class="p">)</span> <span class="o">/</span> <span class="n">chi2</span>
+
+    <span class="n">e_tot</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nmax</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">midstep</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="n">k</span> <span class="o">==</span> <span class="n">nmax</span><span class="p">):</span>
+            <span class="c1"># bring MPS to the normal form</span>
+
+            <span class="c1"># contract environment density, weights and MPSs</span>
+            <span class="n">mu_ba</span><span class="p">,</span> <span class="n">mu_ab</span> <span class="o">=</span> <span class="n">contract_from_left</span><span class="p">(</span><span class="n">mu_ba</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">)</span>
+            <span class="n">nu_ab</span><span class="p">,</span> <span class="n">nu_ba</span> <span class="o">=</span> <span class="n">contract_from_right</span><span class="p">(</span><span class="n">nu_ab</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">)</span>
+
+            <span class="c1"># orthogonalize MPSs and weights</span>
+            <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">mps_a</span> <span class="o">=</span> <span class="n">update_ortho_mps</span><span class="p">(</span><span class="n">mu_ba</span><span class="p">,</span> <span class="n">nu_ba</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">)</span>
+            <span class="n">s_ab</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span> <span class="o">=</span> <span class="n">update_ortho_mps</span><span class="p">(</span><span class="n">mu_ab</span><span class="p">,</span> <span class="n">nu_ab</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">)</span>
+
+            <span class="c1"># normalize MPSs</span>
+            <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span> <span class="o">=</span> <span class="n">normalize_mps_2</span><span class="p">(</span><span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">)</span>
+
+            <span class="c1"># compute energy</span>
+            <span class="n">rho_ab</span><span class="p">,</span> <span class="n">rho_ba</span> <span class="o">=</span> <span class="n">get_mps_2rdm</span><span class="p">(</span><span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">)</span>
+            <span class="n">e</span> <span class="o">=</span> <span class="n">evaluate_energy_rdm</span><span class="p">(</span><span class="n">ham_ab</span><span class="p">,</span> <span class="n">ham_ba</span><span class="p">,</span> <span class="n">rho_ab</span><span class="p">,</span> <span class="n">rho_ba</span><span class="p">)</span>
+            <span class="c1">#e = evaluate_energy_mps(ham_ab, ham_ba, s_ab, s_ba, mps_a, mps_b)</span>
+            <span class="n">e_tot</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;k:&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="s1">&#39;e:&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;k:&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">s_ab</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">s_ba</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">mps_a</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">mps_b</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">mu_ab</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">mu_ba</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">nu_ab</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">nu_ba</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="c1"># MPS time evolutions</span>
+        <span class="n">s_ab</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span> <span class="o">=</span> <span class="n">apply_gate_on_mps</span><span class="p">(</span><span class="n">gate_ab</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">chi</span><span class="p">)</span>
+        <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">mps_a</span> <span class="o">=</span> <span class="n">apply_gate_on_mps</span><span class="p">(</span><span class="n">gate_ba</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">chi</span><span class="p">)</span>
+
+    <span class="n">rho_ab</span><span class="p">,</span> <span class="n">rho_ba</span> <span class="o">=</span> <span class="n">get_mps_2rdm</span><span class="p">(</span><span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">rho_ab</span><span class="p">,</span> <span class="n">rho_ba</span><span class="p">,</span> <span class="n">e_tot</span></div>
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">chi</span> <span class="o">=</span> <span class="mi">160</span>  <span class="c1"># bond dimension</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">set_performance_log</span>
+    <span class="n">set_performance_log</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.spins</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_spins</span>
+    <span class="n">sx</span><span class="p">,</span> <span class="n">sy</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="s1">&#39;xy&#39;</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mf">.5</span><span class="p">)</span>
+    <span class="n">sx</span><span class="p">,</span> <span class="n">sy</span> <span class="o">=</span> <span class="n">sx</span><span class="p">,</span> <span class="n">sy</span>
+    <span class="n">ham_ab</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">sx</span><span class="p">,</span> <span class="n">sx</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">sy</span><span class="p">,</span> <span class="n">sy</span><span class="p">)))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">ham_ba</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">sx</span><span class="p">,</span> <span class="n">sx</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">sy</span><span class="p">,</span> <span class="n">sy</span><span class="p">)))</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+    <span class="n">tau</span> <span class="o">=</span> <span class="mf">.1</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    exact energy is 1./pi</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># weights</span>
+    <span class="n">s_ab</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">chi</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">chi</span><span class="p">)</span>
+    <span class="n">s_ba</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">chi</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">chi</span><span class="p">)</span>
+    <span class="c1"># MPSs</span>
+    <span class="n">mps_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">chi</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">chi</span><span class="p">)</span>
+    <span class="n">mps_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">chi</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">chi</span><span class="p">)</span>
+
+    <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">rho_ab</span><span class="p">,</span> <span class="n">rho_ba</span><span class="p">,</span> <span class="n">e_tot</span> <span class="o">=</span> <span class="n">run_tebd</span><span class="p">(</span>
+            <span class="n">ham_ab</span><span class="p">,</span> <span class="n">ham_ba</span><span class="p">,</span> <span class="n">mps_a</span><span class="p">,</span> <span class="n">mps_b</span><span class="p">,</span> <span class="n">s_ab</span><span class="p">,</span> <span class="n">s_ba</span><span class="p">)</span>
+    <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;e:&#39;</span><span class="p">,</span> <span class="n">e_tot</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

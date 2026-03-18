@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.property.chaos_rmt &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.property.chaos_rmt</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">sys</span><span class="p">,</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.dynamics</span><span class="w"> </span><span class="kn">import</span> <span class="n">MolecularDynamics</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">print_matrix</span><span class="p">,</span> <span class="n">parser</span><span class="p">,</span> <span class="n">collect_lists</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.sec_mole</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_symbols_coords</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.pyscf_helper</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_pyscf_final</span>
+
+<span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Random matrix theory (RMT) gives Wigner-Dyson statistics for (unfolded) energy level,</span>
+<span class="sd">showing quantum chaos: eigenvalue ensemble and eigenstate thermalization.</span>
+
+<span class="sd">Reference:</span>
+<span class="sd">    Z. Tao, https://arxiv.org/abs/2602.21299</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="stat_wigner">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.chaos_rmt.stat_wigner">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stat_wigner</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="s1">&#39;goe&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wigner-Dyson distribution for unfolded level spacing s.</span>
+<span class="sd">    ``P(s) = \frac{\pi}{2} s e^{-\frac{\pi}{4} s^2}`` for GOE</span>
+<span class="sd">    ``P(s) = \frac{32}{\pi^2} s^2 e^{-\frac{4}{\pi} s^2}`` for GUE</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        s (array-like): The unfolded level spacings to be evaluated.</span>
+<span class="sd">        itype (str, optional): The type of random matrix ensemble.</span>
+<span class="sd">            Can be &#39;goe&#39; (Gaussian Orthogonal Ensemble),</span>
+<span class="sd">            &#39;gue&#39; (Gaussian Unitary Ensemble). Default is &#39;goe&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        P (array): The probability density P(s) for the given unfolded level spacings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">itype</span> <span class="o">==</span> <span class="s1">&#39;goe&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">s</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mf">0.25</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">s</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">itype</span> <span class="o">==</span> <span class="s1">&#39;gue&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">32</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">s</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">4</span> <span class="o">*</span> <span class="n">s</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="stat_poisson">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.chaos_rmt.stat_poisson">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stat_poisson</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Poisson distribution for unfolded level spacing s: P(s) = exp(-s)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">s</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="unfold_level_spacing">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.chaos_rmt.unfold_level_spacing">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">unfold_level_spacing</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="n">deg</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">center_window</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Unfold the level spacing s = dN/dE * dE</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        levels (array-like): The energy levels to be unfolded.</span>
+<span class="sd">        deg (int, optional): The degree of the polynomial fit to the staircase function N(E). Default is 5.</span>
+<span class="sd">        center_window (tuple, optional): Fractional level window used for unfolding.</span>
+<span class="sd">            For example, ``(0.2, 0.8)`` uses levels between the 20th and 80th percentiles.</span>
+<span class="sd">            Default is False, which uses all levels.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        eps (array): The unfolded energy levels.</span>
+<span class="sd">        s (array): The unfolded level spacings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">levels</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">eps</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">collect_lists</span><span class="p">(</span><span class="n">unfold_level_spacing</span><span class="p">,</span> <span class="n">levels</span><span class="p">,</span> <span class="n">deg</span><span class="p">,</span> <span class="n">center_window</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">eps</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="n">levels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">center_window</span><span class="p">:</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">center_window</span>
+        <span class="n">i0</span><span class="p">,</span> <span class="n">i1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">a</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="n">b</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">))</span>
+        <span class="n">levels</span> <span class="o">=</span> <span class="n">levels</span><span class="p">[</span><span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">]</span>
+
+    <span class="c1"># staircase counting N(E): level index as a function of energy</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="c1"># smooth fit to N(E)</span>
+    <span class="n">coeff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">polyfit</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">deg</span><span class="p">)</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">polyval</span><span class="p">(</span><span class="n">coeff</span><span class="p">,</span> <span class="n">levels</span><span class="p">)</span>
+
+    <span class="c1"># unfolded spacing</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">d</span> <span class="o">/</span> <span class="n">d</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1">#r = np.minimum(d[:-1], d[1:]) / np.maximum(d[:-1], d[1:])</span>
+    <span class="k">return</span> <span class="n">eps</span><span class="p">,</span> <span class="n">s</span></div>
+
+
+
+<div class="viewcode-block" id="spectral_form_factor">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.chaos_rmt.spectral_form_factor">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">spectral_form_factor</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="n">times</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Compute the spectral form factor from unfolded energy levels.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        levels (2d array (nsnap, nlevels)): The unfolded energy levels to be analyzed.</span>
+<span class="sd">        times (array): The time points at which to compute K(t) for Fourier transform.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        K (array): The spectral form factor K(t) at the corresponding time points.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        The spectral form factor is</span>
+<span class="sd">        ``K(t) = &lt;sum_{i,j} exp(-i (E_i - E_j) t)&gt; / D^2``.</span>
+<span class="sd">        Equivalently,</span>
+<span class="sd">        ``K(t) = &lt;|sum_i exp(-i E_i t)|^2&gt; / D^2``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">levels</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="n">levels</span> <span class="o">=</span> <span class="n">levels</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># np.exp works elementwise</span>
+    <span class="c1"># sum over energy levels for each snapshot, then average over snapshots</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">times</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">levels</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">K</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span> <span class="n">levels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span> <span class="c1"># (nt, nsnap)</span>
+    <span class="k">return</span> <span class="n">K</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># average over snapshots</span></div>
+
+
+
+<div class="viewcode-block" id="unfold_parameter">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.chaos_rmt.unfold_parameter">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">unfold_parameter</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Rescale an external parameter using the variance of unfolded level velocities.</span>
+
+<span class="sd">    Figure 6 of Tao and Galitski, arXiv:2602.21299, uses</span>
+<span class="sd">    ``x = sqrt(C0) * (lambda - lambda0)``,</span>
+<span class="sd">    where ``C0 = &lt;(d eps / d lambda)^2&gt;``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        eps (2d array (nparam, nlevels)): Unfolded energy levels along the parameter grid.</span>
+<span class="sd">        param (1d array): External parameter values, e.g. electric field or time.</span>
+<span class="sd">        ref (float, optional): Reference parameter value ``lambda0``. Default is ``param[0]``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        x (1d array): Unfolded parameter.</span>
+<span class="sd">        c0 (float): Mean squared level velocity.</span>
+<span class="sd">        vel (2d array): Level velocities ``d eps / d lambda``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">eps</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">eps</span><span class="p">)</span>
+    <span class="n">param</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">eps</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;eps must be a 2D array of shape (nparam, nlevels)&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">param</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">eps</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;param must be a 1D array with len(param) == eps.shape[0]&#39;</span><span class="p">)</span>
+
+    <span class="n">vel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">edge_order</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">c0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">vel</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ref</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">param</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">c0</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">param</span> <span class="o">-</span> <span class="n">ref</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">c0</span><span class="p">,</span> <span class="n">vel</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">plt</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_units</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.ticker</span><span class="w"> </span><span class="kn">import</span> <span class="n">MaxNLocator</span>
+
+    <span class="n">jobtype</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">jobtype</span> <span class="o">==</span> <span class="s1">&#39;static&#39;</span><span class="p">:</span>
+        <span class="n">infile</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="n">run_pyscf_final</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+        <span class="n">mf</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;mf&#39;</span><span class="p">]</span>
+        <span class="n">mo_energy</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_energy</span>
+        <span class="c1">#print_matrix(&#39;mo_energy&#39;, mo_energy)</span>
+
+        <span class="n">occidx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mf</span><span class="o">.</span><span class="n">mo_occ</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">viridx</span> <span class="o">=</span> <span class="o">~</span><span class="n">occidx</span>
+        <span class="n">energy</span> <span class="o">=</span> <span class="n">mo_energy</span><span class="p">[</span><span class="n">viridx</span><span class="p">]</span> <span class="o">-</span> <span class="n">mo_energy</span><span class="p">[</span><span class="n">occidx</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+        <span class="n">energy</span> <span class="o">=</span> <span class="n">energy</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span>
+
+        <span class="n">td_e</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;td&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">e</span>
+
+        <span class="n">label</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;MO energy&#39;</span><span class="p">,</span> <span class="s1">&#39;1e excitation&#39;</span><span class="p">,</span> <span class="s1">&#39;excitation energy&#39;</span><span class="p">]</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">s0</span> <span class="o">=</span> <span class="n">unfold_level_spacing</span><span class="p">(</span><span class="n">mo_energy</span><span class="p">,</span> <span class="n">deg</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">center_window</span><span class="o">=</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">))</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">s1</span> <span class="o">=</span> <span class="n">unfold_level_spacing</span><span class="p">(</span><span class="n">energy</span><span class="p">,</span> <span class="n">deg</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">center_window</span><span class="o">=</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">))</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">s2</span> <span class="o">=</span> <span class="n">unfold_level_spacing</span><span class="p">(</span><span class="n">td_e</span><span class="p">,</span> <span class="n">deg</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">center_window</span><span class="o">=</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">))</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="s1">&#39;level_spacing.npz&#39;</span><span class="p">,</span> <span class="n">mo_energy</span><span class="o">=</span><span class="n">mo_energy</span><span class="p">,</span> <span class="n">energy</span><span class="o">=</span><span class="n">energy</span><span class="p">,</span> <span class="n">td_e</span><span class="o">=</span><span class="n">td_e</span><span class="p">,</span>
+                 <span class="n">s0</span><span class="o">=</span><span class="n">s0</span><span class="p">,</span> <span class="n">s1</span><span class="o">=</span><span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="o">=</span><span class="n">s2</span><span class="p">)</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">tight_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">([</span><span class="n">s0</span><span class="p">,</span> <span class="n">s1</span><span class="p">,</span> <span class="n">s2</span><span class="p">]):</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;C0&#39;</span><span class="p">)</span>
+
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">s</span><span class="p">)),</span> <span class="mi">400</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">stat_wigner</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;goe&#39;</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;GOE&#39;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">stat_poisson</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="s1">&#39;--&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Poisson&#39;</span><span class="p">)</span>
+
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Unfolded spacing s&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span> <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;P(s)&#39;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">xaxis</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="n">integer</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">elif</span> <span class="n">jobtype</span> <span class="o">==</span> <span class="s1">&#39;md&#39;</span><span class="p">:</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;mo_energy.npz&#39;</span><span class="p">)</span>
+        <span class="n">mo_energy</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;mo_energy&#39;</span><span class="p">]</span>
+        <span class="n">unfolded_e</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">unfold_level_spacing</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">deg</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">center_window</span><span class="o">=</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">mo_energy</span><span class="p">])</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mi">5000</span><span class="p">)</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">spectral_form_factor</span><span class="p">(</span><span class="n">unfolded_e</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">times</span><span class="p">)</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">tight_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Spectral time t&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;K(t)&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">elif</span> <span class="n">jobtype</span> <span class="o">==</span> <span class="s1">&#39;md_flow&#39;</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">levels_key</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="k">else</span> <span class="s1">&#39;mo_energy&#39;</span>
+        <span class="n">field_key</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4</span> <span class="k">else</span> <span class="s1">&#39;field&#39;</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">5</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="n">levels</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">levels_key</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">field_key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">field</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">field_key</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="mi">10</span>
+            <span class="n">field</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">levels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">dt</span><span class="p">,</span> <span class="n">levels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">eps</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">unfold_level_spacing</span><span class="p">(</span><span class="n">levels</span><span class="p">,</span> <span class="n">deg</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">center_window</span><span class="o">=</span><span class="p">(</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">))</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">c0</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">unfold_parameter</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">ref</span><span class="o">=</span><span class="n">ref</span><span class="p">)</span>
+        <span class="n">max_levels</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">80</span><span class="p">,</span> <span class="n">eps</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">i0</span> <span class="o">=</span> <span class="p">(</span><span class="n">eps</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">max_levels</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">i1</span> <span class="o">=</span> <span class="n">i0</span> <span class="o">+</span> <span class="n">max_levels</span>
+
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">tight_layout</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">eps</span><span class="p">[:,</span> <span class="n">i0</span><span class="p">:</span><span class="n">i1</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;C0&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.6</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">0.8</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Unfolded parameter $x$&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Unfolded energy $\epsilon_I$&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">rf</span><span class="s1">&#39;Field-driven level flow, $C_0=</span><span class="si">{</span><span class="n">c0</span><span class="si">:</span><span class="s1">.3e</span><span class="si">}</span><span class="s1">$&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

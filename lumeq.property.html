@@ -1,0 +1,835 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lumeq.property package &mdash; lumeq  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lumeq.spins package" href="lumeq.spins.html" />
+    <link rel="prev" title="lumeq.polariton package" href="lumeq.polariton.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            lumeq
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="lumeq.html">lumeq package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html">lumeq.dynamics package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.embedding.html">lumeq.embedding package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html">lumeq.opt package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.plot.html">lumeq.plot package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html">lumeq.polariton package</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">lumeq.property package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.property.chaos_rmt">lumeq.property.chaos_rmt module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.chaos_rmt.spectral_form_factor"><code class="docutils literal notranslate"><span class="pre">spectral_form_factor()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.chaos_rmt.stat_poisson"><code class="docutils literal notranslate"><span class="pre">stat_poisson()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.chaos_rmt.stat_wigner"><code class="docutils literal notranslate"><span class="pre">stat_wigner()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.chaos_rmt.unfold_level_spacing"><code class="docutils literal notranslate"><span class="pre">unfold_level_spacing()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.chaos_rmt.unfold_parameter"><code class="docutils literal notranslate"><span class="pre">unfold_parameter()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.property.energy_density_plot">lumeq.property.energy_density_plot module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.energy_density_plot.EnergyDensity"><code class="docutils literal notranslate"><span class="pre">EnergyDensity</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.property.grids">lumeq.property.grids module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.grids.Grids"><code class="docutils literal notranslate"><span class="pre">Grids</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.grids.creat_mesh_grids"><code class="docutils literal notranslate"><span class="pre">creat_mesh_grids()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.property.orbital_property">lumeq.property.orbital_property module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.orbital_property.cal_orbital_property"><code class="docutils literal notranslate"><span class="pre">cal_orbital_property()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.orbital_property.cal_property_from_scratch"><code class="docutils literal notranslate"><span class="pre">cal_property_from_scratch()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.property.rdm_analysis">lumeq.property.rdm_analysis module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.rdm_analysis.assemble_amplitudes"><code class="docutils literal notranslate"><span class="pre">assemble_amplitudes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.rdm_analysis.cal_dipoles"><code class="docutils literal notranslate"><span class="pre">cal_dipoles()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.rdm_analysis.cal_rdm1"><code class="docutils literal notranslate"><span class="pre">cal_rdm1()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.rdm_analysis.get_attach_dm"><code class="docutils literal notranslate"><span class="pre">get_attach_dm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.rdm_analysis.get_detach_dm"><code class="docutils literal notranslate"><span class="pre">get_detach_dm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.rdm_analysis.get_difference_dm"><code class="docutils literal notranslate"><span class="pre">get_difference_dm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.rdm_analysis.get_transition_dm"><code class="docutils literal notranslate"><span class="pre">get_transition_dm()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.property.sapt_dispersion">lumeq.property.sapt_dispersion module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.sapt_dispersion.build_trans_density"><code class="docutils literal notranslate"><span class="pre">build_trans_density()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.sapt_dispersion.cal_sapt"><code class="docutils literal notranslate"><span class="pre">cal_sapt()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.sapt_dispersion.cal_sapt_r"><code class="docutils literal notranslate"><span class="pre">cal_sapt_r()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.sapt_dispersion.cal_sapt_u"><code class="docutils literal notranslate"><span class="pre">cal_sapt_u()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.sapt_dispersion.get_xys_in_ao"><code class="docutils literal notranslate"><span class="pre">get_xys_in_ao()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.sapt_dispersion.run_tddft"><code class="docutils literal notranslate"><span class="pre">run_tddft()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.property.wf_overlap">lumeq.property.wf_overlap module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.wf_overlap.cal_wf_overlap"><code class="docutils literal notranslate"><span class="pre">cal_wf_overlap()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.wf_overlap.cal_wf_overlap_r"><code class="docutils literal notranslate"><span class="pre">cal_wf_overlap_r()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.wf_overlap.cal_wf_overlap_r0"><code class="docutils literal notranslate"><span class="pre">cal_wf_overlap_r0()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.wf_overlap.cal_wf_overlap_sf"><code class="docutils literal notranslate"><span class="pre">cal_wf_overlap_sf()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.wf_overlap.cal_wf_overlap_u"><code class="docutils literal notranslate"><span class="pre">cal_wf_overlap_u()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.wf_overlap.change_phase"><code class="docutils literal notranslate"><span class="pre">change_phase()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.property.wf_overlap.sign_fixing"><code class="docutils literal notranslate"><span class="pre">sign_fixing()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.property">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.spins.html">lumeq.spins package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html">lumeq.utils package</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lumeq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="lumeq.html">lumeq package</a></li>
+      <li class="breadcrumb-item active">lumeq.property package</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/Zheng-Pei-c/lumeq/edit/main/docs/lumeq.property.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="lumeq-property-package">
+<h1>lumeq.property package<a class="headerlink" href="#lumeq-property-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-lumeq.property.chaos_rmt">
+<span id="lumeq-property-chaos-rmt-module"></span><h2>lumeq.property.chaos_rmt module<a class="headerlink" href="#module-lumeq.property.chaos_rmt" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.chaos_rmt.spectral_form_factor">
+<span class="sig-name descname"><span class="pre">spectral_form_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">levels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">times</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/chaos_rmt.html#spectral_form_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.chaos_rmt.spectral_form_factor" title="Link to this definition"></a></dt>
+<dd><p>Compute the spectral form factor from unfolded energy levels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>levels</strong> (<em>2d array</em><em> (</em><em>nsnap</em><em>, </em><em>nlevels</em><em>)</em>) – The unfolded energy levels to be analyzed.</p></li>
+<li><p><strong>times</strong> (<em>array</em>) – The time points at which to compute K(t) for Fourier transform.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The spectral form factor K(t) at the corresponding time points.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>K (array)</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The spectral form factor is
+<code class="docutils literal notranslate"><span class="pre">K(t)</span> <span class="pre">=</span> <span class="pre">&lt;sum_{i,j}</span> <span class="pre">exp(-i</span> <span class="pre">(E_i</span> <span class="pre">-</span> <span class="pre">E_j)</span> <span class="pre">t)&gt;</span> <span class="pre">/</span> <span class="pre">D^2</span></code>.
+Equivalently,
+<code class="docutils literal notranslate"><span class="pre">K(t)</span> <span class="pre">=</span> <span class="pre">&lt;|sum_i</span> <span class="pre">exp(-i</span> <span class="pre">E_i</span> <span class="pre">t)|^2&gt;</span> <span class="pre">/</span> <span class="pre">D^2</span></code>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.chaos_rmt.stat_poisson">
+<span class="sig-name descname"><span class="pre">stat_poisson</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/chaos_rmt.html#stat_poisson"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.chaos_rmt.stat_poisson" title="Link to this definition"></a></dt>
+<dd><p>Poisson distribution for unfolded level spacing s: P(s) = exp(-s)</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.chaos_rmt.stat_wigner">
+<span class="sig-name descname"><span class="pre">stat_wigner</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'goe'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/chaos_rmt.html#stat_wigner"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.chaos_rmt.stat_wigner" title="Link to this definition"></a></dt>
+<dd><p>Wigner-Dyson distribution for unfolded level spacing s.
+<code class="docutils literal notranslate"><span class="pre">P(s)</span> <span class="pre">=</span> <span class="pre">\frac{\pi}{2}</span> <span class="pre">s</span> <span class="pre">e^{-\frac{\pi}{4}</span> <span class="pre">s^2}</span></code> for GOE
+<code class="docutils literal notranslate"><span class="pre">P(s)</span> <span class="pre">=</span> <span class="pre">\frac{32}{\pi^2}</span> <span class="pre">s^2</span> <span class="pre">e^{-\frac{4}{\pi}</span> <span class="pre">s^2}</span></code> for GUE</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>s</strong> (<em>array-like</em>) – The unfolded level spacings to be evaluated.</p></li>
+<li><p><strong>itype</strong> (<em>str</em><em>, </em><em>optional</em>) – The type of random matrix ensemble.
+Can be ‘goe’ (Gaussian Orthogonal Ensemble),
+‘gue’ (Gaussian Unitary Ensemble). Default is ‘goe’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The probability density P(s) for the given unfolded level spacings.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>P (array)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.chaos_rmt.unfold_level_spacing">
+<span class="sig-name descname"><span class="pre">unfold_level_spacing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">levels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deg</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/chaos_rmt.html#unfold_level_spacing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.chaos_rmt.unfold_level_spacing" title="Link to this definition"></a></dt>
+<dd><p>Unfold the level spacing s = dN/dE * dE</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>levels</strong> (<em>array-like</em>) – The energy levels to be unfolded.</p></li>
+<li><p><strong>deg</strong> (<em>int</em><em>, </em><em>optional</em>) – The degree of the polynomial fit to the staircase function N(E). Default is 5.</p></li>
+<li><p><strong>center_window</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Fractional level window used for unfolding.
+For example, <code class="docutils literal notranslate"><span class="pre">(0.2,</span> <span class="pre">0.8)</span></code> uses levels between the 20th and 80th percentiles.
+Default is False, which uses all levels.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The unfolded energy levels.
+s (array): The unfolded level spacings.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>eps (array)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.chaos_rmt.unfold_parameter">
+<span class="sig-name descname"><span class="pre">unfold_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">eps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/chaos_rmt.html#unfold_parameter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.chaos_rmt.unfold_parameter" title="Link to this definition"></a></dt>
+<dd><p>Rescale an external parameter using the variance of unfolded level velocities.</p>
+<p>Figure 6 of Tao and Galitski, arXiv:2602.21299, uses
+<code class="docutils literal notranslate"><span class="pre">x</span> <span class="pre">=</span> <span class="pre">sqrt(C0)</span> <span class="pre">*</span> <span class="pre">(lambda</span> <span class="pre">-</span> <span class="pre">lambda0)</span></code>,
+where <code class="docutils literal notranslate"><span class="pre">C0</span> <span class="pre">=</span> <span class="pre">&lt;(d</span> <span class="pre">eps</span> <span class="pre">/</span> <span class="pre">d</span> <span class="pre">lambda)^2&gt;</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>eps</strong> (<em>2d array</em><em> (</em><em>nparam</em><em>, </em><em>nlevels</em><em>)</em>) – Unfolded energy levels along the parameter grid.</p></li>
+<li><p><strong>param</strong> (<em>1d array</em>) – External parameter values, e.g. electric field or time.</p></li>
+<li><p><strong>ref</strong> (<em>float</em><em>, </em><em>optional</em>) – Reference parameter value <code class="docutils literal notranslate"><span class="pre">lambda0</span></code>. Default is <code class="docutils literal notranslate"><span class="pre">param[0]</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Unfolded parameter.
+c0 (float): Mean squared level velocity.
+vel (2d array): Level velocities <code class="docutils literal notranslate"><span class="pre">d</span> <span class="pre">eps</span> <span class="pre">/</span> <span class="pre">d</span> <span class="pre">lambda</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>x (1d array)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-lumeq.property.energy_density_plot">
+<span id="lumeq-property-energy-density-plot-module"></span><h2>lumeq.property.energy_density_plot module<a class="headerlink" href="#module-lumeq.property.energy_density_plot" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">EnergyDensity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">atom</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">functional</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ecp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_memory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">efield</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>ground-state energy density: j_only(), jk(), xc()
+excited-state energy density: coulomb_only(), coulomb_exchange(), functional()</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.becke_partition">
+<span class="sig-name descname"><span class="pre">becke_partition</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.becke_partition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.becke_partition" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.cal_density_matrices">
+<span class="sig-name descname"><span class="pre">cal_density_matrices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ie</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.cal_density_matrices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.cal_density_matrices" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.cal_excitation_lambda_factor">
+<span class="sig-name descname"><span class="pre">cal_excitation_lambda_factor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">estate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.cal_excitation_lambda_factor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.cal_excitation_lambda_factor" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.cal_excited_state">
+<span class="sig-name descname"><span class="pre">cal_excited_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nstates</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.cal_excited_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.cal_excited_state" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.cal_overlap_detach_attach_density">
+<span class="sig-name descname"><span class="pre">cal_overlap_detach_attach_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">estate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.cal_overlap_detach_attach_density"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.cal_overlap_detach_attach_density" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.check_energy_core">
+<span class="sig-name descname"><span class="pre">check_energy_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.check_energy_core"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.check_energy_core" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.check_energy_coulomb_exchange">
+<span class="sig-name descname"><span class="pre">check_energy_coulomb_exchange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hf_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.check_energy_coulomb_exchange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.check_energy_coulomb_exchange" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.check_energy_functional">
+<span class="sig-name descname"><span class="pre">check_energy_functional</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.check_energy_functional"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.check_energy_functional" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.check_energy_jk">
+<span class="sig-name descname"><span class="pre">check_energy_jk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hf_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.check_energy_jk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.check_energy_jk" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.check_energy_xc">
+<span class="sig-name descname"><span class="pre">check_energy_xc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.check_energy_xc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.check_energy_xc" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.check_transtion_density">
+<span class="sig-name descname"><span class="pre">check_transtion_density</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.check_transtion_density"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.check_transtion_density" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.creat_mesh_grids">
+<span class="sig-name descname"><span class="pre">creat_mesh_grids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grid_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nxyz</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.creat_mesh_grids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.creat_mesh_grids" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.decompose_energy_density">
+<span class="sig-name descname"><span class="pre">decompose_energy_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nstates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plotnum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nxyz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dohirshfeld</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dobecke</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">withcharge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decompose_es</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cal_another_attraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.decompose_energy_density"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.decompose_energy_density" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.decompose_energy_density_es">
+<span class="sig-name descname"><span class="pre">decompose_energy_density_es</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hf_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_xc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ie</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dohirshfeld</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dobecke</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.decompose_energy_density_es"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.decompose_energy_density_es" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.decompose_energy_density_gs">
+<span class="sig-name descname"><span class="pre">decompose_energy_density_gs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hf_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_xc</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.decompose_energy_density_gs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.decompose_energy_density_gs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.density_on_grids">
+<span class="sig-name descname"><span class="pre">density_on_grids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xctype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'GGA'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.density_on_grids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.density_on_grids" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.energy_density_core">
+<span class="sig-name descname"><span class="pre">energy_density_core</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.energy_density_core"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.energy_density_core" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.energy_density_coulomb_exchange">
+<span class="sig-name descname"><span class="pre">energy_density_coulomb_exchange</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dm2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dm3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dm4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_value1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_value2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hf_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.energy_density_coulomb_exchange"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.energy_density_coulomb_exchange" title="Link to this definition"></a></dt>
+<dd><p>dm1, dm2: ground-state, difference, transition, transition_symmetric dm
+rho_value1, rho_value2: difference, transition rho_value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.energy_density_coulomb_only">
+<span class="sig-name descname"><span class="pre">energy_density_coulomb_only</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dm2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_value1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_value2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.energy_density_coulomb_only"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.energy_density_coulomb_only" title="Link to this definition"></a></dt>
+<dd><p>dm1, dm2: ground-state, transition_symmetric dm
+rho_value1, rho_value2: difference, transition rho_value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.energy_density_exchange_rsh">
+<span class="sig-name descname"><span class="pre">energy_density_exchange_rsh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dm2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dm3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyb</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.energy_density_exchange_rsh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.energy_density_exchange_rsh" title="Link to this definition"></a></dt>
+<dd><p>dm1, dm2, dm3: ground-state, difference, transition dm</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.energy_density_functional">
+<span class="sig-name descname"><span class="pre">energy_density_functional</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.energy_density_functional"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.energy_density_functional" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.energy_density_j_only">
+<span class="sig-name descname"><span class="pre">energy_density_j_only</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_value</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.energy_density_j_only"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.energy_density_j_only" title="Link to this definition"></a></dt>
+<dd><p>ground-state dm and rho_value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.energy_density_jk">
+<span class="sig-name descname"><span class="pre">energy_density_jk</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho_value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hf_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.energy_density_jk"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.energy_density_jk" title="Link to this definition"></a></dt>
+<dd><p>ground-state dm and rho_value</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.energy_density_k_rsh">
+<span class="sig-name descname"><span class="pre">energy_density_k_rsh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyb</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.energy_density_k_rsh"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.energy_density_k_rsh" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.energy_density_xc">
+<span class="sig-name descname"><span class="pre">energy_density_xc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.energy_density_xc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.energy_density_xc" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.grab_es_density_on_grids">
+<span class="sig-name descname"><span class="pre">grab_es_density_on_grids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xctype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'GGA'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.grab_es_density_on_grids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.grab_es_density_on_grids" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.grab_gs_density_on_grids">
+<span class="sig-name descname"><span class="pre">grab_gs_density_on_grids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xctype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'GGA'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.grab_gs_density_on_grids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.grab_gs_density_on_grids" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.group_hirshfeld_partition">
+<span class="sig-name descname"><span class="pre">group_hirshfeld_partition</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.group_hirshfeld_partition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.group_hirshfeld_partition" title="Link to this definition"></a></dt>
+<dd><p>density ratio of fragments on grid points</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.mayer_bond_order">
+<span class="sig-name descname"><span class="pre">mayer_bond_order</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bondatoms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nstates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">estate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.mayer_bond_order"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.mayer_bond_order" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.partition_energy_or_charge">
+<span class="sig-name descname"><span class="pre">partition_energy_or_charge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ie</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dohirshfeld</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dobecke</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">withcharge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.partition_energy_or_charge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.partition_energy_or_charge" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.plot_es_energy_density">
+<span class="sig-name descname"><span class="pre">plot_es_energy_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ie</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.plot_es_energy_density"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.plot_es_energy_density" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.plot_gs_energy_density">
+<span class="sig-name descname"><span class="pre">plot_gs_energy_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plotnum</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.plot_gs_energy_density"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.plot_gs_energy_density" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.relaxed_z_kernel">
+<span class="sig-name descname"><span class="pre">relaxed_z_kernel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ie</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">singlet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">atmlst</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_memory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.relaxed_z_kernel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.relaxed_z_kernel" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.sum_energy_density_component">
+<span class="sig-name descname"><span class="pre">sum_energy_density_component</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.sum_energy_density_component"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.sum_energy_density_component" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.energy_density_plot.EnergyDensity.use_auxilary_basis">
+<span class="sig-name descname"><span class="pre">use_auxilary_basis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">auxbasis</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/energy_density_plot.html#EnergyDensity.use_auxilary_basis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.energy_density_plot.EnergyDensity.use_auxilary_basis" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-lumeq.property.grids">
+<span id="lumeq-property-grids-module"></span><h2>lumeq.property.grids module<a class="headerlink" href="#module-lumeq.property.grids" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="lumeq.property.grids.Grids">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Grids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nxyz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/grids.html#Grids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.grids.Grids" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.grids.Grids.ao_on_grids">
+<span class="sig-name descname"><span class="pre">ao_on_grids</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/grids.html#Grids.ao_on_grids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.grids.Grids.ao_on_grids" title="Link to this definition"></a></dt>
+<dd><p>Calculate the atomic orbital values and their derivatives on the grids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Atomic-orbital values and their derivatives on the grids.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.grids.Grids.density_on_grids">
+<span class="sig-name descname"><span class="pre">density_on_grids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xctype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'GGA'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/grids.html#Grids.density_on_grids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.grids.Grids.density_on_grids" title="Link to this definition"></a></dt>
+<dd><p>Calculate the electron density and its derivatives on the grids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dm</strong> (<em>numpy.ndarray</em>) – Density matrix.</p></li>
+<li><p><strong>xctype</strong> (<em>str</em>) – Exchange-correlation functional type, e.g. <code class="docutils literal notranslate"><span class="pre">'LDA'</span></code> or <code class="docutils literal notranslate"><span class="pre">'GGA'</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Electron density and its derivatives on the grids.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.grids.Grids.orbital_on_grids">
+<span class="sig-name descname"><span class="pre">orbital_on_grids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_coeff</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/grids.html#Grids.orbital_on_grids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.grids.Grids.orbital_on_grids" title="Link to this definition"></a></dt>
+<dd><p>Calculate the molecular orbital values and their derivatives on the grids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mo_coeff</strong> (<em>numpy.ndarray</em>) – Molecular-orbital coefficients.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Molecular-orbital values and their derivatives on the grids.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lumeq.property.grids.Grids.plot_grid_values">
+<span class="sig-name descname"><span class="pre">plot_grid_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'density'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nums</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/grids.html#Grids.plot_grid_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.grids.Grids.plot_grid_values" title="Link to this definition"></a></dt>
+<dd><p>Plot the grid values in 3D space.
+Cubegen</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>numpy.ndarray</em>) – Grid values to plot.</p></li>
+<li><p><strong>title</strong> (<em>str</em>) – Plot title.</p></li>
+<li><p><strong>filename</strong> (<em>str</em>) – Cube-file prefix for saving the plot.</p></li>
+<li><p><strong>nums</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of datasets to write when <code class="docutils literal notranslate"><span class="pre">values</span></code> contains multiple grids.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.grids.creat_mesh_grids">
+<span class="sig-name descname"><span class="pre">creat_mesh_grids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nxyz</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/grids.html#creat_mesh_grids"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.grids.creat_mesh_grids" title="Link to this definition"></a></dt>
+<dd><p>Create mesh grids for numerical integration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mf</strong> – PySCF mean-field object.</p></li>
+<li><p><strong>nxyz</strong> (<em>list</em><em>, </em><em>optional</em>) – Cubic-grid parameters <code class="docutils literal notranslate"><span class="pre">[nx,</span> <span class="pre">ny,</span> <span class="pre">nz,</span> <span class="pre">resolution]</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">(cc,</span> <span class="pre">coords,</span> <span class="pre">weights,</span> <span class="pre">ngrids)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-lumeq.property.orbital_property">
+<span id="lumeq-property-orbital-property-module"></span><h2>lumeq.property.orbital_property module<a class="headerlink" href="#module-lumeq.property.orbital_property" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.orbital_property.cal_orbital_property">
+<span class="sig-name descname"><span class="pre">cal_orbital_property</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mf</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/orbital_property.html#cal_orbital_property"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.orbital_property.cal_orbital_property" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.orbital_property.cal_property_from_scratch">
+<span class="sig-name descname"><span class="pre">cal_property_from_scratch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">infile</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/orbital_property.html#cal_property_from_scratch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.orbital_property.cal_property_from_scratch" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-lumeq.property.rdm_analysis">
+<span id="lumeq-property-rdm-analysis-module"></span><h2>lumeq.property.rdm_analysis module<a class="headerlink" href="#module-lumeq.property.rdm_analysis" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.rdm_analysis.assemble_amplitudes">
+<span class="sig-name descname"><span class="pre">assemble_amplitudes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nstates</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rpa</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'r'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/rdm_analysis.html#assemble_amplitudes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.rdm_analysis.assemble_amplitudes" title="Link to this definition"></a></dt>
+<dd><p>reshape the transition amplitudes from pyscf tdscf module</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xy</strong> – <code class="docutils literal notranslate"><span class="pre">tdscf.xy</span></code> tuples.</p></li>
+<li><p><strong>nstates</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of excited states.</p></li>
+<li><p><strong>rpa</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to include the RPA <code class="docutils literal notranslate"><span class="pre">Y</span></code> amplitudes.</p></li>
+<li><p><strong>itype</strong> (<em>str</em>) – One of <code class="docutils literal notranslate"><span class="pre">'r'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ro'</span></code>, or <code class="docutils literal notranslate"><span class="pre">'u'</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Reshaped <code class="docutils literal notranslate"><span class="pre">(xs,</span> <span class="pre">ys)</span></code> transition amplitudes.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.rdm_analysis.cal_dipoles">
+<span class="sig-name descname"><span class="pre">cal_dipoles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dip_mat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rdm</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/rdm_analysis.html#cal_dipoles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.rdm_analysis.cal_dipoles" title="Link to this definition"></a></dt>
+<dd><p>calculate dipole moments from dipole integrals and 1-particle density matrices</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dip_mat</strong> (<em>numpy.ndarray</em>) – Dipole integrals in AO basis with shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">nao,</span> <span class="pre">nao)</span></code>.</p></li>
+<li><p><strong>rdm</strong> (<em>numpy.ndarray</em>) – One-particle density matrices with shape <code class="docutils literal notranslate"><span class="pre">(...,</span> <span class="pre">nao,</span> <span class="pre">nao)</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dipole moments with shape <code class="docutils literal notranslate"><span class="pre">(...,</span> <span class="pre">3)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.rdm_analysis.cal_rdm1">
+<span class="sig-name descname"><span class="pre">cal_rdm1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xy1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xy2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'trans'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/rdm_analysis.html#cal_rdm1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.rdm_analysis.cal_rdm1" title="Link to this definition"></a></dt>
+<dd><p>calculate 1-particle density matrices from xy amplitudes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xy1</strong> (<em>list</em>) – XY amplitudes for the first set of states.</p></li>
+<li><p><strong>coeff1</strong> – Molecular orbitals for the first state set.</p></li>
+<li><p><strong>xy2</strong> (<em>list</em><em>, </em><em>optional</em>) – XY amplitudes for the second set of states.</p></li>
+<li><p><strong>coeff2</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Molecular orbitals for the second
+state set.</p></li>
+<li><p><strong>scale</strong> (<em>float</em>) – <code class="docutils literal notranslate"><span class="pre">2</span></code> for restricted and <code class="docutils literal notranslate"><span class="pre">1</span></code> for unrestricted cases.</p></li>
+<li><p><strong>itype</strong> (<em>str</em>) – Density-matrix type, e.g. <code class="docutils literal notranslate"><span class="pre">'trans'</span></code> or <code class="docutils literal notranslate"><span class="pre">'diff'</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.rdm_analysis.get_attach_dm">
+<span class="sig-name descname"><span class="pre">get_attach_dm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xy1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbv1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xy2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbv2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/rdm_analysis.html#get_attach_dm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.rdm_analysis.get_attach_dm" title="Link to this definition"></a></dt>
+<dd><p>calculate attach part of 1-particle density matrix from xy amplitudes bewteen excited states</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.rdm_analysis.get_detach_dm">
+<span class="sig-name descname"><span class="pre">get_detach_dm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xy1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbo1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xy2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbo2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/rdm_analysis.html#get_detach_dm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.rdm_analysis.get_detach_dm" title="Link to this definition"></a></dt>
+<dd><p>calculate detach part of 1-particle density matrix from xy amplitudes bewteen excited states</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.rdm_analysis.get_difference_dm">
+<span class="sig-name descname"><span class="pre">get_difference_dm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xy1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xy2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/rdm_analysis.html#get_difference_dm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.rdm_analysis.get_difference_dm" title="Link to this definition"></a></dt>
+<dd><p>calculate difference density matrix bewteen excited states</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xy1</strong> (<em>list</em>) – <code class="docutils literal notranslate"><span class="pre">[xs,</span> <span class="pre">ys]</span></code> amplitudes for the first state or geometry.</p></li>
+<li><p><strong>xy2</strong> (<em>list</em><em>, </em><em>optional</em>) – <code class="docutils literal notranslate"><span class="pre">[xs,</span> <span class="pre">ys]</span></code> amplitudes for the second state or
+geometry.</p></li>
+<li><p><strong>coeff1</strong> (<em>numpy.ndarray</em>) – Molecular orbitals of the first state or
+geometry.</p></li>
+<li><p><strong>coeff2</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Molecular orbitals of the second
+state, geometry, or spin channel.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Difference one-particle density matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.rdm_analysis.get_transition_dm">
+<span class="sig-name descname"><span class="pre">get_transition_dm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coeff2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/rdm_analysis.html#get_transition_dm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.rdm_analysis.get_transition_dm" title="Link to this definition"></a></dt>
+<dd><p>calculate transition 1-particle density matrix bewteen ground and excited states from xy amplitudes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xy</strong> (<em>list</em>) – <code class="docutils literal notranslate"><span class="pre">[xs,</span> <span class="pre">ys]</span></code> amplitudes, where <code class="docutils literal notranslate"><span class="pre">xs</span></code> and <code class="docutils literal notranslate"><span class="pre">ys</span></code> are arrays
+with shape <code class="docutils literal notranslate"><span class="pre">(nstates,</span> <span class="pre">nocc,</span> <span class="pre">nvir)</span></code>.</p></li>
+<li><p><strong>coeff1</strong> (<em>numpy.ndarray</em>) – Ground-state molecular-orbital coefficients.</p></li>
+<li><p><strong>coeff2</strong> (<em>numpy.ndarray</em><em>, </em><em>optional</em>) – Molecular-orbital coefficients for a
+different spin channel or geometry. Defaults to <code class="docutils literal notranslate"><span class="pre">coeff1</span></code>.</p></li>
+<li><p><strong>scale</strong> (<em>float</em>) – <code class="docutils literal notranslate"><span class="pre">2</span></code> for restricted and <code class="docutils literal notranslate"><span class="pre">1</span></code> for unrestricted cases.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Transition one-particle density matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-lumeq.property.sapt_dispersion">
+<span id="lumeq-property-sapt-dispersion-module"></span><h2>lumeq.property.sapt_dispersion module<a class="headerlink" href="#module-lumeq.property.sapt_dispersion" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.sapt_dispersion.build_trans_density">
+<span class="sig-name descname"><span class="pre">build_trans_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'r'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/sapt_dispersion.html#build_trans_density"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.sapt_dispersion.build_trans_density" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.sapt_dispersion.cal_sapt">
+<span class="sig-name descname"><span class="pre">cal_sapt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'r'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/sapt_dispersion.html#cal_sapt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.sapt_dispersion.cal_sapt" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.sapt_dispersion.cal_sapt_r">
+<span class="sig-name descname"><span class="pre">cal_sapt_r</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nstates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/sapt_dispersion.html#cal_sapt_r"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.sapt_dispersion.cal_sapt_r" title="Link to this definition"></a></dt>
+<dd><p>mol is the supermolecule</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.sapt_dispersion.cal_sapt_u">
+<span class="sig-name descname"><span class="pre">cal_sapt_u</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo_coeffs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">amps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nstates</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">omega</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/sapt_dispersion.html#cal_sapt_u"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.sapt_dispersion.cal_sapt_u" title="Link to this definition"></a></dt>
+<dd><p>mol is the supermolecule</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.sapt_dispersion.get_xys_in_ao">
+<span class="sig-name descname"><span class="pre">get_xys_in_ao</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mo_coeff</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ys</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_y</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/sapt_dispersion.html#get_xys_in_ao"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.sapt_dispersion.get_xys_in_ao" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.sapt_dispersion.run_tddft">
+<span class="sig-name descname"><span class="pre">run_tddft</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">symbols</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">charge</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">functional</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'sto-3g'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/sapt_dispersion.html#run_tddft"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.sapt_dispersion.run_tddft" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-lumeq.property.wf_overlap">
+<span id="lumeq-property-wf-overlap-module"></span><h2>lumeq.property.wf_overlap module<a class="headerlink" href="#module-lumeq.property.wf_overlap" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.wf_overlap.cal_wf_overlap">
+<span class="sig-name descname"><span class="pre">cal_wf_overlap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Xm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ym</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Xn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">itype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'r'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/wf_overlap.html#cal_wf_overlap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.wf_overlap.cal_wf_overlap" title="Link to this definition"></a></dt>
+<dd><p>calculate wavefunction overlap between excited states at different nuclear configurations</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.wf_overlap.cal_wf_overlap_r">
+<span class="sig-name descname"><span class="pre">cal_wf_overlap_r</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Xm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ym</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Xn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/wf_overlap.html#cal_wf_overlap_r"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.wf_overlap.cal_wf_overlap_r" title="Link to this definition"></a></dt>
+<dd><p>Calculate wavefunction overlap between excited states at different nuclear configurations
+for restricted case
+Ovlp = &lt; Psi_m | Psi_n &gt;</p>
+<p>Matrix determinant lemma is used.
+vec1: <cite>S_vo S_oo^-1</cite> in ov (transpose is used)
+vec2: <cite>S_oo^-1 S_ov</cite> in ov
+vec3: <cite>(S_vv - S_vo S_oo^-1 S_ov)</cite> in vv
+vec4: <cite>S_oo^-1</cite> in oo</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Xm</strong> (<em>numpy.ndarray</em>) – Excitation amplitudes at geometry <code class="docutils literal notranslate"><span class="pre">m</span></code> with shape
+<code class="docutils literal notranslate"><span class="pre">(nroots,</span> <span class="pre">nocc,</span> <span class="pre">nvir)</span></code>.</p></li>
+<li><p><strong>Ym</strong> (<em>numpy.ndarray</em>) – De-excitation amplitudes with shape
+<code class="docutils literal notranslate"><span class="pre">(nroots,</span> <span class="pre">nocc,</span> <span class="pre">nvir)</span></code>.</p></li>
+<li><p><strong>Xn</strong> (<em>numpy.ndarray</em>) – Excitation amplitudes at geometry <code class="docutils literal notranslate"><span class="pre">n</span></code> with shape
+<code class="docutils literal notranslate"><span class="pre">(nroots,</span> <span class="pre">nocc,</span> <span class="pre">nvir)</span></code>.</p></li>
+<li><p><strong>Yn</strong> (<em>numpy.ndarray</em>) – De-excitation amplitudes with shape
+<code class="docutils literal notranslate"><span class="pre">(nroots,</span> <span class="pre">nocc,</span> <span class="pre">nvir)</span></code>.</p></li>
+<li><p><strong>Cm</strong> (<em>numpy.ndarray</em>) – Molecular-orbital coefficients at geometry <code class="docutils literal notranslate"><span class="pre">m</span></code>
+with shape <code class="docutils literal notranslate"><span class="pre">(nbasis,</span> <span class="pre">nbasis)</span></code>.</p></li>
+<li><p><strong>Cn</strong> (<em>numpy.ndarray</em>) – Molecular-orbital coefficients at geometry <code class="docutils literal notranslate"><span class="pre">n</span></code>
+with shape <code class="docutils literal notranslate"><span class="pre">(nbasis,</span> <span class="pre">nbasis)</span></code>.</p></li>
+<li><p><strong>S</strong> (<em>numpy.ndarray</em>) – Overlap matrix between geometries <code class="docutils literal notranslate"><span class="pre">m</span></code> and <code class="docutils literal notranslate"><span class="pre">n</span></code>
+with shape <code class="docutils literal notranslate"><span class="pre">(nbasis,</span> <span class="pre">nbasis)</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Wavefunction overlap matrix.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.wf_overlap.cal_wf_overlap_r0">
+<span class="sig-name descname"><span class="pre">cal_wf_overlap_r0</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Xm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ym</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Xn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/wf_overlap.html#cal_wf_overlap_r0"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.wf_overlap.cal_wf_overlap_r0" title="Link to this definition"></a></dt>
+<dd><p>slow version of wavefunction overlap of restricted case for checking</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.wf_overlap.cal_wf_overlap_sf">
+<span class="sig-name descname"><span class="pre">cal_wf_overlap_sf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Xm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ym</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Xn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/wf_overlap.html#cal_wf_overlap_sf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.wf_overlap.cal_wf_overlap_sf" title="Link to this definition"></a></dt>
+<dd><p>calculate wavefunction overlap between excited states at different nuclear configurations
+for ro spin-flip case</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.wf_overlap.cal_wf_overlap_u">
+<span class="sig-name descname"><span class="pre">cal_wf_overlap_u</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Xm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Ym</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Xn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Yn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Cn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/wf_overlap.html#cal_wf_overlap_u"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.wf_overlap.cal_wf_overlap_u" title="Link to this definition"></a></dt>
+<dd><p>calculate wavefunction overlap between excited states at different nuclear configurations
+for unrestricted case</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.wf_overlap.change_phase">
+<span class="sig-name descname"><span class="pre">change_phase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mo1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ovlp</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/wf_overlap.html#change_phase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.wf_overlap.change_phase" title="Link to this definition"></a></dt>
+<dd><p>change the phase of excited states at geometry 1 to match that at geometry 0</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.property.wf_overlap.sign_fixing">
+<span class="sig-name descname"><span class="pre">sign_fixing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mat</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/property/wf_overlap.html#sign_fixing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.property.wf_overlap.sign_fixing" title="Link to this definition"></a></dt>
+<dd><p>fix the sign indeterminacy of wavefunction overlap matrix
+refer Zhou, Subotnik JCTC 2020, 10.1021/acs.jctc.9b00952</p>
+</dd></dl>
+
+</section>
+<section id="module-lumeq.property">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-lumeq.property" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="lumeq.polariton.html" class="btn btn-neutral float-left" title="lumeq.polariton package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lumeq.spins.html" class="btn btn-neutral float-right" title="lumeq.spins package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Zheng Pei.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.utils.print_matrix &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.utils.print_matrix</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numbers</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">np</span>
+
+<span class="c1"># real-time printout</span>
+<span class="nb">print</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="n">flush</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<div class="viewcode-block" id="print_matrix">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.print_matrix.print_matrix">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">print_matrix</span><span class="p">(</span><span class="n">keyword</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">nwidth</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">nind</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">digits</span><span class="o">=</span><span class="p">[</span><span class="mi">13</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="s1">&#39;f&#39;</span><span class="p">],</span>
+                 <span class="n">trans</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Print multi dimensional array in formatted way.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        keyword (str): Title line.</span>
+<span class="sd">        matrix (array-like): Multi-dimensional array.</span>
+<span class="sd">        nwidth (int, optional): Number of columns to print in one block.</span>
+<span class="sd">            Defaults to 6.</span>
+<span class="sd">        nind (int, optional): Whether to print the row and column indices.</span>
+<span class="sd">            Values larger than 0 print the indices. Defaults to 0.</span>
+<span class="sd">        digits (list, optional): ``[width, precision, notation]``, where</span>
+<span class="sd">            ``width`` is the total width of each number, ``precision`` is the</span>
+<span class="sd">            number of digits after the decimal point, and ``notation`` is</span>
+<span class="sd">            ``&#39;f&#39;`` for fixed-point or ``&#39;e&#39;`` for scientific notation.</span>
+<span class="sd">            Defaults to ``[13, 8, &#39;f&#39;]``.</span>
+<span class="sd">        trans (bool, optional): Whether to transpose the last two dimensions.</span>
+<span class="sd">            Defaults to False.</span>
+<span class="sd">        dtype (type, optional): Data type used to convert the input matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="ow">in</span> <span class="n">keyword</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]:</span> <span class="n">keyword</span> <span class="o">=</span> <span class="n">keyword</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">keyword</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">):</span> <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">matrix</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">matrix</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span> <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+
+    <span class="c1"># transpose the last two dimensions</span>
+    <span class="k">if</span> <span class="n">trans</span><span class="p">:</span> <span class="n">matrix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...ij-&gt;...ji&#39;</span><span class="p">,</span> <span class="n">matrix</span><span class="p">)</span>
+
+    <span class="n">width</span><span class="p">,</span> <span class="n">precision</span><span class="p">,</span> <span class="n">notation</span> <span class="o">=</span> <span class="n">digits</span>
+
+    <span class="n">ndim</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">ndim</span>
+    <span class="k">if</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># 1d array</span>
+        <span class="k">if</span> <span class="n">nwidth</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span> <span class="n">nwidth</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">matrix</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">matrix</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">nind</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># column index</span>
+                <span class="c1">#print(&#39;%13d &#39; % n, end=&#39;&#39;)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">n</span><span class="si">:{</span><span class="n">width</span><span class="si">}</span><span class="s1">d</span><span class="si">}</span><span class="s1"> &#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="n">nwidth</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="c1">#print(&#39;%13.8f &#39; % matrix[n], end=&#39;&#39;)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">matrix</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="si">:{</span><span class="n">width</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">precision</span><span class="si">}{</span><span class="n">notation</span><span class="si">}}</span><span class="s1"> &#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="n">nwidth</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> <span class="c1"># 2d array</span>
+        <span class="n">nrow</span><span class="p">,</span> <span class="n">ncol</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="n">nwidth</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">nloop</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nloop</span> <span class="o">=</span> <span class="n">ncol</span><span class="o">//</span><span class="n">nwidth</span>
+            <span class="k">if</span> <span class="n">nloop</span><span class="o">*</span><span class="n">nwidth</span><span class="o">&lt;</span><span class="n">ncol</span><span class="p">:</span> <span class="n">nloop</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">width2</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">nrow</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nloop</span><span class="p">):</span>
+            <span class="n">s0</span><span class="p">,</span> <span class="n">s1</span> <span class="o">=</span> <span class="n">n</span><span class="o">*</span><span class="n">nwidth</span><span class="p">,</span> <span class="p">(</span><span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">nwidth</span>
+            <span class="k">if</span> <span class="n">s1</span><span class="o">&gt;</span><span class="n">ncol</span> <span class="ow">or</span> <span class="n">nwidth</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span> <span class="n">s1</span> <span class="o">=</span> <span class="n">ncol</span>
+
+            <span class="k">if</span> <span class="n">nind</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># column index</span>
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">s0</span><span class="p">,</span> <span class="n">s1</span><span class="p">):</span>
+                    <span class="c1">#print(&#39;%13d &#39; % (c+1), end=&#39;&#39;)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="p">(</span><span class="n">c</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="si">:{</span><span class="n">width</span><span class="si">}</span><span class="s1">d</span><span class="si">}</span><span class="s1"> &#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nrow</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">nind</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># row index</span>
+                    <span class="c1">#print(&#39;%3d &#39; % (r+1), end=&#39;&#39;)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="p">(</span><span class="n">r</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="si">:{</span><span class="n">width2</span><span class="si">}</span><span class="s1">d</span><span class="si">}</span><span class="s1"> &#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">s0</span><span class="p">,</span> <span class="n">s1</span><span class="p">):</span>
+                    <span class="c1">#print(&#39;%13.8f &#39; % matrix[r,c], end=&#39;&#39;)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">matrix</span><span class="p">[</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">]</span><span class="si">:{</span><span class="n">width</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">precision</span><span class="si">}{</span><span class="n">notation</span><span class="si">}}</span><span class="s1"> &#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">nind</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># blank line if without column index</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span> <span class="c1"># 3d array</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="n">keyword</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">nwidth</span><span class="p">,</span> <span class="n">nind</span><span class="p">,</span> <span class="n">digits</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span> <span class="c1"># 4d array</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="n">keyword</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">nwidth</span><span class="p">,</span> <span class="n">nind</span><span class="p">,</span> <span class="n">digits</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">5</span><span class="p">:</span> <span class="c1"># 5d array</span>
+        <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">,</span> <span class="n">n3</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n2</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n3</span><span class="p">):</span>
+                    <span class="n">print_matrix</span><span class="p">(</span><span class="n">keyword</span><span class="o">+</span><span class="s1">&#39; i: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;  j: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;  k: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;  &#39;</span><span class="p">,</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="n">nwidth</span><span class="p">,</span> <span class="n">nind</span><span class="p">,</span> <span class="n">digits</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">ndim</span> <span class="o">==</span> <span class="mi">6</span><span class="p">:</span> <span class="c1"># 6d array</span>
+        <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span><span class="p">,</span> <span class="n">n3</span><span class="p">,</span> <span class="n">n4</span> <span class="o">=</span> <span class="n">matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n2</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n3</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n4</span><span class="p">):</span>
+                        <span class="n">print_matrix</span><span class="p">(</span><span class="n">keyword</span><span class="o">+</span><span class="s1">&#39; i: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;  j: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;  k: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;  l: &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;  &#39;</span><span class="p">,</span> <span class="n">matrix</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">],</span> <span class="n">nwidth</span><span class="p">,</span> <span class="n">nind</span><span class="p">,</span> <span class="n">digits</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;the matrix has higher dimension than this funciton can handle.&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="print_statistics">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.print_matrix.print_statistics">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">print_statistics</span><span class="p">(</span><span class="n">keyword</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">digits</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">]):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Print mean value and standard deviation of a 1D array.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        keyword (str): Title line.</span>
+<span class="sd">        array (array-like): One-dimensional array.</span>
+<span class="sd">        digits (list, optional): ``[precision_mean, precision_std]``, where</span>
+<span class="sd">            ``precision_mean`` is the number of digits after the decimal point</span>
+<span class="sd">            for the mean and ``precision_std`` is the number of digits after the</span>
+<span class="sd">            decimal point for the standard deviation. Defaults to ``[4, 4]``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">v_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+    <span class="n">v_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">array</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">array</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">keyword</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;:&#39;</span><span class="p">:</span> <span class="n">keyword</span> <span class="o">+=</span> <span class="s1">&#39;:&#39;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">keyword</span> <span class="o">+</span> <span class="sa">f</span><span class="s1">&#39; </span><span class="si">{</span><span class="n">v_mean</span><span class="si">:</span><span class="s1">.</span><span class="si">{</span><span class="n">digits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s1">f</span><span class="si">}</span><span class="s1"> ± </span><span class="si">{</span><span class="n">v_std</span><span class="si">:</span><span class="s1">.</span><span class="si">{</span><span class="n">digits</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

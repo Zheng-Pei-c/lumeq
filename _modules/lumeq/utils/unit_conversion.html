@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.utils.unit_conversion &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.utils.unit_conversion</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">os</span><span class="p">,</span> <span class="n">sys</span><span class="p">,</span> <span class="n">np</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">websites to check the conversion:</span>
+<span class="sd">    https://halas.rice.edu/unit-conversions</span>
+<span class="sd">    https://sherwingroup.itst.ucsb.edu/internal/unit-conversion/</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="n">PI2</span>    <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+<span class="n">FS</span>     <span class="o">=</span> <span class="mf">41.341374575751</span>       <span class="c1"># fs to atomic unit time</span>
+<span class="n">BOHR</span>   <span class="o">=</span> <span class="mf">0.529177249</span>           <span class="c1"># bohr to angstrom AA</span>
+<span class="n">H2EV</span>   <span class="o">=</span> <span class="mf">27.21140795</span>           <span class="c1"># hartree to ev</span>
+<span class="n">EV2J</span>   <span class="o">=</span> <span class="mf">1.602176634</span><span class="o">*</span><span class="mf">1e-19</span>     <span class="c1"># ev=C*V to J= kg (m/s)^2</span>
+<span class="n">AVOGADRO</span> <span class="o">=</span> <span class="mf">6.022140857e23</span>      <span class="c1"># https://physics.nist.gov/cgi-bin/cuu/Value?na</span>
+<span class="n">CAL2J</span>  <span class="o">=</span> <span class="mf">4.184</span>                 <span class="c1"># cal to J</span>
+<span class="n">E_MASS</span>  <span class="o">=</span> <span class="mf">9.1093837</span><span class="o">*</span><span class="mf">1e-31</span>      <span class="c1"># kg</span>
+<span class="n">EV2KJM</span> <span class="o">=</span> <span class="n">EV2J</span><span class="o">*</span><span class="n">AVOGADRO</span><span class="o">*</span><span class="mf">1e-3</span>    <span class="c1"># ev to kcal/mol</span>
+<span class="n">ATOMIC_MASS</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="o">/</span><span class="n">AVOGADRO</span>
+
+<span class="n">C</span>         <span class="o">=</span> <span class="mi">299792458</span>               <span class="c1"># speed of light m/s</span>
+<span class="n">BOLTZMANN</span> <span class="o">=</span> <span class="mf">1.380649</span><span class="o">*</span><span class="mf">1e-23</span>          <span class="c1"># J/K</span>
+<span class="n">PLANCK</span>    <span class="o">=</span> <span class="mf">6.62607015</span><span class="o">*</span><span class="mf">1e-34</span>        <span class="c1"># J/Hz</span>
+<span class="c1">#PlanckBar = Planck/PI2             # Js</span>
+<span class="n">HBAR</span> <span class="o">=</span> <span class="n">PLANCK</span><span class="o">/</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="mf">3.141592653589793</span><span class="p">)</span> <span class="c1"># https://physics.nist.gov/cgi-bin/cuu/Value?hbar</span>
+
+<span class="n">WN</span>    <span class="o">=</span> <span class="n">EV2J</span><span class="o">/</span><span class="n">C</span><span class="o">/</span><span class="n">PLANCK</span><span class="o">*</span><span class="mf">1e-2</span>    <span class="c1"># ev to wavenumber cm^-1</span>
+<span class="n">EV2NS</span> <span class="o">=</span> <span class="n">PLANCK</span><span class="o">/</span><span class="n">EV2J</span><span class="o">*</span><span class="mf">1e9</span>       <span class="c1"># ev to ns ### wikipedia use planckbar!</span>
+<span class="n">EV2NM</span> <span class="o">=</span> <span class="n">EV2NS</span><span class="o">*</span><span class="n">C</span>               <span class="c1"># ev to ns</span>
+<span class="n">EV2K</span>  <span class="o">=</span> <span class="n">EV2J</span><span class="o">/</span><span class="n">BOLTZMANN</span>        <span class="c1"># ev to temperature K</span>
+<span class="n">D2KG</span>  <span class="o">=</span> <span class="mf">1.4924180856045</span><span class="o">*</span><span class="mf">1e-10</span> <span class="c1"># Dalton to kg</span>
+
+<span class="n">BOHR_SI</span> <span class="o">=</span> <span class="n">BOHR</span> <span class="o">*</span> <span class="mf">1e-10</span>
+<span class="n">HARTREE2J</span> <span class="o">=</span> <span class="n">HBAR</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="p">(</span><span class="n">E_MASS</span><span class="o">*</span><span class="n">BOHR_SI</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">AU2HZ</span> <span class="o">=</span> <span class="p">(</span><span class="n">HARTREE2J</span> <span class="o">/</span> <span class="p">(</span><span class="n">ATOMIC_MASS</span> <span class="o">*</span> <span class="n">BOHR_SI</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span><span class="o">**</span><span class="mf">.5</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
+
+<span class="c1"># units of these qualities</span>
+<span class="c1"># milli(m), micro(u), nano(n), pico(p), femto(f), atto(a)</span>
+<span class="c1"># deci(d), centi(c), angstrom(aa)</span>
+<span class="n">units_long</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;time&#39;</span><span class="p">:</span>        <span class="p">[</span><span class="s1">&#39;day&#39;</span><span class="p">,</span> <span class="s1">&#39;hour&#39;</span><span class="p">,</span> <span class="s1">&#39;minute&#39;</span><span class="p">,</span> <span class="s1">&#39;second&#39;</span><span class="p">,</span> <span class="s1">&#39;millisecond&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;microsecond&#39;</span><span class="p">,</span> <span class="s1">&#39;nanosecond&#39;</span><span class="p">,</span> <span class="s1">&#39;picosecond&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;femtosecond&#39;</span><span class="p">,</span> <span class="s1">&#39;atomicunit&#39;</span><span class="p">,</span> <span class="s1">&#39;attosecond&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;length&#39;</span><span class="p">:</span>      <span class="p">[</span><span class="s1">&#39;meter&#39;</span><span class="p">,</span> <span class="s1">&#39;decimeter&#39;</span><span class="p">,</span> <span class="s1">&#39;centimeter&#39;</span><span class="p">,</span> <span class="s1">&#39;millimeter&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;micrometer&#39;</span><span class="p">,</span> <span class="s1">&#39;nanometer&#39;</span><span class="p">,</span> <span class="s1">&#39;angstrom&#39;</span><span class="p">,</span> <span class="s1">&#39;bohr&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;picometer&#39;</span><span class="p">,</span> <span class="s1">&#39;femtometer&#39;</span><span class="p">,</span> <span class="s1">&#39;attometer&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;energy&#39;</span><span class="p">:</span>      <span class="p">[</span><span class="s1">&#39;hartree&#39;</span><span class="p">,</span> <span class="s1">&#39;electronvolt&#39;</span><span class="p">,</span> <span class="s1">&#39;milliev&#39;</span><span class="p">,</span> <span class="s1">&#39;kcal/mol&#39;</span><span class="p">,</span> <span class="s1">&#39;kj/mol&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;frequency&#39;</span><span class="p">:</span>   <span class="p">[</span><span class="s1">&#39;terahertz&#39;</span><span class="p">,</span> <span class="s1">&#39;cm^-1&#39;</span><span class="p">,</span> <span class="s1">&#39;gigahertz&#39;</span><span class="p">,</span> <span class="s1">&#39;megahertz&#39;</span><span class="p">,</span> <span class="s1">&#39;kilohertz&#39;</span><span class="p">,</span> <span class="s1">&#39;hertz&#39;</span><span class="p">,</span> <span class="s1">&#39;freq_au&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;kelvin&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;mass&#39;</span><span class="p">:</span>        <span class="p">[</span><span class="s1">&#39;kilogram&#39;</span><span class="p">,</span> <span class="s1">&#39;gram&#39;</span><span class="p">,</span> <span class="s1">&#39;dalton&#39;</span><span class="p">],</span>
+        <span class="p">}</span>
+
+<span class="n">units_short</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;time&#39;</span><span class="p">:</span>        <span class="p">[</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="s1">&#39;ms&#39;</span><span class="p">,</span> <span class="s1">&#39;us&#39;</span><span class="p">,</span> <span class="s1">&#39;ns&#39;</span><span class="p">,</span> <span class="s1">&#39;ps&#39;</span><span class="p">,</span> <span class="s1">&#39;fs&#39;</span><span class="p">,</span> <span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="s1">&#39;as&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;length&#39;</span><span class="p">:</span>      <span class="p">[</span><span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="s1">&#39;dm&#39;</span><span class="p">,</span> <span class="s1">&#39;cm&#39;</span><span class="p">,</span> <span class="s1">&#39;mm&#39;</span><span class="p">,</span> <span class="s1">&#39;um&#39;</span><span class="p">,</span> <span class="s1">&#39;nm&#39;</span><span class="p">,</span> <span class="s1">&#39;aa&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;pm&#39;</span><span class="p">,</span> <span class="s1">&#39;fm&#39;</span><span class="p">,</span> <span class="s1">&#39;am&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;energy&#39;</span><span class="p">:</span>      <span class="p">[</span><span class="s1">&#39;eh&#39;</span><span class="p">,</span> <span class="s1">&#39;ev&#39;</span><span class="p">,</span> <span class="s1">&#39;mev&#39;</span><span class="p">,</span> <span class="s1">&#39;kcal&#39;</span><span class="p">,</span> <span class="s1">&#39;kj&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;frequency&#39;</span><span class="p">:</span>   <span class="p">[</span><span class="s1">&#39;thz&#39;</span><span class="p">,</span> <span class="s1">&#39;cm-1&#39;</span><span class="p">,</span> <span class="s1">&#39;ghz&#39;</span><span class="p">,</span> <span class="s1">&#39;mhz&#39;</span><span class="p">,</span> <span class="s1">&#39;khz&#39;</span><span class="p">,</span> <span class="s1">&#39;hz&#39;</span><span class="p">,</span> <span class="s1">&#39;s-1&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;k&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;mass&#39;</span><span class="p">:</span>        <span class="p">[</span><span class="s1">&#39;kg&#39;</span><span class="p">,</span> <span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="s1">&#39;u&#39;</span><span class="p">],</span>
+        <span class="p">}</span>
+<span class="n">properties</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">units_long</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+<span class="c1"># indices of atomic units for converting different properties</span>
+<span class="n">Idx_name</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ns&#39;</span><span class="p">,</span> <span class="s1">&#39;nm&#39;</span><span class="p">,</span> <span class="s1">&#39;ev&#39;</span><span class="p">,</span> <span class="s1">&#39;cm-1&#39;</span><span class="p">,</span> <span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="s1">&#39;kg&#39;</span><span class="p">]</span>
+<span class="n">Idx</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">Idx_name</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">properties</span><span class="p">):</span>
+    <span class="n">Idx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">units_short</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">Idx_name</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+<span class="c1">#print(Idx)</span>
+
+<div class="viewcode-block" id="default_unit_index">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.unit_conversion.default_unit_index">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">default_unit_index</span><span class="p">(</span><span class="n">prop</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">Idx</span><span class="p">[</span><span class="n">properties</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">prop</span><span class="p">)]</span></div>
+
+
+
+<span class="n">units_conversion</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;time&#39;</span><span class="p">:</span>        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">8.64</span><span class="o">*</span><span class="mf">1e13</span><span class="p">,</span> <span class="mf">3.6</span><span class="o">*</span><span class="mf">1e12</span><span class="p">,</span> <span class="mf">6.</span><span class="o">*</span><span class="mf">1e10</span><span class="p">,</span> <span class="mf">1e9</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">,</span> <span class="mf">1e3</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="mf">1e-6</span><span class="o">/</span><span class="n">FS</span><span class="p">,</span> <span class="mf">1e-9</span><span class="p">]),</span>
+        <span class="s1">&#39;length&#39;</span><span class="p">:</span>      <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1e9</span><span class="p">,</span> <span class="mf">1e8</span><span class="p">,</span> <span class="mf">1e7</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">,</span> <span class="mf">1e3</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">.1</span><span class="p">,</span> <span class="n">BOHR</span><span class="o">/</span><span class="mi">10</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="mf">1e-9</span><span class="p">]),</span>
+        <span class="s1">&#39;energy&#39;</span><span class="p">:</span>      <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">H2EV</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">,</span> <span class="n">CAL2J</span><span class="o">/</span><span class="n">EV2KJM</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="n">EV2KJM</span><span class="p">]),</span>
+        <span class="s1">&#39;frequency&#39;</span><span class="p">:</span>   <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1e12</span><span class="p">,</span> <span class="n">C</span><span class="o">*</span><span class="mf">1e2</span><span class="p">,</span> <span class="mf">1e9</span><span class="p">,</span> <span class="mf">1e6</span><span class="p">,</span> <span class="mf">1e3</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">AU2HZ</span><span class="p">]),</span>
+        <span class="s1">&#39;temperature&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.</span><span class="p">]),</span>
+        <span class="s1">&#39;mass&#39;</span><span class="p">:</span>        <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1e3</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="n">D2KG</span><span class="p">]),</span>
+        <span class="s1">&#39;energy_to_time&#39;</span><span class="p">:</span>           <span class="n">EV2NS</span><span class="p">,</span>      <span class="c1"># ev to ns</span>
+        <span class="s1">&#39;energy_to_length&#39;</span><span class="p">:</span>         <span class="n">EV2NM</span><span class="p">,</span>      <span class="c1"># ev to nm</span>
+        <span class="s1">&#39;energy_to_frequency&#39;</span><span class="p">:</span>      <span class="n">WN</span><span class="p">,</span>         <span class="c1"># ev to cm-1</span>
+        <span class="s1">&#39;energy_to_temperature&#39;</span><span class="p">:</span>    <span class="n">EV2K</span><span class="p">,</span>       <span class="c1"># ev to K</span>
+        <span class="s1">&#39;energy_to_mass&#39;</span><span class="p">:</span>           <span class="n">EV2J</span><span class="o">/</span><span class="n">C</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span>  <span class="c1"># ev to kg</span>
+        <span class="p">}</span>
+
+
+<div class="viewcode-block" id="find_properties">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.unit_conversion.find_properties">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_properties</span><span class="p">(</span><span class="n">unit0</span><span class="o">=</span><span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="n">unit1</span><span class="o">=</span><span class="s1">&#39;fs&#39;</span><span class="p">):</span>
+    <span class="n">unit0</span><span class="p">,</span> <span class="n">unit1</span> <span class="o">=</span> <span class="n">unit0</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">unit1</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+    <span class="n">prop</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="p">[</span><span class="n">unit0</span><span class="p">,</span> <span class="n">unit1</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="n">units_short</span><span class="p">,</span> <span class="n">units_long</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">name</span><span class="p">[</span><span class="n">s</span><span class="p">]:</span>
+                    <span class="n">prop</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">s</span><span class="p">)</span>
+                    <span class="n">index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">name</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">u</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">prop</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;please specify units with full names:&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">prop</span><span class="p">,</span> <span class="n">index</span></div>
+
+
+
+<div class="viewcode-block" id="convert_same_units">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.unit_conversion.convert_same_units">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_same_units</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+    <span class="n">conv</span> <span class="o">=</span> <span class="n">units_conversion</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span>
+    <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="o">=</span> <span class="n">index</span>
+    <span class="k">return</span> <span class="n">value</span> <span class="o">*</span> <span class="n">conv</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">conv</span><span class="p">[</span><span class="n">j</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="convert_property_to_energy">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.unit_conversion.convert_property_to_energy">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_property_to_energy</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+    <span class="n">c1</span> <span class="o">=</span> <span class="n">convert_same_units</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">default_unit_index</span><span class="p">(</span><span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">])])</span>
+    <span class="n">c3</span> <span class="o">=</span> <span class="n">convert_same_units</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">prop</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">index</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">default_unit_index</span><span class="p">(</span><span class="n">prop</span><span class="p">[</span><span class="mi">1</span><span class="p">])])</span>
+
+    <span class="n">c2</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="s1">&#39;energy&#39;</span> <span class="ow">in</span> <span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">c2</span> <span class="o">=</span> <span class="n">units_conversion</span><span class="p">[</span><span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;_to_&#39;</span><span class="o">+</span><span class="n">prop</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="k">elif</span> <span class="s1">&#39;time&#39;</span> <span class="ow">in</span> <span class="n">prop</span> <span class="ow">or</span> <span class="s1">&#39;length&#39;</span> <span class="ow">in</span> <span class="n">prop</span><span class="p">:</span>
+        <span class="n">c2</span> <span class="o">=</span> <span class="n">units_conversion</span><span class="p">[</span><span class="n">prop</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;_to_&#39;</span><span class="o">+</span><span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">c2</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">units_conversion</span><span class="p">[</span><span class="n">prop</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;_to_&#39;</span><span class="o">+</span><span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+    <span class="k">if</span> <span class="s1">&#39;time&#39;</span> <span class="ow">in</span> <span class="n">prop</span> <span class="ow">or</span> <span class="s1">&#39;length&#39;</span> <span class="ow">in</span> <span class="n">prop</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">c2</span><span class="o">/</span><span class="n">c3</span><span class="o">/</span><span class="n">c1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">c1</span><span class="o">*</span><span class="n">c2</span><span class="o">/</span><span class="n">c3</span></div>
+
+
+
+<div class="viewcode-block" id="convert_different_units">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.unit_conversion.convert_different_units">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_different_units</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s1">&#39;energy&#39;</span> <span class="ow">in</span> <span class="n">prop</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">convert_property_to_energy</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">default_unit_index</span><span class="p">(</span><span class="s1">&#39;energy&#39;</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">convert_property_to_energy</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;energy&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">k</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">convert_property_to_energy</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;energy&#39;</span><span class="p">,</span> <span class="n">prop</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">index</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span></div>
+
+
+
+<div class="viewcode-block" id="convert_units">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.unit_conversion.convert_units">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_units</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">unit0</span><span class="o">=</span><span class="s1">&#39;au&#39;</span><span class="p">,</span> <span class="n">unit1</span><span class="o">=</span><span class="s1">&#39;fs&#39;</span><span class="p">):</span>
+    <span class="n">prop</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="n">find_properties</span><span class="p">(</span><span class="n">unit0</span><span class="p">,</span> <span class="n">unit1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">prop</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">convert_same_units</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">index</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">convert_different_units</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="convert_other_property">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.unit_conversion.convert_other_property">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">convert_other_property</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">unit0</span><span class="o">=</span><span class="s1">&#39;au&#39;</span><span class="p">):</span>
+    <span class="n">prop</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="n">find_properties</span><span class="p">(</span><span class="n">unit0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">prop</span><span class="p">,</span> <span class="n">index</span> <span class="o">=</span> <span class="n">prop</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">properties</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span>
+
+    <span class="n">value1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">properties</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">properties</span><span class="p">):</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="n">Idx</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="n">i</span><span class="p">:</span>
+            <span class="n">value1</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_same_units</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">i</span><span class="p">:</span>
+            <span class="n">value1</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_different_units</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="n">prop</span><span class="p">,</span> <span class="n">p</span><span class="p">],</span> <span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="n">k</span><span class="p">])</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="n">value1</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">Idx_name</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">end</span><span class="o">=</span><span class="s1">&#39;  &#39;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value1</span></div>
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">value0</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">unit0</span><span class="p">,</span> <span class="n">unit1</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">value1</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">value0</span><span class="p">,</span> <span class="n">unit0</span><span class="p">,</span> <span class="n">unit1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">value0</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">unit0</span><span class="o">+</span><span class="s1">&#39; = &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">value1</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; &#39;</span><span class="o">+</span><span class="n">unit1</span><span class="p">)</span>
+
+    <span class="c1">#convert_other_property(value0, unit0)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

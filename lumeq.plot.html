@@ -1,0 +1,299 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>lumeq.plot package &mdash; lumeq  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lumeq.polariton package" href="lumeq.polariton.html" />
+    <link rel="prev" title="lumeq.opt package" href="lumeq.opt.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            lumeq
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="lumeq.html">lumeq package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="lumeq.dynamics.html">lumeq.dynamics package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.embedding.html">lumeq.embedding package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.opt.html">lumeq.opt package</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">lumeq.plot package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.plot.plot_iteration">lumeq.plot.plot_iteration module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.plot.plot_orbital_property">lumeq.plot.plot_orbital_property module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.plot_orbital_property.plot_orbital_property"><code class="docutils literal notranslate"><span class="pre">plot_orbital_property()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.plot.plot_wave_energy_temperature">lumeq.plot.plot_wave_energy_temperature module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.plot_wave_energy_temperature.plot_wave_energy_frequency"><code class="docutils literal notranslate"><span class="pre">plot_wave_energy_frequency()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.plot.utils">lumeq.plot.utils module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.utils.add_colorbar_map"><code class="docutils literal notranslate"><span class="pre">add_colorbar_map()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.utils.broadening"><code class="docutils literal notranslate"><span class="pre">broadening()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.utils.brokenaxes"><code class="docutils literal notranslate"><span class="pre">brokenaxes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.utils.fit_val"><code class="docutils literal notranslate"><span class="pre">fit_val()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.utils.get_kwargs"><code class="docutils literal notranslate"><span class="pre">get_kwargs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.utils.gradient_color_line"><code class="docutils literal notranslate"><span class="pre">gradient_color_line()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.utils.make_line_segments"><code class="docutils literal notranslate"><span class="pre">make_line_segments()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.plot.vibrational_spectra">lumeq.plot.vibrational_spectra module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.vibrational_spectra.autocorrelation"><code class="docutils literal notranslate"><span class="pre">autocorrelation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.vibrational_spectra.cal_spectra"><code class="docutils literal notranslate"><span class="pre">cal_spectra()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.vibrational_spectra.fft_acf"><code class="docutils literal notranslate"><span class="pre">fft_acf()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.vibrational_spectra.get_dipole_dev"><code class="docutils literal notranslate"><span class="pre">get_dipole_dev()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.vibrational_spectra.infrared"><code class="docutils literal notranslate"><span class="pre">infrared()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.vibrational_spectra.plot_spectra"><code class="docutils literal notranslate"><span class="pre">plot_spectra()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.vibrational_spectra.smooth"><code class="docutils literal notranslate"><span class="pre">smooth()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-lumeq.plot">Module contents</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#lumeq.plot.get_plot_colors"><code class="docutils literal notranslate"><span class="pre">get_plot_colors()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.polariton.html">lumeq.polariton package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.property.html">lumeq.property package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.spins.html">lumeq.spins package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lumeq.utils.html">lumeq.utils package</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lumeq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="lumeq.html">lumeq package</a></li>
+      <li class="breadcrumb-item active">lumeq.plot package</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/Zheng-Pei-c/lumeq/edit/main/docs/lumeq.plot.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="lumeq-plot-package">
+<h1>lumeq.plot package<a class="headerlink" href="#lumeq-plot-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-lumeq.plot.plot_iteration">
+<span id="lumeq-plot-plot-iteration-module"></span><h2>lumeq.plot.plot_iteration module<a class="headerlink" href="#module-lumeq.plot.plot_iteration" title="Link to this heading"></a></h2>
+</section>
+<section id="module-lumeq.plot.plot_orbital_property">
+<span id="lumeq-plot-plot-orbital-property-module"></span><h2>lumeq.plot.plot_orbital_property module<a class="headerlink" href="#module-lumeq.plot.plot_orbital_property" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.plot_orbital_property.plot_orbital_property">
+<span class="sig-name descname"><span class="pre">plot_orbital_property</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orbital_property</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/plot_orbital_property.html#plot_orbital_property"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.plot_orbital_property.plot_orbital_property" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-lumeq.plot.plot_wave_energy_temperature">
+<span id="lumeq-plot-plot-wave-energy-temperature-module"></span><h2>lumeq.plot.plot_wave_energy_temperature module<a class="headerlink" href="#module-lumeq.plot.plot_wave_energy_temperature" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.plot_wave_energy_temperature.plot_wave_energy_frequency">
+<span class="sig-name descname"><span class="pre">plot_wave_energy_frequency</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/plot_wave_energy_temperature.html#plot_wave_energy_frequency"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.plot_wave_energy_temperature.plot_wave_energy_frequency" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-lumeq.plot.utils">
+<span id="lumeq-plot-utils-module"></span><h2>lumeq.plot.utils module<a class="headerlink" href="#module-lumeq.plot.utils" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.utils.add_colorbar_map">
+<span class="sig-name descname"><span class="pre">add_colorbar_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'royalblue'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'red'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nslice</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'right'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/utils.html#add_colorbar_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.utils.add_colorbar_map" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.utils.broadening">
+<span class="sig-name descname"><span class="pre">broadening</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heighs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0005</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">margin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gaussian'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">npoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xrange</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/utils.html#broadening"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.utils.broadening" title="Link to this definition"></a></dt>
+<dd><p>Generate broadened spectrum from stick spectrum.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>centers</strong> (<em>array_like</em>) – Positions of the stick spectrum peaks.</p></li>
+<li><p><strong>heights</strong> (<em>array_like</em>) – Heights of the stick spectrum peaks.</p></li>
+<li><p><strong>width</strong> (<em>float</em><em>, </em><em>optional</em>) – Broadening width parameter sigma. Default is 0.0005.</p></li>
+<li><p><strong>margin</strong> (<em>float</em><em>, </em><em>list</em><em> or </em><em>tuple</em><em>, </em><em>optional</em>) – Extra margin added to the min and max of centers for x-axis range. Default is 0.05.</p></li>
+<li><p><strong>method</strong> (<em>str</em><em>, </em><em>optional</em>) – Broadening method. Options are ‘lorentzian’, ‘gaussian’, and ‘voigt’. Default is ‘gaussian’.</p></li>
+<li><p><strong>npoints</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of points in the output spectrum. Default is 1001.</p></li>
+<li><p><strong>xrange</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Tuple specifying the x-axis range (min, max). If None, it is determined from centers and margin.</p></li>
+<li><p><strong>gamma</strong> (<em>float</em><em>, </em><em>optional</em>) – Lorentzian width parameter. Only used if method is ‘voigt’.</p></li>
+<li><p><strong>gamma_table</strong> (<em>array_like</em><em>, </em><em>optional</em>) – Table of gamma values for each peak. Only used if method is ‘voigt’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>x-axis values of the broadened spectrum.
+y (numpy.ndarray): y-axis values of the broadened spectrum.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>x (numpy.ndarray)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.utils.brokenaxes">
+<span class="sig-name descname"><span class="pre">brokenaxes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ylims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[1.0,</span> <span class="pre">1.0]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/utils.html#brokenaxes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.utils.brokenaxes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.utils.fit_val">
+<span class="sig-name descname"><span class="pre">fit_val</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">positions</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">heighs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">broaden</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/utils.html#fit_val"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.utils.fit_val" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.utils.get_kwargs">
+<span class="sig-name descname"><span class="pre">get_kwargs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">marker</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/utils.html#get_kwargs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.utils.get_kwargs" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.utils.gradient_color_line">
+<span class="sig-name descname"><span class="pre">gradient_color_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vmax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/utils.html#gradient_color_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.utils.gradient_color_line" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.utils.make_line_segments">
+<span class="sig-name descname"><span class="pre">make_line_segments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/utils.html#make_line_segments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.utils.make_line_segments" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-lumeq.plot.vibrational_spectra">
+<span id="lumeq-plot-vibrational-spectra-module"></span><h2>lumeq.plot.vibrational_spectra module<a class="headerlink" href="#module-lumeq.plot.vibrational_spectra" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.vibrational_spectra.autocorrelation">
+<span class="sig-name descname"><span class="pre">autocorrelation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gaussian'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">domain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'freq'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/vibrational_spectra.html#autocorrelation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.vibrational_spectra.autocorrelation" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.vibrational_spectra.cal_spectra">
+<span class="sig-name descname"><span class="pre">cal_spectra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gaussian'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'au'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smoothing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/vibrational_spectra.html#cal_spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.vibrational_spectra.cal_spectra" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.vibrational_spectra.fft_acf">
+<span class="sig-name descname"><span class="pre">fft_acf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arrays</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'au'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/vibrational_spectra.html#fft_acf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.vibrational_spectra.fft_acf" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.vibrational_spectra.get_dipole_dev">
+<span class="sig-name descname"><span class="pre">get_dipole_dev</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hessobj</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/vibrational_spectra.html#get_dipole_dev"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.vibrational_spectra.get_dipole_dev" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.vibrational_spectra.infrared">
+<span class="sig-name descname"><span class="pre">infrared</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dip_dev</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normal_mode</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/vibrational_spectra.html#infrared"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.vibrational_spectra.infrared" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.vibrational_spectra.plot_spectra">
+<span class="sig-name descname"><span class="pre">plot_spectra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">peak_centers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">peak_intens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">broaden</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/vibrational_spectra.html#plot_spectra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.vibrational_spectra.plot_spectra" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.vibrational_spectra.smooth">
+<span class="sig-name descname"><span class="pre">smooth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hanning'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_len</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">11</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot/vibrational_spectra.html#smooth"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.vibrational_spectra.smooth" title="Link to this definition"></a></dt>
+<dd><p>window: flat, hanning, hamming, bartlett, blackman</p>
+</dd></dl>
+
+</section>
+<section id="module-lumeq.plot">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-lumeq.plot" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="lumeq.plot.get_plot_colors">
+<span class="sig-name descname"><span class="pre">get_plot_colors</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lumeq/plot.html#get_plot_colors"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lumeq.plot.get_plot_colors" title="Link to this definition"></a></dt>
+<dd><p>Generate a list of distinct colors using matplotlib.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>n</strong> (<em>int</em>) – Number of colors to generate.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Color strings.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="lumeq.opt.html" class="btn btn-neutral float-left" title="lumeq.opt package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lumeq.polariton.html" class="btn btn-neutral float-right" title="lumeq.polariton package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Zheng Pei.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

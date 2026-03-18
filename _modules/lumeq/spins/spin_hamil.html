@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.spins.spin_hamil &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.spins.spin_hamil</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.spins</span><span class="w"> </span><span class="kn">import</span> <span class="n">qt</span> <span class="c1"># qutip</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">print_matrix</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.plot</span><span class="w"> </span><span class="kn">import</span> <span class="n">plt</span>
+
+<span class="c1"># use ladder operators if possible</span>
+<span class="c1"># because sigma_y is complex matrix</span>
+<span class="n">_spin_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;+&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="get_spin">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.spin_hamil.get_spin">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_spin</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mf">.5</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    spin matrices from qutip package</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># x takes 0, x, y, z, +, -</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_spin_names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;spin matrix variable should be one of {0, x, y, z, +, -}!&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">x</span><span class="o">==</span><span class="s1">&#39;0&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">qt</span><span class="o">.</span><span class="n">qeye</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span> <span class="c1"># alas to identity()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># sigmax(/y/z) function is specific for spin-1/2</span>
+        <span class="c1"># but gives Pauli matrices, i.e. without .5 factor</span>
+        <span class="c1">#getattr(qt, &#39;sigma&#39;+x)()</span>
+        <span class="k">return</span> <span class="n">qt</span><span class="o">.</span><span class="n">jmat</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_spin_mat">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.spin_hamil.get_spin_mat">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_spin_mat</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mf">.5</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    reload get_spin() but return numpy matrix by qutip full() function</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># x takes 0, x, y, z, +, -</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_spin_names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;spin matrix variable should be one of {0, x, y, z, +, -}!&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">x</span><span class="o">==</span><span class="s1">&#39;0&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">qt</span><span class="o">.</span><span class="n">qeye</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">full</span><span class="p">()</span> <span class="c1"># alas to identity()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">qt</span><span class="o">.</span><span class="n">jmat</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">full</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="get_spins">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.spin_hamil.get_spins">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_spins</span><span class="p">(</span><span class="n">xs</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">xs</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="n">_spin_names</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">xs</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+    <span class="n">sigma</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">np_matrix</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">:</span>
+            <span class="n">sigma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_spin_mat</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">:</span>
+            <span class="n">sigma</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">get_spin</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">j</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">sigma</span></div>
+
+
+
+<div class="viewcode-block" id="get_prod_spin_list">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.spin_hamil.get_prod_spin_list">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_prod_spin_list</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">xs</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Build spin operators acting on each site in the full Hilbert space.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        This constructs the actual ``sigma_{i,x}`` operators by looping over</span>
+<span class="sd">        the ``n`` spins, placing the requested spin matrix on site ``i`` and</span>
+<span class="sd">        identity operators on all other sites. The returned ``n * d`` matrices</span>
+<span class="sd">        form Hilbert-space operators or a basis in the full product space.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sigma</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># use qutip type here</span>
+
+    <span class="n">spin_list</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">op_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">qt</span><span class="o">.</span><span class="n">qeye</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">j</span><span class="o">+</span><span class="mi">1</span><span class="p">))]</span> <span class="o">*</span> <span class="n">n</span>
+        <span class="n">_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sigma</span><span class="p">:</span>
+            <span class="n">op_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">s</span>
+            <span class="n">_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">op_list</span><span class="p">))</span>
+        <span class="n">spin_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">_list</span>
+
+    <span class="k">if</span> <span class="n">np_matrix</span><span class="p">:</span> <span class="c1"># get numpy matrices</span>
+        <span class="c1"># naively loopover</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">spins</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">spin_list</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">s</span><span class="p">,</span> <span class="n">spin</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">spins</span><span class="p">):</span>
+                <span class="n">spin_list</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">s</span><span class="p">]</span> <span class="o">=</span> <span class="n">spin</span><span class="o">.</span><span class="n">full</span><span class="p">()</span>
+        <span class="n">spin_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">spin_list</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">spin_list</span></div>
+
+
+
+<div class="viewcode-block" id="hamil_heisenberg_1d">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.spin_hamil.hamil_heisenberg_1d">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">hamil_heisenberg_1d</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">hz</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="s1">&#39;open&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Build the 1D Heisenberg Hamiltonian in the full Hilbert space.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        The Hamiltonian is</span>
+
+<span class="sd">        ``H = sum_i (j_{i,x} sigma_{i,x} sigma_{i+1,x}</span>
+<span class="sd">        + j_{i,y} sigma_{i,y} sigma_{i+1,y}</span>
+<span class="sd">        + j_{i,z} sigma_{i,z} sigma_{i+1,z})</span>
+<span class="sd">        + sum_i h_{z,i} sigma_{i,z}``.</span>
+
+<span class="sd">        When ``j_x = j_y``, the transverse part can be rewritten as</span>
+<span class="sd">        ``sigma_x sigma_x + sigma_y sigma_y</span>
+<span class="sd">        = 0.5 * (sigma_p sigma_m + sigma_m sigma_p)``,</span>
+<span class="sd">        which makes it convenient to use ladder operators and keep the matrices</span>
+<span class="sd">        real.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">si</span><span class="p">,</span> <span class="n">sx</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">sz</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="n">xs</span><span class="o">=</span><span class="s1">&#39;0xyz&#39;</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># use qutip</span>
+    <span class="n">sigma</span> <span class="o">=</span> <span class="p">[</span><span class="n">sx</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">sz</span><span class="p">]</span> <span class="c1"># sx variable would be damaged in the later loops</span>
+
+    <span class="c1"># generalize the parameters to arrays</span>
+    <span class="c1"># built-in array is faster--so am I told</span>
+    <span class="n">nsize</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">boundary</span><span class="o">==</span><span class="s1">&#39;open&#39;</span> <span class="k">else</span> <span class="n">n</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span> <span class="c1"># same paremeters</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="p">[[</span><span class="n">j</span><span class="p">,</span><span class="n">j</span><span class="p">,</span><span class="n">j</span><span class="p">]]</span> <span class="o">*</span> <span class="n">nsize</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">j</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="c1"># given three numbers for x, y, z directions</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">nsize</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hz</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">hz</span> <span class="o">=</span> <span class="p">[</span><span class="n">hz</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+
+    <span class="c1"># build the product state on-the-fly by qutip.tensor() function</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">sx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sigma</span><span class="p">):</span> <span class="c1"># sum over x,y,z directions</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">H</span> <span class="o">+=</span> <span class="n">j</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">x</span><span class="p">]</span> <span class="o">*</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="n">i</span> <span class="o">+</span> <span class="p">[</span><span class="n">sx</span><span class="p">,</span> <span class="n">sx</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">boundary</span> <span class="o">==</span> <span class="s1">&#39;periodic&#39;</span><span class="p">:</span> <span class="c1"># connect the two end points</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">sx</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sigma</span><span class="p">):</span> <span class="c1"># sum over x,y,z directions</span>
+            <span class="n">H</span> <span class="o">+=</span> <span class="n">j</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">x</span><span class="p">]</span> <span class="o">*</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">sx</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">sx</span><span class="p">]])</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">H</span> <span class="o">+=</span> <span class="n">hz</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="n">i</span> <span class="o">+</span> <span class="p">[</span><span class="n">sz</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">np_matrix</span><span class="p">:</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">full</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">H</span></div>
+
+
+<span class="n">hamil_xyz_1d</span> <span class="o">=</span> <span class="n">hamil_heisenberg_1d</span>
+
+
+<div class="viewcode-block" id="hamil_zeeman_1d">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.spin_hamil.hamil_zeeman_1d">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">hamil_zeeman_1d</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">hz</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    separate the magnetic field part for efficiency</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">si</span><span class="p">,</span> <span class="n">sz</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="n">xs</span><span class="o">=</span><span class="s1">&#39;0z&#39;</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># use qutip</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hz</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">hz</span> <span class="o">=</span> <span class="p">[</span><span class="n">hz</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+
+    <span class="n">H</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">H</span> <span class="o">+=</span> <span class="n">hz</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="n">i</span> <span class="o">+</span> <span class="p">[</span><span class="n">sz</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">np_matrix</span><span class="p">:</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">full</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">H</span></div>
+
+
+
+<div class="viewcode-block" id="hamil_x_1d">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.spin_hamil.hamil_x_1d">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">hamil_x_1d</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span>
+               <span class="n">boundary</span><span class="o">=</span><span class="s1">&#39;open&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    separate one direction for efficiency</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">si</span><span class="p">,</span> <span class="n">sx</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="n">xs</span><span class="o">=</span><span class="s1">&#39;0&#39;</span><span class="o">+</span><span class="n">direction</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># use qutip</span>
+
+    <span class="n">nsize</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">boundary</span><span class="o">==</span><span class="s1">&#39;open&#39;</span> <span class="k">else</span> <span class="n">n</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">nsize</span>
+
+    <span class="n">H</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">H</span> <span class="o">+=</span> <span class="n">j</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="n">i</span> <span class="o">+</span> <span class="p">[</span><span class="n">sx</span><span class="p">,</span> <span class="n">sx</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">boundary</span> <span class="o">==</span> <span class="s1">&#39;periodic&#39;</span><span class="p">:</span>
+        <span class="n">H</span> <span class="o">+=</span> <span class="n">j</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">x</span><span class="p">]</span> <span class="o">*</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">sx</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">sx</span><span class="p">]])</span>
+
+    <span class="k">if</span> <span class="n">np_matrix</span><span class="p">:</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">full</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">H</span></div>
+
+
+
+
+<div class="viewcode-block" id="hamil_xxz_1d">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.spin_hamil.hamil_xxz_1d">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">hamil_xxz_1d</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="n">hz</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">boundary</span><span class="o">=</span><span class="s1">&#39;open&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    j * (xx + yy + zz * delta)</span>
+<span class="sd">    reimplement for efficiency using ladder operator by defalut</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">si</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">sm</span><span class="p">,</span> <span class="n">sz</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="n">xs</span><span class="o">=</span><span class="s1">&#39;0+-z&#39;</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="c1"># use qutip</span>
+        <span class="c1"># scale parameters due to ladder operators</span>
+        <span class="n">j</span> <span class="o">*=</span> <span class="mf">.5</span>
+        <span class="n">delta</span> <span class="o">*=</span> <span class="mf">2.</span>
+
+    <span class="n">nsize</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">boundary</span><span class="o">==</span><span class="s1">&#39;open&#39;</span> <span class="k">else</span> <span class="n">n</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">j</span> <span class="o">=</span> <span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">nsize</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">delta</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="p">[</span><span class="n">delta</span><span class="p">]</span> <span class="o">*</span> <span class="n">nsize</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hz</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+        <span class="n">hz</span> <span class="o">=</span> <span class="p">[</span><span class="n">hz</span><span class="p">]</span> <span class="o">*</span> <span class="n">n</span>
+    <span class="c1">#return hamil_xyz_1d(n, j, hz, np_matrix, spin_j, boundary)</span>
+
+    <span class="n">H</span> <span class="o">=</span> <span class="mf">0.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">H</span> <span class="o">+=</span> <span class="n">j</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="n">i</span> <span class="o">+</span> <span class="p">[</span><span class="n">sp</span><span class="p">,</span> <span class="n">sm</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+                   <span class="o">+</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="n">i</span> <span class="o">+</span> <span class="p">[</span><span class="n">sm</span><span class="p">,</span> <span class="n">sp</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span>
+                   <span class="o">+</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="n">i</span> <span class="o">+</span> <span class="p">[</span><span class="n">sz</span><span class="p">,</span> <span class="n">sz</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span> <span class="o">*</span> <span class="n">delta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                   <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">boundary</span> <span class="o">==</span> <span class="s1">&#39;periodic&#39;</span><span class="p">:</span>
+        <span class="n">H</span> <span class="o">+=</span> <span class="n">j</span><span class="p">[</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">sp</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">sm</span><span class="p">]])</span>
+                     <span class="o">+</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">sm</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">sp</span><span class="p">]])</span>
+                     <span class="o">+</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">sz</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">sz</span><span class="p">]])</span> <span class="o">*</span> <span class="n">delta</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                     <span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">H</span> <span class="o">+=</span> <span class="n">hz</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="n">i</span> <span class="o">+</span> <span class="p">[</span><span class="n">sz</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">np_matrix</span><span class="p">:</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">full</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">H</span></div>
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">7</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="o">-</span><span class="mf">3.</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="mf">.5</span>
+    <span class="n">hz</span> <span class="o">=</span> <span class="o">-</span><span class="mf">2.</span>
+
+    <span class="n">si</span><span class="p">,</span> <span class="n">sx</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">sz</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="s1">&#39;0xyz&#39;</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">spin_list</span> <span class="o">=</span> <span class="n">get_prod_spin_list</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+    <span class="n">H</span> <span class="o">=</span> <span class="n">hamil_xxz_1d</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="n">hz</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">eigenvalues</span> <span class="o">=</span> <span class="n">H</span><span class="o">.</span><span class="n">eigenenergies</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+        <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;eigenvalues:&#39;</span><span class="p">,</span> <span class="n">eigenvalues</span><span class="p">)</span>
+
+
+    <span class="c1"># use qutip to find steady state</span>
+    <span class="c1"># requires collapse operators, dephasing on the edges</span>
+    <span class="n">dephasing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">.1</span><span class="p">)</span>
+
+    <span class="c1"># define collapse operators (e.g., dissipation at the edges)</span>
+    <span class="n">c_ops</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># add a local dephasing channel at site 0</span>
+    <span class="n">c_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dephasing</span> <span class="o">*</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">sz</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+    <span class="c1"># adding a local dephasing channel at site N-1</span>
+    <span class="n">c_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dephasing</span> <span class="o">*</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="n">sz</span><span class="p">]))</span>
+
+    <span class="c1"># find the steady state</span>
+    <span class="n">rho_ss</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">steadystate</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">c_ops</span><span class="p">)</span>
+
+    <span class="c1"># calculate observables in the steady state</span>
+    <span class="n">magnetization_z</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">sz</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">si</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">rho_ss</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Steady-state magnetization at site 0:&#39;</span><span class="p">,</span> <span class="n">magnetization_z</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

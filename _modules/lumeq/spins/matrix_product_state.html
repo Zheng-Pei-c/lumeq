@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.spins.matrix_product_state &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.spins.matrix_product_state</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">sys</span><span class="p">,</span> <span class="n">np</span><span class="p">,</span> <span class="n">itertools</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">print_matrix</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.spins</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_spins</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">monitor_performance</span>
+
+<div class="viewcode-block" id="mps_canonical">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.matrix_product_state.mps_canonical">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mps_canonical</span><span class="p">(</span><span class="n">ndims</span><span class="p">,</span> <span class="n">nsite</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Create a random MPS in canonical form.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        ndims (array-like): Leg dimensions ``[nd, ns, nd]`` in the order</span>
+<span class="sd">            ``[left, bottom, right]``. The first and third values should be the same.</span>
+<span class="sd">        nsite (int or tuple): Number of sites in the system.</span>
+<span class="sd">        seed (int, optional): Random seed for reproducibility.</span>
+<span class="sd">        normalize (str or int, optional): Normalization mode. Supported values are</span>
+<span class="sd">            ``1`` or ``&#39;left&#39;``, ``2`` or ``&#39;right&#39;``, and ``&#39;both&#39;``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Generated matrix product state (MPS).</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        The bra MPS uses leg order ``[left, bottom, right]``. The ket MPS is</span>
+<span class="sd">        its transpose with legs ordered as ``[right, top, left]``. The left</span>
+<span class="sd">        and right legs are virtual bonds to be contracted with adjacent MPS</span>
+<span class="sd">        tensors, while the bottom or top legs are physical bonds to be</span>
+<span class="sd">        contracted with the MPO.</span>
+
+<span class="sd">        .. code-block:: text</span>
+
+<span class="sd">            ---1---Mt---3---</span>
+<span class="sd">                   |</span>
+<span class="sd">                   2</span>
+<span class="sd">                   |</span>
+<span class="sd">                                         |</span>
+<span class="sd">                                         2</span>
+<span class="sd">                                         |</span>
+<span class="sd">                                  ---3---Mb---1---</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ntot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">nsite</span><span class="p">)</span>
+
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="n">mps</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># the legs of MPS at end sites have virtual bond dimension of 1</span>
+    <span class="c1"># to be contracted with left/right zippers</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">([</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ndims</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]))</span> <span class="c1"># [1,ns,nd]</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ntot</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">mps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">ndims</span><span class="p">))</span> <span class="c1"># [nd,ns,nd]</span>
+    <span class="n">mps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">([</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ndims</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span><span class="o">+</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span> <span class="c1"># [nd,ns,1]</span>
+
+    <span class="c1"># normalization would reduce the matrix dimensions (effective virtual bonds)</span>
+    <span class="k">if</span> <span class="n">normalize</span> <span class="ow">in</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">}:</span>
+        <span class="n">mps</span> <span class="o">=</span> <span class="n">mps_canonical_left</span><span class="p">(</span><span class="n">mps</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">normalize</span> <span class="ow">in</span> <span class="p">{</span><span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">}:</span>
+        <span class="n">mps</span> <span class="o">=</span> <span class="n">mps_canonical_right</span><span class="p">(</span><span class="n">mps</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;mps shape:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">mps</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">mps</span></div>
+
+
+
+<div class="viewcode-block" id="mps_canonical_left">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.matrix_product_state.mps_canonical_left">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mps_canonical_left</span><span class="p">(</span><span class="n">mps</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Normalize MPS matrices from the left</span>
+<span class="sd">    treat the first two dimensions as a vector to reduce the right leg numbers</span>
+<span class="sd">    M1 * M2 = U*s*V^T * M2 = U * (s*V^T*M2)</span>
+<span class="sd">    such that M1 is replaced by a smaller U</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ntot</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mps</span><span class="p">)</span>
+
+    <span class="c1"># scan from the left</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ntot</span><span class="p">):</span>
+        <span class="n">ndims</span> <span class="o">=</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">ndims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ndims</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span><span class="o">+</span><span class="p">[</span><span class="n">u</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">&lt;</span> <span class="n">ntot</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="c1"># update the next at right</span>
+            <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ij,j...-&gt;i...&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span><span class="p">,</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span> <span class="c1"># check normalization</span>
+        <span class="k">pass</span>
+
+    <span class="k">return</span> <span class="n">mps</span></div>
+
+
+
+<div class="viewcode-block" id="mps_canonical_right">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.matrix_product_state.mps_canonical_right">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mps_canonical_right</span><span class="p">(</span><span class="n">mps</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Normalize MPS matrices from the right</span>
+<span class="sd">    treat the last two dimensions as a vector to reduce the left leg numbers</span>
+<span class="sd">    M1 * M2 = M1 * U*s*V^T = (M1*U*s) * V^T</span>
+<span class="sd">    such that M2 is replaced by a smaller V^T</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ntot</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mps</span><span class="p">)</span>
+
+    <span class="c1"># scan from right</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ntot</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">ndims</span> <span class="o">=</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ndims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vt</span><span class="p">,</span> <span class="p">[</span><span class="n">vt</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">+</span><span class="p">[</span><span class="n">n</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ndims</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="c1"># update the next at left</span>
+            <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...k,kl,l-&gt;...l&#39;</span><span class="p">,</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mps</span></div>
+
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">spin models from</span>
+<span class="sd">https://doi.org/10.1140/epjb/s10051-023-00575-2</span>
+<span class="sd">https://github.com/GCatarina/DMRG_MPS_didactic/blob/main/DMRG-MPS_implementation.ipynb</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">the last two indices (top and bottom) of MPOs are physical bounds</span>
+<span class="sd">in the implementation, whose dimensions depend on spin multiplicity</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mpo_xx_1d</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Construct one-site matrix product operator MPO hamiltonian of XY spin model</span>
+<span class="sd">    coefficients are put at the last row</span>
+<span class="sd">    H_{xy} = 1/2 j sum_{i} (sigma_{i,+} sigma_{i+1,-} + sigma_{i,-} sigma_{i+1,+})</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="s1">&#39;0+-&#39;</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">si</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">sm</span> <span class="o">=</span> <span class="n">sigma</span>
+
+    <span class="c1"># in the order of [left, right, top, bottom]</span>
+    <span class="c1"># the first two indices are used to contract</span>
+    <span class="c1"># the last two dimensions are the Pauli matrix indices</span>
+    <span class="n">Hl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">spin_j</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="nb">int</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">spin_j</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">si</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sm</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sp</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">.5</span><span class="o">*</span><span class="n">j</span><span class="p">)</span><span class="o">*</span><span class="n">sp</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">.5</span><span class="o">*</span><span class="n">j</span><span class="p">)</span><span class="o">*</span><span class="n">sm</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">si</span>
+
+    <span class="k">return</span> <span class="n">Hl</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mpo_heisenberg_1d</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">hz</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Construct one-site matrix product operator MPO hamiltonian of Heisenberg model</span>
+<span class="sd">    H_{Heis} = sum_{i} ( j_{x} * sigma_{i,x} sigma_{l+1,x}</span>
+<span class="sd">                       + j_{y} * sigma_{i,y} sigma_{i+1,y}</span>
+<span class="sd">                       + j_{z} * sigma_{i,z} sigma_{i+1,z})</span>
+<span class="sd">                  + sum_{i} hz * sigma_{i,z}</span>
+<span class="sd">    the indices are in the order of [left, right, top, bottom]</span>
+<span class="sd">    the first two indices, left and right, are used to contract neighboring MPO</span>
+<span class="sd">    the last two dimensions are the spin matrix indices</span>
+<span class="sd">           |</span>
+<span class="sd">           3</span>
+<span class="sd">           |</span>
+<span class="sd">    ---1---O---2---</span>
+<span class="sd">           |</span>
+<span class="sd">           4</span>
+<span class="sd">           |</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="s1">&#39;0xyz&#39;</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">si</span><span class="p">,</span> <span class="n">sx</span><span class="p">,</span> <span class="n">sy</span><span class="p">,</span> <span class="n">sz</span> <span class="o">=</span> <span class="n">sigma</span>
+
+    <span class="n">Hl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">spin_j</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="nb">int</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">spin_j</span><span class="o">+</span><span class="mi">1</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">sy</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">si</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sx</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sy</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sz</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">hz</span><span class="o">*</span><span class="n">sz</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">sx</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">sy</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">sz</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">si</span>
+    <span class="k">return</span> <span class="n">Hl</span>
+
+<span class="n">_mpo_xyz_1d</span> <span class="o">=</span> <span class="n">_mpo_heisenberg_1d</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_mpo_xxz_1d</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">hz</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Contruct one-site matrix product operator MPO hamiltonian of XXZ model</span>
+<span class="sd">    similar to XYZ Heisenberg model</span>
+<span class="sd">    but use ladder operator to have real matrix</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="s1">&#39;0+-z&#39;</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">si</span><span class="p">,</span> <span class="n">sp</span><span class="p">,</span> <span class="n">sm</span><span class="p">,</span> <span class="n">sz</span> <span class="o">=</span> <span class="n">sigma</span>
+
+    <span class="c1"># in the order of [left, right, top, bottom]</span>
+    <span class="c1"># the first two indices are used to contract</span>
+    <span class="c1"># the last two dimensions are the Pauli matrix indices</span>
+    <span class="n">Hl</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">5</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="nb">int</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">spin_j</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span><span class="nb">int</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">spin_j</span><span class="o">+</span><span class="mi">1</span><span class="p">)))</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">si</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sp</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sm</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">sz</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">hz</span><span class="o">*</span><span class="n">sz</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">.5</span><span class="o">*</span><span class="n">j</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="n">sm</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">.5</span><span class="o">*</span><span class="n">j</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">*</span><span class="n">sp</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">sz</span>
+    <span class="n">Hl</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">si</span>
+    <span class="k">return</span> <span class="n">Hl</span>
+
+
+<div class="viewcode-block" id="mpo_hamil_uniform">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.matrix_product_state.mpo_hamil_uniform">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mpo_hamil_uniform</span><span class="p">(</span><span class="n">nsite</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Hl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span>
+                      <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Construct uniform MPO Hamiltonian at all the site</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: MPO Hamiltonian.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># hamiltonian in MPO representation</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">Hl</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;XX&#39;</span><span class="p">:</span>
+            <span class="n">Hl</span> <span class="o">=</span> <span class="n">_mpo_xx_1d</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;XXZ&#39;</span><span class="p">:</span>
+            <span class="n">Hl</span> <span class="o">=</span> <span class="n">_mpo_xxz_1d</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">hz</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">model</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;XYZ&#39;</span><span class="p">,</span> <span class="s1">&#39;heisenberg&#39;</span><span class="p">}:</span>
+            <span class="n">Hl</span> <span class="o">=</span> <span class="n">_mpo_xyz_1d</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">hz</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;local Hamiltonian is not defined&#39;</span><span class="p">)</span>
+
+    <span class="n">ntot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">nsite</span><span class="p">)</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="p">[</span><span class="n">Hl</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ntot</span><span class="p">)]</span>
+    <span class="c1"># apply boundaries</span>
+    <span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span> <span class="c1"># keep same n-dimension</span>
+    <span class="n">H</span><span class="p">[</span><span class="n">ntot</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">H</span><span class="p">[</span><span class="n">ntot</span><span class="o">-</span><span class="mi">1</span><span class="p">][:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># keep same n-dimension</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;MPO H shape:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">H</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">H</span></div>
+
+
+
+<div class="viewcode-block" id="mpo_hamil_disordered">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.matrix_product_state.mpo_hamil_disordered">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mpo_hamil_disordered</span><span class="p">(</span><span class="n">nsite</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">hz</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="mf">.5</span><span class="p">,</span>
+                         <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Construct MPO Hamiltonian at all the site with disordered parameters</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: MPO Hamiltonian.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="s1">&#39;0+-z&#39;</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">np_matrix</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">ntot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">nsite</span><span class="p">)</span>
+    <span class="n">H</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="n">ntot</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ntot</span><span class="p">):</span>
+        <span class="n">_j</span><span class="p">,</span> <span class="n">_hz</span> <span class="o">=</span> <span class="n">j</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hz</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="c1"># hamiltonian in MPO representation</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;XX&#39;</span><span class="p">:</span>
+            <span class="n">Hl</span> <span class="o">=</span> <span class="n">_mpo_xx_1d</span><span class="p">(</span><span class="n">_j</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">model</span> <span class="o">==</span> <span class="s1">&#39;XXZ&#39;</span><span class="p">:</span>
+            <span class="n">Hl</span> <span class="o">=</span> <span class="n">_mpo_xxz_1d</span><span class="p">(</span><span class="n">_j</span><span class="p">,</span> <span class="n">_hz</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">model</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;XYZ&#39;</span><span class="p">,</span> <span class="s1">&#39;heisenberg&#39;</span><span class="p">}:</span>
+            <span class="n">Hl</span> <span class="o">=</span> <span class="n">_mpo_xyz_1d</span><span class="p">(</span><span class="n">_j</span><span class="p">,</span> <span class="n">_hz</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;local Hamiltonian is not defined&#39;</span><span class="p">)</span>
+        <span class="n">H</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">Hl</span>
+
+    <span class="c1"># apply boundaries</span>
+    <span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">H</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span> <span class="c1"># keep same n-dimension</span>
+    <span class="n">H</span><span class="p">[</span><span class="n">ntot</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">H</span><span class="p">[</span><span class="n">ntot</span><span class="o">-</span><span class="mi">1</span><span class="p">][:,</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># keep same n-dimension</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;MPO H shape:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">H</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">H</span></div>
+
+
+
+<div class="viewcode-block" id="get_hamil_from_mpo">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.matrix_product_state.get_hamil_from_mpo">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_hamil_from_mpo</span><span class="p">(</span><span class="n">h_mpo</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the Hamiltonian in Hilbert space using the MPOs</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        h_mpo (list): MPO Hamiltonian.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: Actual Hamiltonian matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># check the MPO matrices from the mpo spin function</span>
+    <span class="c1"># by comparing to the brute-force hamiltonian matrix in Hilbert space</span>
+    <span class="n">ntot</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">h_mpo</span><span class="p">)</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            |         |</span>
+<span class="sd">            j         m</span>
+<span class="sd">            |         |</span>
+<span class="sd">    ---1---[T]---i---[T]---l---</span>
+<span class="sd">            |         |</span>
+<span class="sd">            k         n</span>
+<span class="sd">            |         |</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Taux</span> <span class="o">=</span> <span class="n">h_mpo</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># the left leg of the first matrix has dimension of 1</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">ntot</span><span class="p">):</span>
+        <span class="c1"># keep the top/bottom indices together</span>
+        <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijk,ilmn-&gt;ljmkn&#39;</span><span class="p">,</span> <span class="n">Taux</span><span class="p">,</span> <span class="n">h_mpo</span><span class="p">[</span><span class="n">l</span><span class="p">])</span>
+        <span class="n">ndims</span> <span class="o">=</span> <span class="n">Taux</span><span class="o">.</span><span class="n">shape</span> <span class="c1"># flexiable dimensions</span>
+        <span class="n">Taux</span> <span class="o">=</span> <span class="n">Taux</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ndims</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ndims</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">ndims</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">ndims</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">*</span><span class="n">ndims</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+    <span class="n">H</span> <span class="o">=</span> <span class="n">Taux</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># the last matrix right leg has dimension of 1</span>
+    <span class="k">return</span> <span class="n">H</span></div>
+
+
+
+<div class="viewcode-block" id="zipper_from_left">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.matrix_product_state.zipper_from_left">[docs]</a>
+<span class="nd">@monitor_performance</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">zipper_from_left</span><span class="p">(</span><span class="n">Mt</span><span class="p">,</span> <span class="n">O</span><span class="p">,</span> <span class="n">Mb</span><span class="p">,</span> <span class="n">Tl</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Contract one MPS/MPO site into the left zipper tensor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        Mt (numpy.ndarray): Bra-side MPS tensor.</span>
+<span class="sd">        O (numpy.ndarray): MPO tensor at the current site.</span>
+<span class="sd">        Mb (numpy.ndarray): Ket-side MPS tensor.</span>
+<span class="sd">        Tl (numpy.ndarray): Current left zipper tensor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: Updated left zipper tensor.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        ``Tl`` is ordered from bottom to top. The contraction attaches the bra</span>
+<span class="sd">        tensor Mt at top, MPO tensor O at middle,</span>
+<span class="sd">        and ket tensor Mb at bottom to the current left zipper:</span>
+
+<span class="sd">        .. code-block:: text</span>
+
+<span class="sd">                /---3---*q*---1---Mt---3-k--</span>
+<span class="sd">                |                 |</span>
+<span class="sd">                |                 2</span>
+<span class="sd">                |                 |</span>
+<span class="sd">                |                 *l</span>
+<span class="sd">                |                 |</span>
+<span class="sd">                |                 3              /---3-k--</span>
+<span class="sd">                |                 |              |</span>
+<span class="sd">                Tl--2---*p*---1---O----2-j-- =   Tf--2-j--</span>
+<span class="sd">                |                 |              |</span>
+<span class="sd">                |                 4              \---1-i--</span>
+<span class="sd">                |                 |</span>
+<span class="sd">                |                 *m</span>
+<span class="sd">                |                 |</span>
+<span class="sd">                |                 2</span>
+<span class="sd">                |                 |</span>
+<span class="sd">                \---1---*n*---3---Mb---1-i---</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># contract from bottom to top</span>
+    <span class="c1">#Taux = np.einsum(&#39;imn,npq,pjlm,qlk-&gt;ijk&#39;, Mb, Tl, O, Mt, optimize=True)</span>
+    <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;imn,npq-&gt;impq&#39;</span><span class="p">,</span> <span class="n">Mb</span><span class="p">,</span> <span class="n">Tl</span><span class="p">)</span>
+    <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;impq,pjlm-&gt;ijql&#39;</span><span class="p">,</span> <span class="n">Taux</span><span class="p">,</span> <span class="n">O</span><span class="p">)</span>
+    <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijql,qlk-&gt;ijk&#39;</span><span class="p">,</span> <span class="n">Taux</span><span class="p">,</span> <span class="n">Mt</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Taux</span></div>
+
+
+
+<div class="viewcode-block" id="zipper_from_right">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.matrix_product_state.zipper_from_right">[docs]</a>
+<span class="nd">@monitor_performance</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">zipper_from_right</span><span class="p">(</span><span class="n">Mt</span><span class="p">,</span> <span class="n">O</span><span class="p">,</span> <span class="n">Mb</span><span class="p">,</span> <span class="n">Tr</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Contract one MPS/MPO site into the right zipper tensor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        Mt (numpy.ndarray): Bra-side MPS tensor.</span>
+<span class="sd">        O (numpy.ndarray): MPO tensor at the current site.</span>
+<span class="sd">        Mb (numpy.ndarray): Ket-side MPS tensor.</span>
+<span class="sd">        Tr (numpy.ndarray): Current right zipper tensor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: Updated right zipper tensor.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        ``Tr`` is ordered from top to bottom. This is the right-to-left analog</span>
+<span class="sd">        of :func:`zipper_from_left`.</span>
+
+<span class="sd">        .. code-block:: text</span>
+
+<span class="sd">            --i-1---Mt---3---*q*---1---\</span>
+<span class="sd">                    |                  |</span>
+<span class="sd">                    2                  |</span>
+<span class="sd">                    |                  |</span>
+<span class="sd">                    *l                 |</span>
+<span class="sd">                    |                  |</span>
+<span class="sd">                    3                  |      --1-i--\</span>
+<span class="sd">                    |                  |             |</span>
+<span class="sd">            --j-1---O----2---*p*---2---Tr =   --2-j--Tf</span>
+<span class="sd">                    |                  |             |</span>
+<span class="sd">                    4                  |      --3-k--/</span>
+<span class="sd">                    |                  |</span>
+<span class="sd">                    *m                 |</span>
+<span class="sd">                    |                  |</span>
+<span class="sd">                    2                  |</span>
+<span class="sd">                    |                  |</span>
+<span class="sd">            --k-3---Mb---1---*n*---3---/</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># contract from top to bottom</span>
+    <span class="c1"># np.einsum(&#39;ilq,qpn,jplm,nmk-&gt;ijk&#39;, Mt, Tr, O, Mb, optimize=True)</span>
+    <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ilq,qpn-&gt;ilpn&#39;</span><span class="p">,</span> <span class="n">Mt</span><span class="p">,</span> <span class="n">Tr</span><span class="p">)</span>
+    <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ilpn,jplm-&gt;ijnm&#39;</span><span class="p">,</span> <span class="n">Taux</span><span class="p">,</span> <span class="n">O</span><span class="p">)</span>
+    <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijnm,nmk-&gt;ijk&#39;</span><span class="p">,</span> <span class="n">Taux</span><span class="p">,</span> <span class="n">Mb</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Taux</span></div>
+
+
+
+<div class="viewcode-block" id="dmrg_sweep">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.matrix_product_state.dmrg_sweep">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dmrg_sweep</span><span class="p">(</span><span class="n">h_mpo</span><span class="p">,</span> <span class="n">mps</span><span class="p">,</span> <span class="n">Tzip</span><span class="p">,</span> <span class="n">pick_eig</span><span class="o">=</span><span class="s1">&#39;SA&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Perform one two-way DMRG sweep over the MPS chain.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        h_mpo (list): MPO Hamiltonian of the system.</span>
+<span class="sd">        mps (list): Current MPS tensors.</span>
+<span class="sd">        Tzip (list): Zipper tensors used to contract the MPS with the MPO.</span>
+<span class="sd">        pick_eig (str): Eigenvalue selection mode passed to ``eigsh``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Site energies, updated MPS tensors, and updated zipper tensors.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        ``Tzip`` is supplied as the right zipper with indices ordered from top</span>
+<span class="sd">        to bottom so the routine can continue with a full left-to-right sweep</span>
+<span class="sd">        followed by a full right-to-left sweep. The zipper contraction pattern</span>
+<span class="sd">        for a local update is:</span>
+
+<span class="sd">        .. code-block:: text</span>
+
+<span class="sd">            |             |             |</span>
+<span class="sd">            3-l           3-m           1-n</span>
+<span class="sd">            |             |             |</span>
+<span class="sd">            T---2-*p*-1---O---2-*q*-2---T</span>
+<span class="sd">            |             |             |</span>
+<span class="sd">            1-i           4-j           3-k</span>
+<span class="sd">            |             |             |</span>
+
+<span class="sd">        The routine performs one full sweep:</span>
+
+<span class="sd">        1. left-to-right update of the local MPS tensors,</span>
+<span class="sd">        2. right-to-left update of the local MPS tensors,</span>
+<span class="sd">        3. zipper refresh at each site.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ntot</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">h_mpo</span><span class="p">)</span>
+    <span class="n">e_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># for Lanczos diagonalization</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse.linalg</span><span class="w"> </span><span class="kn">import</span> <span class="n">eigsh</span>
+
+    <span class="c1"># right sweep from left</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ntot</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        l+2 is used for the right because two more zippers at the ends</span>
+<span class="sd">        and the left-most is labeled by 0 rather than -1</span>
+<span class="sd">        otherwise one need l-1 and l+1 for the left and right zipper</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#Taux = np.einsum(&#39;ipl,p1mj,nqk-&gt;ijklmn&#39;, Tzip[l], h_mpo[l], Tzip[l+2], optimize=True)</span>
+        <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ipl,pqmj-&gt;ijlmq&#39;</span><span class="p">,</span> <span class="n">Tzip</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">h_mpo</span><span class="p">[</span><span class="n">l</span><span class="p">])</span>
+        <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijlmq,nqk-&gt;ijklmn&#39;</span><span class="p">,</span> <span class="n">Taux</span><span class="p">,</span> <span class="n">Tzip</span><span class="p">[</span><span class="n">l</span><span class="o">+</span><span class="mi">2</span><span class="p">])</span> <span class="c1"># bottom indices first</span>
+        <span class="n">ni</span><span class="p">,</span> <span class="n">nj</span><span class="p">,</span> <span class="n">nk</span> <span class="o">=</span> <span class="n">Taux</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">Taux</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ni</span><span class="o">*</span><span class="n">nj</span><span class="o">*</span><span class="n">nk</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># second index is for top MPS</span>
+
+        <span class="c1"># Lanczos diagonalize H to get the lowest energy state</span>
+        <span class="c1"># v0 is the initial guess</span>
+        <span class="c1"># which can be SA (smallest algebraic), SM (smallest magnitude)</span>
+        <span class="n">e</span><span class="p">,</span> <span class="n">vec</span> <span class="o">=</span> <span class="n">eigsh</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="n">pick_eig</span><span class="p">,</span> <span class="n">v0</span><span class="o">=</span><span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">])</span>
+        <span class="n">e_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># update MPS wavefunction at site l</span>
+        <span class="c1"># in the left-to-right sweep, the MPS has to be left-normalized</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ni</span><span class="o">*</span><span class="n">nj</span><span class="p">,</span> <span class="n">nk</span><span class="p">),</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ni</span><span class="p">,</span> <span class="n">nj</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">&lt;</span> <span class="n">ntot</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ij,jkl-&gt;ikl&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span><span class="p">,</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># update T zipper</span>
+        <span class="n">Tzip</span><span class="p">[</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">zipper_from_left</span><span class="p">(</span><span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">h_mpo</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Tzip</span><span class="p">[</span><span class="n">l</span><span class="p">])</span>
+
+    <span class="c1"># left sweep from right</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ntot</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="c1">#Taux = np.einsum(&#39;ipl,p1mj,nqk-&gt;ijklmn&#39;, Tzip[l], h_mpo[l], Tzip[l+2], optimize=True)</span>
+        <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ipl,pqmj-&gt;ijlmq&#39;</span><span class="p">,</span> <span class="n">Tzip</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">h_mpo</span><span class="p">[</span><span class="n">l</span><span class="p">])</span>
+        <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijlmq,nqk-&gt;ijklmn&#39;</span><span class="p">,</span> <span class="n">Taux</span><span class="p">,</span> <span class="n">Tzip</span><span class="p">[</span><span class="n">l</span><span class="o">+</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">ni</span><span class="p">,</span> <span class="n">nj</span><span class="p">,</span> <span class="n">nk</span> <span class="o">=</span> <span class="n">Taux</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">H</span> <span class="o">=</span> <span class="n">Taux</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ni</span><span class="o">*</span><span class="n">nj</span><span class="o">*</span><span class="n">nk</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># second index is for top MPS</span>
+
+        <span class="c1"># Lanczos diagonalize H to get the lowest energy state</span>
+        <span class="c1"># v0 is the initial guess</span>
+        <span class="c1"># which can be SA (smallest algebraic), SM (smallest magnitude)</span>
+        <span class="n">e</span><span class="p">,</span> <span class="n">vec</span> <span class="o">=</span> <span class="n">eigsh</span><span class="p">(</span><span class="n">H</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="n">pick_eig</span><span class="p">,</span> <span class="n">v0</span><span class="o">=</span><span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">])</span>
+        <span class="n">e_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># update MPS wavefunction at site l</span>
+        <span class="c1"># in the right-to-left sweep, the MPS has to be right-normalized</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ni</span><span class="p">,</span> <span class="n">nj</span><span class="o">*</span><span class="n">nk</span><span class="p">),</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="n">vt</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nj</span><span class="p">,</span> <span class="n">nk</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">l</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ijk,kl,l-&gt;ijl&#39;</span><span class="p">,</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+
+        <span class="c1"># update T zipper</span>
+        <span class="n">Tzip</span><span class="p">[</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">zipper_from_right</span><span class="p">(</span><span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">h_mpo</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Tzip</span><span class="p">[</span><span class="n">l</span><span class="o">+</span><span class="mi">2</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">ravel</span><span class="p">(</span><span class="n">e_list</span><span class="p">),</span> <span class="n">mps</span><span class="p">,</span> <span class="n">Tzip</span></div>
+
+
+
+<div class="viewcode-block" id="dmrg_opt_gs">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.matrix_product_state.dmrg_opt_gs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dmrg_opt_gs</span><span class="p">(</span><span class="n">h_mpo</span><span class="p">,</span> <span class="n">mps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">Tzip</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nbond</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">pick_eig</span><span class="o">=</span><span class="s1">&#39;SA&#39;</span><span class="p">,</span> <span class="n">nmax</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    DMRG algorithm for ground-state optimization.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        h_mpo (list): MPO Hamiltonian.</span>
+<span class="sd">        mps (list, optional): Initial MPS.</span>
+<span class="sd">        Tzip (list, optional): Initial zipper tensors.</span>
+<span class="sd">        nbond (int, optional): Number of virtual bonds between neighboring MPS sites.</span>
+<span class="sd">        pick_eig (str, optional): Method used to pick eigenvalues.</span>
+<span class="sd">        nmax (int, optional): Number of DMRG sweep loops.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Site energies and optimized MPS.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ntot</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">h_mpo</span><span class="p">)</span>
+
+    <span class="c1"># use mps as bra at top</span>
+    <span class="k">if</span> <span class="n">mps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ndims</span> <span class="o">=</span> <span class="p">[</span><span class="n">nbond</span><span class="p">,</span> <span class="n">h_mpo</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">nbond</span><span class="p">]</span>
+        <span class="n">mps</span> <span class="o">=</span> <span class="n">mps_canonical</span><span class="p">(</span><span class="n">ndims</span><span class="p">,</span> <span class="n">ntot</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">Tzip</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># initialize T zipper from right, indexing from top to bottom</span>
+        <span class="n">Tzip</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="p">(</span><span class="n">ntot</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">Tzip</span><span class="p">[</span><span class="n">ntot</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">Tzip</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ntot</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">Tzip</span><span class="p">[</span><span class="n">l</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">zipper_from_right</span><span class="p">(</span><span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">h_mpo</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Tzip</span><span class="p">[</span><span class="n">l</span><span class="o">+</span><span class="mi">2</span><span class="p">])</span>
+
+    <span class="n">e_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">it</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nmax</span><span class="p">):</span>
+        <span class="n">es</span><span class="p">,</span> <span class="n">mps</span><span class="p">,</span> <span class="n">Tzip</span> <span class="o">=</span> <span class="n">dmrg_sweep</span><span class="p">(</span><span class="n">h_mpo</span><span class="p">,</span> <span class="n">mps</span><span class="p">,</span> <span class="n">Tzip</span><span class="p">,</span> <span class="n">pick_eig</span><span class="p">)</span>
+        <span class="n">e_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">es</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">e_list</span><span class="p">,</span> <span class="n">mps</span></div>
+
+
+
+<div class="viewcode-block" id="mpo_spin_correlation">
+<a class="viewcode-back" href="../../../lumeq.spins.html#lumeq.spins.matrix_product_state.mpo_spin_correlation">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mpo_spin_correlation</span><span class="p">(</span><span class="n">mps</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Evaluate spin correlation function from MPS</span>
+<span class="sd">    expval{sigma_{l}^{+} sigma_{l+1}^{-}}</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mps (list): MPS tensors at the sites.</span>
+<span class="sd">        sigma (tuple, optional): Pauli spin matrices.</span>
+<span class="sd">        ns (int or iterable, optional): Sites on which the spin correlation is calculated.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: Spin-correlation values between sites ``ns`` and ``ns+1``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">get_spins</span><span class="p">(</span><span class="s1">&#39;0+-&#39;</span><span class="p">)</span>
+    <span class="n">mpo_si</span><span class="p">,</span> <span class="n">mpo_sp</span><span class="p">,</span> <span class="n">mpo_sm</span> <span class="o">=</span> <span class="n">sigma</span>
+    <span class="n">mpo_si</span> <span class="o">=</span> <span class="n">mpo_si</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">mpo_sp</span> <span class="o">=</span> <span class="n">mpo_sp</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+    <span class="n">mpo_sm</span> <span class="o">=</span> <span class="n">mpo_sm</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">2</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">ns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ntot</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mps</span><span class="p">)</span>
+        <span class="n">ns</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">ntot</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span> <span class="c1"># require single site</span>
+        <span class="n">ns</span> <span class="o">=</span> <span class="p">[</span><span class="n">ns</span><span class="p">]</span>
+
+    <span class="n">correlation</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">ns</span><span class="p">:</span> <span class="c1"># loop over the sites</span>
+        <span class="n">Taux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ntot</span><span class="p">):</span> <span class="c1"># get correlation of n-th site</span>
+            <span class="k">if</span> <span class="n">l</span> <span class="o">==</span> <span class="n">n</span><span class="p">:</span>
+                <span class="n">Taux</span> <span class="o">=</span> <span class="n">zipper_from_left</span><span class="p">(</span><span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">mpo_sp</span><span class="p">,</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Taux</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">l</span> <span class="o">==</span> <span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">Taux</span> <span class="o">=</span> <span class="n">zipper_from_left</span><span class="p">(</span><span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">mpo_sm</span><span class="p">,</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Taux</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">Taux</span> <span class="o">=</span> <span class="n">zipper_from_left</span><span class="p">(</span><span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">],</span> <span class="n">mpo_si</span><span class="p">,</span> <span class="n">mps</span><span class="p">[</span><span class="n">l</span><span class="p">]</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">Taux</span><span class="p">)</span>
+        <span class="n">correlation</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Taux</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">correlation</span><span class="p">)</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">set_performance_log</span>
+    <span class="n">set_performance_log</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">ndims</span> <span class="o">=</span> <span class="p">[</span><span class="mi">160</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">160</span><span class="p">]</span>
+    <span class="n">nsite</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">M</span> <span class="o">=</span> <span class="n">mps_canonical</span><span class="p">(</span><span class="n">ndims</span><span class="p">,</span> <span class="n">nsite</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="s1">&#39;both&#39;</span><span class="p">)</span>
+
+    <span class="n">spin_j</span> <span class="o">=</span> <span class="mf">.5</span> <span class="c1"># spin-1/2 particle</span>
+    <span class="n">sigma</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="s1">&#39;XX&#39;</span>
+
+    <span class="n">j</span> <span class="o">=</span> <span class="mf">1.</span>
+
+    <span class="n">N</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">D</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">nmax</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">h_mpo</span> <span class="o">=</span> <span class="n">mpo_hamil_uniform</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">j</span><span class="o">=</span><span class="n">j</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span> <span class="n">spin_j</span><span class="o">=</span><span class="n">spin_j</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+    <span class="n">e_list</span><span class="p">,</span> <span class="n">mps</span> <span class="o">=</span> <span class="n">dmrg_opt_gs</span><span class="p">(</span><span class="n">h_mpo</span><span class="p">,</span> <span class="n">nbond</span><span class="o">=</span><span class="n">D</span><span class="p">,</span> <span class="n">nmax</span><span class="o">=</span><span class="n">nmax</span><span class="p">)</span>
+    <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;e_list:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">e_list</span><span class="p">))</span>
+    <span class="n">correlation</span> <span class="o">=</span> <span class="n">mpo_spin_correlation</span><span class="p">(</span><span class="n">mps</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+    <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;correlation:&#39;</span><span class="p">,</span> <span class="n">correlation</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

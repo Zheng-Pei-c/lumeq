@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.dynamics.oscillator_dynamics &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.dynamics.oscillator_dynamics</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">print_matrix</span><span class="p">,</span> <span class="n">convert_units</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">put_keys_kwargs_to_object</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.sec_mole</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_molecular_center</span><span class="p">,</span> <span class="n">get_moment_of_inertia</span>
+
+<span class="n">ELECTRON_MASS_IN_AMU</span> <span class="o">=</span> <span class="mf">5.4857990945e-04</span> <span class="c1"># from qchem</span>
+
+<div class="viewcode-block" id="get_boltzmann_beta">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.get_boltzmann_beta">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_boltzmann_beta</span><span class="p">(</span><span class="n">temperature</span><span class="p">):</span>
+    <span class="c1"># temperature in Kelvin</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">pyscf.data.nist</span><span class="w"> </span><span class="kn">import</span> <span class="n">HARTREE2J</span><span class="p">,</span> <span class="n">BOLTZMANN</span>
+    <span class="k">return</span> <span class="n">HARTREE2J</span> <span class="o">/</span> <span class="p">(</span><span class="n">BOLTZMANN</span> <span class="o">*</span> <span class="n">temperature</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="harmonic_oscillator">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">harmonic_oscillator</span><span class="p">():</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Harmonic oscillator class.&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="p">{},</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        needed parameters:</span>
+<span class="sd">        commom:</span>
+<span class="sd">            mass, coordinate, velocity,</span>
+<span class="sd">            update_method, init_method, init_temp,</span>
+<span class="sd">        atomic system has size (natoms, 3)</span>
+<span class="sd">        photon system has size (nmode, 3)</span>
+<span class="sd">            frequency,</span>
+<span class="sd">        phonon system has size (nmode, n_site_tot)</span>
+<span class="sd">            n_site, frequency,</span>
+<span class="sd">        # frequency and mass has same dimension (nmode)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># set default</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;dt&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="c1"># au</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;frequency&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;init_temp&#39;</span><span class="p">,</span> <span class="mi">298</span><span class="p">)</span> <span class="c1"># K</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;init_method&#39;</span><span class="p">,</span> <span class="s1">&#39;thermo&#39;</span><span class="p">)</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;update_method&#39;</span><span class="p">,</span> <span class="s1">&#39;euler&#39;</span><span class="p">)</span>
+        <span class="n">key</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;debug&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">put_keys_kwargs_to_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">convert_parameter_units</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;unit_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_coordinate_velocity</span><span class="p">()</span>
+
+
+    <span class="c1">#get_boltzmann_beta = get_boltzmann_beta</span>
+
+
+<div class="viewcode-block" id="harmonic_oscillator.init_coordinate_velocity">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.init_coordinate_velocity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_coordinate_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_site</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">init_method</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate the initial oscillator coordinate and velocity.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            n_site (int, optional): Total number of molecular sites.</span>
+<span class="sd">            init_method (str, optional): Initialization method. ``&#39;thermo&#39;`` uses the</span>
+<span class="sd">                Boltzmann distribution at ``init_temp``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">n_site</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">n_site</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_site</span>
+        <span class="k">if</span> <span class="n">init_method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">init_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_method</span>
+
+        <span class="n">nmode</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frequency</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span><span class="o">**</span><span class="mi">2</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nmode</span><span class="p">,</span> <span class="n">n_site</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nmode</span><span class="p">,</span> <span class="n">n_site</span><span class="p">))</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_gaussian_distribution</span><span class="p">(</span><span class="n">variance</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">variance</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+
+        <span class="c1"># Boltzmann thermol distribution follows gaussian function</span>
+        <span class="k">if</span> <span class="n">init_method</span> <span class="o">==</span> <span class="s1">&#39;thermo&#39;</span><span class="p">:</span>
+            <span class="c1"># equal parition of the kT energy to kinetic and potential</span>
+            <span class="c1"># 0.5 is because in the Gaussian function, q^2 = 2 * sigma^2</span>
+            <span class="n">seed</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;random_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">beta_b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beta_b</span>
+            <span class="n">K</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i-&gt;i&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega2</span><span class="p">)</span>
+            <span class="n">variance</span> <span class="o">=</span> <span class="mf">.5</span> <span class="o">/</span> <span class="p">(</span><span class="n">beta_b</span> <span class="o">*</span> <span class="n">K</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;force constant:&#39;</span><span class="p">,</span> <span class="n">K</span><span class="p">)</span>
+                <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;coordinate variance:&#39;</span><span class="p">,</span> <span class="n">variance</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nmode</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_gaussian_distribution</span><span class="p">(</span><span class="n">variance</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">n_site</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+
+            <span class="n">variance</span> <span class="o">=</span> <span class="mf">.5</span> <span class="o">/</span> <span class="p">(</span><span class="n">beta_b</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;velocity variance:&#39;</span><span class="p">,</span> <span class="n">variance</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nmode</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_gaussian_distribution</span><span class="p">(</span><span class="n">variance</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">n_site</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;initial coordinates:&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;initial velocities:&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_energy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="harmonic_oscillator.update_coordinate_velocity">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.update_coordinate_velocity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_coordinate_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="n">half</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Update the oscillator coordinate and velocity, as well as the energy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            force (numpy.ndarray): Force acting on the oscillator.</span>
+<span class="sd">            half (int): ``1`` or ``2``, indicating the first or second half of</span>
+<span class="sd">                the update.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            numpy.ndarray: Projected force after the update, only for</span>
+<span class="sd">            ``half=2``.</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frequency</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frequency</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span> <span class="c1"># add oscillator force first</span>
+            <span class="n">force</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i,ix-&gt;ix&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">half</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_method</span> <span class="o">==</span> <span class="s1">&#39;euler&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">euler_step</span><span class="p">(</span><span class="n">force</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_method</span> <span class="o">==</span> <span class="s1">&#39;leapfrog&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">leapfrog_step</span><span class="p">(</span><span class="n">force</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_method</span> <span class="o">==</span> <span class="s1">&#39;velocity_verlet&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">velocity_verlet_step</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="c1"># we will finish the last falf after electronic step</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_method</span> <span class="o">==</span> <span class="s1">&#39;recursive&#39;</span><span class="p">:</span>
+                <span class="n">force_func</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;force_func&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">recursive_exploration_step</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="n">force_func</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">half</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="c1"># velocity_verlet is cumbersome: energy is calculated here</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_method</span> <span class="o">==</span> <span class="s1">&#39;velocity_verlet&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">velocity_verlet_step</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+            <span class="c1"># no need to project at every step</span>
+            <span class="c1">#self.project_velocity(self.velocity)</span>
+            <span class="c1">#return self.project_force(force)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">force</span> <span class="o">=</span> <span class="n">force</span> <span class="c1"># save to class</span>
+            <span class="k">return</span> <span class="n">force</span></div>
+
+
+
+<div class="viewcode-block" id="harmonic_oscillator.euler_step">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.euler_step">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">euler_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Simple Euler integration step.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ix,i-&gt;ix&#39;</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_energy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="harmonic_oscillator.leapfrog_step">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.leapfrog_step">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">leapfrog_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Leapfrog integration step.&quot;&quot;&quot;</span>
+        <span class="n">old_velocity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ix,i-&gt;ix&#39;</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span>
+
+        <span class="n">average_velocity</span> <span class="o">=</span> <span class="mf">.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">old_velocity</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_energy</span><span class="p">(</span><span class="n">average_velocity</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="harmonic_oscillator.velocity_verlet_step">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.velocity_verlet_step">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">velocity_verlet_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="n">half</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Velocity Verlet integration step.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">+=</span> <span class="mf">.5</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ix,i-&gt;ix&#39;</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">half</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span>
+        <span class="k">if</span> <span class="n">half</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_energy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="harmonic_oscillator.recursive_exploration_step">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.recursive_exploration_step">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">recursive_exploration_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="n">force_func</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Recursive exploration integration step.&quot;&quot;&quot;</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recursive_numbers</span> <span class="c1"># &gt;=1</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dt</span>
+        <span class="n">mass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+        <span class="n">force0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">force</span><span class="p">)</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span><span class="p">)</span>
+
+        <span class="c1"># update coordinate</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">dv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ix,i-&gt;ix&#39;</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="n">mass</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">i</span><span class="p">))</span>
+            <span class="n">dx</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">+</span> <span class="n">dv</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">i</span><span class="o">-</span><span class="mf">1.</span><span class="p">))</span>
+            <span class="n">force</span> <span class="o">=</span> <span class="n">force_func</span><span class="p">(</span><span class="n">x0</span><span class="o">+</span><span class="n">dx</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># we need the accumulation in place to use its pointer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span> <span class="o">+=</span> <span class="n">dx</span>
+
+        <span class="c1"># update velocity</span>
+        <span class="c1"># find coordinate at where the effective acceleration is calculated</span>
+        <span class="n">force</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">force0</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">dv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ix,i-&gt;ix&#39;</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="n">mass</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">i</span><span class="o">-</span><span class="mf">1.</span><span class="p">))</span>
+            <span class="n">dx</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">+</span> <span class="n">dv</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">dt</span><span class="o">/</span><span class="p">(</span><span class="mf">2.</span><span class="o">*</span><span class="n">i</span><span class="o">-</span><span class="mf">2.</span><span class="p">))</span>
+            <span class="n">force</span> <span class="o">=</span> <span class="n">force_func</span><span class="p">(</span><span class="n">x0</span><span class="o">+</span><span class="n">dx</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ix,i-&gt;ix&#39;</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="n">mass</span><span class="p">)</span> <span class="o">*</span> <span class="n">dt</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_energy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="harmonic_oscillator.get_kinetic_energy">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.get_kinetic_energy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_kinetic_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate the kinetic energy and temperature.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mass</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">mass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+
+        <span class="n">v2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ix,ix-&gt;i&#39;</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">velocity</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">kinetic</span> <span class="o">=</span> <span class="mf">.5</span><span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i&#39;</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">v2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">kinetic</span> <span class="o">/</span> <span class="p">(</span><span class="n">velocity</span><span class="o">.</span><span class="n">size</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="harmonic_oscillator.get_potential_energy">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.get_potential_energy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_potential_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coordinate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">omega2</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate the potential energy.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mass</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">mass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+        <span class="k">if</span> <span class="n">coordinate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span>
+        <span class="k">if</span> <span class="n">omega2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">omega2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega2</span>
+
+        <span class="n">v2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ix,ix-&gt;i&#39;</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="o">=</span> <span class="mf">.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i,i-&gt;&#39;</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">omega2</span><span class="p">,</span> <span class="n">v2</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="harmonic_oscillator.get_energy">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.harmonic_oscillator.get_energy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coordinate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">omega2</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Calculate the total energy.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mass</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">mass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_kinetic_energy</span><span class="p">(</span><span class="n">velocity</span><span class="p">,</span> <span class="n">mass</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_potential_energy</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">omega2</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kinetic</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy</span></div>
+</div>
+
+
+
+
+<div class="viewcode-block" id="angular_property">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.angular_property">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">angular_property</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">props</span><span class="p">):</span>
+    <span class="c1"># props is for example force or velocity</span>
+    <span class="n">inertia</span> <span class="o">=</span> <span class="n">get_moment_of_inertia</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+
+    <span class="c1"># total angular property I^-1 * L</span>
+    <span class="n">U</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">Vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">inertia</span><span class="p">)</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="n">s</span><span class="o">&gt;</span><span class="mf">1e-10</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># singular values are non-negative</span>
+    <span class="n">s</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">Vt</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">s</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">U</span><span class="p">[:,</span><span class="n">idx</span><span class="p">],</span> <span class="n">Vt</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+    <span class="c1">#Iinv = np.einsum(&#39;ji,j,kj-&gt;ik&#39;, Vt, s, U) # be careful to the index</span>
+
+    <span class="n">ang_prop</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ji,j,kj,k-&gt;i&#39;</span><span class="p">,</span> <span class="n">Vt</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">props</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ang_prop</span></div>
+
+
+
+<div class="viewcode-block" id="remove_trans_rotat_velocity">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.remove_trans_rotat_velocity">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">remove_trans_rotat_velocity</span><span class="p">(</span><span class="n">velocity</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove the translational and rotational components from the velocity.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        velocity (ndarray): The velocities of the particles (shape: (n_particles, 3)).</span>
+<span class="sd">        mass (ndarray): The masses of the particles (shape: (n_particles,)).</span>
+<span class="sd">        coords (ndarray): The coordinates of the particles (shape: (n_particles, 3)).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        velocity (ndarray): The projected velocities with translational and rotational components removed.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+    <span class="c1"># remove translation (ie. center of mass velocity)</span>
+    <span class="n">p_com</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ix-&gt;x&#39;</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">velocity</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">mass</span><span class="p">)</span>
+    <span class="n">velocity</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,x-&gt;ix&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="o">/</span><span class="n">mass</span><span class="p">,</span> <span class="n">p_com</span><span class="p">)</span>
+
+    <span class="c1"># move coords to com</span>
+    <span class="n">com</span> <span class="o">=</span> <span class="n">get_molecular_center</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+    <span class="n">coords</span> <span class="o">-=</span> <span class="n">com</span>
+
+    <span class="c1"># remove rotation</span>
+    <span class="n">ang_mom</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ix-&gt;x&#39;</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">velocity</span><span class="p">))</span> <span class="c1"># r x v</span>
+    <span class="n">ang_vec</span> <span class="o">=</span> <span class="n">angular_property</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">ang_mom</span><span class="p">)</span>
+
+    <span class="n">velocity</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">ang_vec</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">velocity</span></div>
+
+
+
+<div class="viewcode-block" id="remove_trans_rotat_force">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.remove_trans_rotat_force">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">remove_trans_rotat_force</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">coords</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Remove the translational and rotational components from the force.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        force (ndarray): The forces acting on the particles (shape: (n_particles, 3)).</span>
+<span class="sd">        mass (ndarray): The masses of the particles (shape: (n_particles,)).</span>
+<span class="sd">        coords (ndarray): The coordinates of the particles (shape: (n_particles, 3)).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        force (ndarray): The projected forces with translational and rotational components removed.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+    <span class="c1"># remove translation (ie. center of mass force)</span>
+    <span class="n">f_com</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">mass</span><span class="p">)</span>
+    <span class="n">force</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,x-&gt;ix&#39;</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">f_com</span><span class="p">)</span>
+
+    <span class="c1">## move coords to com</span>
+    <span class="c1">#com = get_molecular_center(mass, coords)</span>
+    <span class="c1">#coords -= com</span>
+
+    <span class="c1"># remove rotation</span>
+    <span class="n">torque</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="n">force</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="c1"># r x f</span>
+    <span class="n">ang_f</span> <span class="o">=</span> <span class="n">angular_property</span><span class="p">(</span><span class="n">mass</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">torque</span><span class="p">)</span>
+
+    <span class="n">force</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,ix-&gt;ix&#39;</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">ang_f</span><span class="p">[</span><span class="kc">None</span><span class="p">,:],</span> <span class="n">coords</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">force</span></div>
+
+
+
+
+<div class="viewcode-block" id="OscillatorStep">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.OscillatorStep">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OscillatorStep</span><span class="p">(</span><span class="n">harmonic_oscillator</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Oscillator dynamics step class.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="OscillatorStep.convert_parameter_units">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.OscillatorStep.convert_parameter_units">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_parameter_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit_dict</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        required input:</span>
+<span class="sd">            mass in amu</span>
+<span class="sd">            frequency in meV</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">pyscf.data.nist</span><span class="w"> </span><span class="kn">import</span> <span class="n">AMU2AU</span><span class="p">,</span> <span class="n">HARTREE2EV</span>
+        <span class="c1"># Boltzmann coefficient is 1/(k_B * T)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta_b</span> <span class="o">=</span> <span class="n">get_boltzmann_beta</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">init_temp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">*=</span> <span class="n">AMU2AU</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span> <span class="o">/=</span> <span class="p">(</span><span class="n">HARTREE2EV</span><span class="o">*</span><span class="mi">1000</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">omega2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span><span class="o">**</span><span class="mi">2</span> <span class="c1"># for computational efficiency</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1">#print(&#39;KT:&#39;, 1./self.beta_b, 1./self.beta_b*HARTREE2EV*1000)</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;oscillator mass (au):&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;oscillator omega (au):&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">frequency</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="OscillatorStep.get_phonon_hamiltonian">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.OscillatorStep.get_phonon_hamiltonian">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_phonon_hamiltonian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">velocity</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coordinate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">omega2</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Are we using get_phonon_hamiltonian??&#39;</span><span class="p">)</span>
+        <span class="c1"># get phonon energy on each site</span>
+        <span class="k">if</span> <span class="n">velocity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">velocity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span>
+        <span class="k">if</span> <span class="n">mass</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">mass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+        <span class="k">if</span> <span class="n">coordinate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coordinate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span>
+        <span class="k">if</span> <span class="n">omega2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">omega2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">omega2</span>
+
+        <span class="c1"># the first index of velocity and coordinate is mass related</span>
+        <span class="n">mass2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">mass</span><span class="p">)</span> <span class="o">*</span><span class="mf">.5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,in,in-&gt;n&#39;</span><span class="p">,</span> <span class="n">mass2</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">velocity</span><span class="p">)</span>
+        <span class="n">v2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,i-&gt;i&#39;</span><span class="p">,</span> <span class="n">mass2</span><span class="p">,</span> <span class="n">omega2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;i,in,in-&gt;n&#39;</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hamiltonian</span></div>
+</div>
+
+
+
+
+<div class="viewcode-block" id="NuclearStep">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NuclearStep</span><span class="p">(</span><span class="n">harmonic_oscillator</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Nuclear dynamics step class.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="NuclearStep.convert_parameter_units">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.convert_parameter_units">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convert_parameter_units</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unit_dict</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">natoms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atmsym</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mass</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">natoms</span><span class="p">)</span>
+        <span class="c1"># use pyscf&#39;s</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">pyscf.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">elements</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">natoms</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">elements</span><span class="o">.</span><span class="n">MASSES</span><span class="p">[</span><span class="n">elements</span><span class="o">.</span><span class="n">charge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atmsym</span><span class="p">[</span><span class="n">i</span><span class="p">])]</span> <span class="o">/</span> <span class="n">ELECTRON_MASS_IN_AMU</span>
+        <span class="c1">#print_matrix(&#39;mass:\n&#39;, self.mass)</span>
+
+        <span class="c1"># assume init_coords in AA and change it to A.U.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span> <span class="o">=</span> <span class="n">convert_units</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)),</span> <span class="s1">&#39;angstrom&#39;</span><span class="p">,</span> <span class="s1">&#39;bohr&#39;</span><span class="p">)</span></div>
+
+
+
+    <span class="c1"># nuclear atoms only have kinetic energy</span>
+<div class="viewcode-block" id="NuclearStep.get_potential_energy">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.get_potential_energy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_potential_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coordinate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">omega2</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential</span> <span class="o">=</span> <span class="mf">0.</span></div>
+
+
+
+<div class="viewcode-block" id="NuclearStep.init_coordinate_velocity">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.init_coordinate_velocity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_coordinate_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">init_method</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate the initial nuclear coordinate and velocity.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            init_method (str, optional): Method used to initialize the</span>
+<span class="sd">                coordinates and velocities. ``&#39;restart&#39;`` reads stored values,</span>
+<span class="sd">                ``&#39;kick&#39;`` sets zero initial velocity, ``&#39;thermo&#39;`` samples a</span>
+<span class="sd">                Boltzmann distribution at ``init_temp``, and ``&#39;random&#39;`` uses</span>
+<span class="sd">                random velocities with the given kinetic energy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># coordinate has been given</span>
+        <span class="k">if</span> <span class="n">init_method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">init_method</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_method</span>
+
+        <span class="k">if</span> <span class="s1">&#39;restart&#39;</span> <span class="ow">in</span> <span class="n">init_method</span><span class="p">:</span> <span class="c1"># read in variables</span>
+            <span class="c1"># has been stored in the class</span>
+            <span class="k">return</span>
+
+        <span class="k">elif</span> <span class="s1">&#39;kick&#39;</span> <span class="ow">in</span> <span class="n">init_method</span><span class="p">:</span> <span class="c1"># no initial velocity</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">kinetic</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="mf">0.</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">project_force</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">force</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">elif</span> <span class="s1">&#39;thermo&#39;</span> <span class="ow">in</span> <span class="n">init_method</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_velocity_thermo</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="s1">&#39;random&#39;</span> <span class="ow">in</span> <span class="n">init_method</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_velocity_random</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_velocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_energy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">velocity</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">force</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="NuclearStep.init_velocity_thermo">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.init_velocity_thermo">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_velocity_thermo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">temp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">1385448536</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Generate random velocity following Boltzmann distribution.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">temp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_temp</span>
+
+        <span class="n">beta_b</span> <span class="o">=</span> <span class="n">get_boltzmann_beta</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">beta_b</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span> <span class="c1"># standard deviation</span>
+
+        <span class="n">velocity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+
+        <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">natoms</span><span class="p">):</span>
+            <span class="n">velocity</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">0.</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+        <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;init velocity:&#39;</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">digits</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="s1">&#39;e&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">velocity</span></div>
+
+
+
+<div class="viewcode-block" id="NuclearStep.init_velocity_random">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.init_velocity_random">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">init_velocity_random</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">etrans</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">.1</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">12345</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Generate random kinetic energy for atoms at three directions.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">etrans</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">etrans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">etrans</span>
+        <span class="c1">#etrans = convert_units(etrans*scale, &#39;eh&#39;, &#39;kcal&#39;)</span>
+
+        <span class="n">size</span> <span class="o">=</span> <span class="mi">3</span><span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">natoms</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="n">etrans</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+
+        <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="c1"># mean is the center</span>
+        <span class="c1"># sigma is the standard deviation whose square is variance</span>
+        <span class="n">ek</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">sigma</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">size</span><span class="p">)</span>
+        <span class="n">ek</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">ek</span><span class="p">)</span> <span class="o">*</span> <span class="n">etrans</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">ek</span><span class="p">)</span> <span class="c1"># scale by the generated kinetic energy</span>
+
+        <span class="n">sign</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">sign</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sign</span><span class="o">&gt;</span><span class="mf">.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">velocity</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ix,i-&gt;ix&#39;</span><span class="p">,</span> <span class="n">ek</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">natoms</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="mf">1.</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">mass</span><span class="p">)</span>
+        <span class="n">velocity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ix,ix-&gt;ix&#39;</span><span class="p">,</span> <span class="n">sign</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">velocity</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">velocity</span></div>
+
+
+
+<div class="viewcode-block" id="NuclearStep.project_velocity">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.project_velocity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">project_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">velocity</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Project out the translational and rotational components from the velocity.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mass</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">mass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+        <span class="k">if</span> <span class="n">coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">velocity</span> <span class="o">=</span> <span class="n">remove_trans_rotat_velocity</span><span class="p">(</span><span class="n">velocity</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="NuclearStep.project_force">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.project_force">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">project_force</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="n">mass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Project out the translational and rotational components from the force.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mass</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">mass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+        <span class="k">if</span> <span class="n">coords</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">force</span> <span class="o">=</span> <span class="n">remove_trans_rotat_force</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">force</span></div>
+
+
+
+<div class="viewcode-block" id="NuclearStep.update_coordinate_velocity">
+<a class="viewcode-back" href="../../../lumeq.dynamics.html#lumeq.dynamics.oscillator_dynamics.NuclearStep.update_coordinate_velocity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_coordinate_velocity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="p">,</span> <span class="n">half</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Update the nuclear coordinate and velocity.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">update_coordinate_velocity</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="n">half</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">half</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">mass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coordinate</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">project_velocity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">velocity</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_force</span><span class="p">(</span><span class="n">force</span><span class="p">,</span> <span class="n">mass</span><span class="p">,</span> <span class="n">coords</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

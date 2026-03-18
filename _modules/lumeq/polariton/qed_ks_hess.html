@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.polariton.qed_ks_hess &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.polariton.qed_ks_hess</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">sys</span><span class="p">,</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.pyscf_helper</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">convert_units</span><span class="p">,</span> <span class="n">print_matrix</span><span class="p">,</span> <span class="n">fdiff</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.polariton.qed_ks</span><span class="w"> </span><span class="kn">import</span> <span class="n">polariton_cs</span><span class="p">,</span> <span class="n">get_lambda2</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.polariton.qed_ks_grad</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_multipole_matrix_d1</span><span class="p">,</span> <span class="n">cal_multipole_matrix_fd</span><span class="p">,</span> <span class="n">finite_difference</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">lib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf.lib</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf.dft.rks</span><span class="w"> </span><span class="kn">import</span> <span class="n">RKS</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf.hessian</span><span class="w"> </span><span class="kn">import</span> <span class="n">rhf</span> <span class="k">as</span> <span class="n">rhf_hess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf.hessian</span><span class="w"> </span><span class="kn">import</span> <span class="n">rks</span> <span class="k">as</span> <span class="n">rks_hess</span>
+
+<div class="viewcode-block" id="fd_orbital_rotation_mo1">
+<a class="viewcode-back" href="../../../lumeq.polariton.html#lumeq.polariton.qed_ks.fd_orbital_rotation_mo1">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">fd_orbital_rotation_mo1</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span> <span class="n">fd_mo</span><span class="p">):</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mol</span>
+
+    <span class="n">mo</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span>
+    <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;mo:&#39;</span><span class="p">,</span> <span class="n">mo</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">nao</span> <span class="o">=</span> <span class="n">mo</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">nocc</span> <span class="o">=</span> <span class="p">(</span><span class="n">mf</span><span class="o">.</span><span class="n">mo_occ</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+
+    <span class="n">cct</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;mp,np-&gt;mn&#39;</span><span class="p">,</span> <span class="n">mo</span><span class="p">,</span> <span class="n">mo</span><span class="p">)</span>
+    <span class="n">ovlp</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">get_ovlp</span><span class="p">()</span>
+
+    <span class="n">ovlp1</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">intor</span><span class="p">(</span><span class="s1">&#39;int1e_ipovlp&#39;</span><span class="p">,</span> <span class="n">comp</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">s1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nao</span><span class="p">,</span> <span class="n">nao</span><span class="p">))</span>
+    <span class="n">atmlst</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">)</span>
+    <span class="n">aoslices</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">aoslice_by_atom</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ia</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atmlst</span><span class="p">):</span>
+        <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="n">aoslices</span><span class="p">[</span><span class="n">ia</span><span class="p">,</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="n">s1</span><span class="p">[</span><span class="n">k</span><span class="p">,:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ovlp1</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span>
+        <span class="n">s1</span><span class="p">[</span><span class="n">k</span><span class="p">,:,:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ovlp1</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">s1</span> <span class="o">=</span> <span class="n">s1</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="n">nao</span><span class="p">,</span><span class="n">nao</span><span class="p">)</span>
+
+    <span class="n">sinv_sx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;mn,xnp-&gt;xmp&#39;</span><span class="p">,</span> <span class="n">cct</span><span class="p">,</span> <span class="n">s1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">.5</span>
+    <span class="n">mo1_s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xmn,np-&gt;xmp&#39;</span><span class="p">,</span> <span class="n">sinv_sx</span><span class="p">,</span> <span class="n">mo</span><span class="p">)</span>
+    <span class="c1">#print_matrix(&#39;mo1_s:&#39;, mo1_s[:,:,:nocc], 5, 1)</span>
+
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">fd_mo</span> <span class="o">-</span> <span class="n">mo1_s</span>
+    <span class="c1">#print_matrix(&#39;theta pi:&#39;, theta, 5, 1)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ma,mn,xni-&gt;xai&#39;</span><span class="p">,</span> <span class="n">mo</span><span class="p">[:,</span><span class="n">nocc</span><span class="p">:],</span> <span class="n">ovlp</span><span class="p">,</span> <span class="n">theta</span><span class="p">[:,:,:</span><span class="n">nocc</span><span class="p">])</span>
+    <span class="c1">#print_matrix(&#39;theta:&#39;, theta, 5, 1)</span>
+
+    <span class="n">mo1_theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;pa,xai-&gt;xpi&#39;</span><span class="p">,</span> <span class="n">mo</span><span class="p">[:,</span><span class="n">nocc</span><span class="p">:],</span> <span class="n">theta</span><span class="p">)</span>
+    <span class="c1">#print_matrix(&#39;mo1_theta&#39;, mo1_theta, 5, 1)</span>
+
+    <span class="n">mo1</span> <span class="o">=</span> <span class="n">mo1_theta</span><span class="o">+</span><span class="n">mo1_s</span><span class="p">[:,:,:</span><span class="n">nocc</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">mo1</span></div>
+
+
+
+<div class="viewcode-block" id="resemble_deriv_on_atoms">
+<a class="viewcode-back" href="../../../lumeq.polariton.html#lumeq.polariton.qed_ks.resemble_deriv_on_atoms">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resemble_deriv_on_atoms</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mat0</span><span class="p">):</span>
+    <span class="c1"># mat0 has dimension of (3, nao, nao)</span>
+    <span class="n">atmlst</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">)</span>
+    <span class="n">aoslices</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">aoslice_by_atom</span><span class="p">()</span>
+    <span class="n">nao</span> <span class="o">=</span> <span class="n">mat0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">mat0</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">mat1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nao</span><span class="p">,</span> <span class="n">nao</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ia</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atmlst</span><span class="p">):</span>
+            <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="n">aoslices</span><span class="p">[</span><span class="n">ia</span><span class="p">,</span><span class="mi">2</span><span class="p">:]</span>
+            <span class="n">mat1</span><span class="p">[</span><span class="n">k</span><span class="p">,:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mat0</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span>
+            <span class="n">mat1</span><span class="p">[</span><span class="n">k</span><span class="p">,:,:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mat0</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">mat1</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nao</span><span class="p">,</span> <span class="n">nao</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">mat0</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">nd</span> <span class="o">=</span> <span class="n">mat0</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="c1"># number of photon mode</span>
+        <span class="n">mat1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nao</span><span class="p">,</span> <span class="n">nao</span><span class="p">,</span> <span class="n">nd</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ia</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atmlst</span><span class="p">):</span>
+            <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="n">aoslices</span><span class="p">[</span><span class="n">ia</span><span class="p">,</span><span class="mi">2</span><span class="p">:]</span>
+            <span class="n">mat1</span><span class="p">[</span><span class="n">k</span><span class="p">,:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mat0</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span>
+            <span class="n">mat1</span><span class="p">[</span><span class="n">k</span><span class="p">,:,:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mat0</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">mat1</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nao</span><span class="p">,</span> <span class="n">nao</span><span class="p">,</span> <span class="n">nd</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_multipole_matrix_d2">
+<a class="viewcode-back" href="../../../lumeq.polariton.html#lumeq.polariton.qed_ks.get_multipole_matrix_d2">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_multipole_matrix_d2</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">c_lambda</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    second-order analytic derivative of the multipole integrals are not implemented</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1">#if origin is None:</span>
+    <span class="c1">#    origin = np.zeros(3)</span>
+
+    <span class="c1">#natoms = mol.natm</span>
+    <span class="c1">#nao = mol.nao_nr()</span>
+    <span class="c1">#with mol.with_common_orig(origin):</span>
+    <span class="c1">#    # this derivatives have extra minus</span>
+    <span class="c1">#    dipole = mol.intor(&#39;int1e_irp&#39;, comp=9, hermi=0).reshape(3,3,nao,nao)</span>
+    <span class="c1">#    quadrupole = mol.intor(&#39;int1e_irrp&#39;, comp=27, hermi=0).reshape(3,3,3,nao,nao)</span>
+    <span class="c1">#c2 = np.einsum(&#39;...x,...y-&gt;...xy&#39;, c_lambda, c_lambda)</span>
+    <span class="c1">#if c2.ndim == 3: # contract modes</span>
+    <span class="c1">#    c2 = np.sum(c2, axis=0)</span>
+    <span class="c1">#dipole = - np.einsum(&#39;mxypq,...m-&gt;xyqp&#39;, dipole, c_lambda)</span>
+    <span class="c1">#quadrupole = - np.einsum(&#39;mnxypq,...mn-&gt;xyqp&#39;, quadrupole, c2)</span>
+
+    <span class="n">norder</span><span class="p">,</span> <span class="n">step_size</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> <span class="mf">1e-4</span>
+    <span class="n">dipole</span><span class="p">,</span> <span class="n">quadrupole</span> <span class="o">=</span> <span class="n">cal_multipole_matrix_fd</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">dm</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">norder</span><span class="o">=</span><span class="n">norder</span><span class="p">,</span> <span class="n">step_size</span><span class="o">=</span><span class="n">step_size</span><span class="p">,</span> <span class="n">ideriv</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># x and y are nuclear derivatives (3N, 3N)</span>
+    <span class="n">dipole</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xympq,...m-&gt;...xyqp&#39;</span><span class="p">,</span> <span class="n">dipole</span><span class="p">,</span> <span class="n">c_lambda</span><span class="p">)</span>
+    <span class="n">quadrupole</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xymnpq,mn-&gt;xyqp&#39;</span><span class="p">,</span> <span class="n">quadrupole</span><span class="p">,</span> <span class="n">get_lambda2</span><span class="p">(</span><span class="n">c_lambda</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">dipole</span><span class="p">,</span> <span class="n">quadrupole</span></div>
+
+
+
+<div class="viewcode-block" id="get_dse_2e_a">
+<a class="viewcode-back" href="../../../lumeq.polariton.html#lumeq.polariton.qed_ks.get_dse_2e_a">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_dse_2e_a</span><span class="p">(</span><span class="n">dipole</span><span class="p">,</span> <span class="n">dipole_d2</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">with_j</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">scale_k</span><span class="o">=</span><span class="mf">.5</span><span class="p">):</span> <span class="c1"># c_lambda is included</span>
+    <span class="c1"># scale k by 1/2 for restricted orbital case by default</span>
+    <span class="k">if</span> <span class="n">dm</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">vk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;sp,...rs,qr-&gt;...qp&#39;</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">dipole</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span> <span class="c1"># multiple density matrices, ie uhf</span>
+        <span class="n">vk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;isp,...rs,iqr-&gt;...qp&#39;</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">dipole</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span>
+    <span class="n">vk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...xypq,...qp-&gt;xy&#39;</span><span class="p">,</span> <span class="n">dipole_d2</span><span class="p">,</span> <span class="n">vk</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">with_j</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">vk</span><span class="o">*</span><span class="n">scale_k</span>
+
+    <span class="k">if</span> <span class="n">dm</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">vj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;,...rs,sr-&gt;...&#39;</span><span class="p">,</span> <span class="n">dipole</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span>
+        <span class="n">vj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...xypq,qp,...-&gt;xy&#39;</span><span class="p">,</span> <span class="n">dipole_d2</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">vj</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span> <span class="c1"># multiple density matrices, ie uhf</span>
+        <span class="n">vj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...rs,isr-&gt;...i&#39;</span><span class="p">,</span> <span class="n">dipole</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span>
+        <span class="n">vj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...xypq,iqp,...i-&gt;xy&#39;</span><span class="p">,</span> <span class="n">dipole_d2</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">vj</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">vj</span><span class="p">,</span> <span class="n">vk</span><span class="o">*</span><span class="n">scale_k</span><span class="p">]</span></div>
+
+
+
+<span class="c1">#def get_dse_2e_s(dipole_d1, dm, with_j=False, scale_k=.5): # c_lambda is included</span>
+<span class="c1">#    # scale k by 1/2 for restricted orbital case by default</span>
+<span class="c1">#    # the mode index for lambda-dipole_d1 is moved to the last</span>
+<span class="c1">#    if dm.ndim == 2:</span>
+<span class="c1">#        vk = np.einsum(&#39;xrs...,qr-&gt;...xqs&#39;, dipole_d1, dm)</span>
+<span class="c1">#        vk = np.einsum(&#39;...xqs,...ysq-&gt;xy&#39;, vk, vk)</span>
+<span class="c1">#        if with_j is False:</span>
+<span class="c1">#            return vk*scale_k</span>
+<span class="c1">#        else:</span>
+<span class="c1">#            vj = np.einsum(&#39;rs...,sr-&gt;...x&#39;, dipole_d1, dm)</span>
+<span class="c1">#            #vj = np.einsum(&#39;...x,...y-&gt;xy&#39;, vj, vj)</span>
+<span class="c1">#            return [vj, vk*scale_k]</span>
+<span class="c1">#    else: # multiple density matrices, ie uhf</span>
+<span class="c1">#        vk = np.einsum(&#39;xrs...,iqr-&gt;...ixqs&#39;, dipole_d1, dm)</span>
+<span class="c1">#        #vk = np.einsum(&#39;...ixqs,...iysq-&gt;xy&#39;, vk, vk)</span>
+<span class="c1">#        if with_j is False:</span>
+<span class="c1">#            return vk*scale_k</span>
+<span class="c1">#        else:</span>
+<span class="c1">#            vj = np.einsum(&#39;xrs...,isr-&gt;i...x&#39;, dipole_d1, dm)</span>
+<span class="c1">#            #vj = np.einsum(&#39;i...x,i...y-&gt;xy&#39;, vj, vj)</span>
+<span class="c1">#            return [vj, vk*scale_k]</span>
+
+
+<div class="viewcode-block" id="partial_hess_elec">
+<a class="viewcode-back" href="../../../lumeq.polariton.html#lumeq.polariton.qed_ks.partial_hess_elec">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">partial_hess_elec</span><span class="p">(</span><span class="n">hessobj</span><span class="p">,</span> <span class="n">mo_energy</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mo_occ</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">atmlst</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_memory</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">hessobj</span><span class="o">.</span><span class="n">mol</span>
+    <span class="n">mf</span> <span class="o">=</span> <span class="n">hessobj</span><span class="o">.</span><span class="n">base</span>
+
+    <span class="n">mo_energy</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_energy</span>
+    <span class="n">mo_occ</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_occ</span>
+    <span class="n">mo_coeff</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">mo_coeff</span>
+    <span class="n">atmlst</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">)</span>
+
+    <span class="n">nao</span><span class="p">,</span> <span class="n">nmo</span> <span class="o">=</span> <span class="n">mo_coeff</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">mocc</span> <span class="o">=</span> <span class="n">mo_coeff</span><span class="p">[:,</span><span class="n">mo_occ</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">dm0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">mocc</span><span class="p">,</span> <span class="n">mocc</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span>
+
+    <span class="n">de2</span> <span class="o">=</span> <span class="n">rks_hess</span><span class="o">.</span><span class="n">partial_hess_elec</span><span class="p">(</span><span class="n">hessobj</span><span class="p">,</span> <span class="n">mo_energy</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="p">,</span> <span class="n">mo_occ</span><span class="p">,</span>
+                                     <span class="n">atmlst</span><span class="p">,</span> <span class="n">max_memory</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span>
+
+    <span class="c1"># 2e-dse 1/2 is cancled by the derivative factor 2.</span>
+
+    <span class="c1"># these derivatives are distributed on atoms since they are from finite-difference</span>
+    <span class="c1"># TODO: get analytic derivatives and resemble them here</span>
+    <span class="n">dipole_d2</span><span class="p">,</span> <span class="n">quadrupole_d2</span> <span class="o">=</span> <span class="n">get_multipole_matrix_d2</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mf</span><span class="o">.</span><span class="n">c_lambda</span><span class="p">,</span> <span class="n">hessobj</span><span class="o">.</span><span class="n">base</span><span class="o">.</span><span class="n">origin</span><span class="p">)</span>
+    <span class="n">vdse</span> <span class="o">=</span> <span class="mf">.5</span><span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xypq,...qp-&gt;xy&#39;</span><span class="p">,</span> <span class="n">quadrupole_d2</span><span class="p">,</span> <span class="n">dm0</span><span class="p">)</span>
+    <span class="n">vdse</span> <span class="o">-=</span> <span class="n">get_dse_2e_a</span><span class="p">(</span><span class="n">mf</span><span class="o">.</span><span class="n">dipole</span><span class="p">,</span> <span class="n">dipole_d2</span><span class="p">,</span> <span class="n">dm0</span><span class="p">,</span> <span class="n">with_j</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">vdse</span> <span class="o">=</span> <span class="n">vdse</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+
+    <span class="n">dipole_d1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">get_multipole_matrix_d1</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mf</span><span class="o">.</span><span class="n">c_lambda</span><span class="p">,</span> <span class="n">mf</span><span class="o">.</span><span class="n">origin</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="s1">&#39;dipole&#39;</span><span class="p">)</span>
+    <span class="c1">#dipole_d1 = resemble_deriv_on_atoms(mol, dipole_d1)</span>
+    <span class="c1">#vdse -= get_dse_2e_s(dipole_d1, dm0, with_j=False)</span>
+
+    <span class="n">vdse2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">vdse</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">aoslices</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">aoslice_by_atom</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i0</span><span class="p">,</span> <span class="n">ia</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atmlst</span><span class="p">):</span>
+        <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="n">aoslices</span><span class="p">[</span><span class="n">ia</span><span class="p">,</span> <span class="mi">2</span><span class="p">:]</span>
+
+        <span class="n">tmp1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xrs...,qr-&gt;...xqs&#39;</span><span class="p">,</span> <span class="n">dipole_d1</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">],</span> <span class="n">dm0</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">])</span> <span class="c1"># r is derivative index</span>
+        <span class="n">tmp2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xrs...,qr-&gt;...xqs&#39;</span><span class="p">,</span> <span class="n">dipole_d1</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">dm0</span><span class="p">)</span> <span class="c1"># s is derivative index</span>
+        <span class="k">for</span> <span class="n">j0</span><span class="p">,</span> <span class="n">ja</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atmlst</span><span class="p">[:</span><span class="n">i0</span><span class="o">+</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">q0</span><span class="p">,</span> <span class="n">q1</span> <span class="o">=</span> <span class="n">aoslices</span><span class="p">[</span><span class="n">ja</span><span class="p">,</span> <span class="mi">2</span><span class="p">:]</span>
+
+            <span class="n">tmp3</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xpq...,ps-&gt;...xsq&#39;</span><span class="p">,</span> <span class="n">dipole_d1</span><span class="p">[:,</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">],</span> <span class="n">dm0</span><span class="p">[</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">])</span> <span class="c1"># r is derivative index</span>
+            <span class="n">tmp4</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xpq...,ps-&gt;...xsq&#39;</span><span class="p">,</span> <span class="n">dipole_d1</span><span class="p">[:,</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">],</span> <span class="n">dm0</span><span class="p">[</span><span class="n">q0</span><span class="p">:</span><span class="n">q1</span><span class="p">,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">])</span> <span class="c1"># s is derivative index</span>
+            <span class="n">vdse2</span><span class="p">[</span><span class="n">i0</span><span class="p">,</span><span class="n">j0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...xqs,...ysq-&gt;xy&#39;</span><span class="p">,</span> <span class="n">tmp1</span><span class="p">,</span> <span class="n">tmp3</span><span class="p">)</span>
+            <span class="n">vdse2</span><span class="p">[</span><span class="n">i0</span><span class="p">,</span><span class="n">j0</span><span class="p">]</span> <span class="o">-=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...xqs,...ysq-&gt;xy&#39;</span><span class="p">,</span> <span class="n">tmp2</span><span class="p">,</span> <span class="n">tmp4</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">j0</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i0</span><span class="p">):</span>
+            <span class="n">vdse2</span><span class="p">[</span><span class="n">j0</span><span class="p">,</span><span class="n">i0</span><span class="p">]</span> <span class="o">=</span> <span class="n">vdse2</span><span class="p">[</span><span class="n">i0</span><span class="p">,</span><span class="n">j0</span><span class="p">]</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="n">de2</span> <span class="o">+=</span> <span class="n">vdse</span> <span class="o">+</span> <span class="n">vdse2</span>
+
+    <span class="k">return</span> <span class="n">de2</span></div>
+
+
+
+<div class="viewcode-block" id="dse_fock_d1_s">
+<a class="viewcode-back" href="../../../lumeq.polariton.html#lumeq.polariton.qed_ks.dse_fock_d1_s">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">dse_fock_d1_s</span><span class="p">(</span><span class="n">dipole</span><span class="p">,</span> <span class="n">dipole_d1</span><span class="p">,</span> <span class="n">dm</span><span class="p">,</span> <span class="n">with_j</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">scale_k</span><span class="o">=</span><span class="mf">.5</span><span class="p">):</span> <span class="c1"># c_lambda is included</span>
+    <span class="c1"># scale k by 1/2 for restricted orbital case by default</span>
+    <span class="c1"># the dipole_d1 and density are passed through piece by piece</span>
+    <span class="k">if</span> <span class="n">dm</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">vk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...pq,xrs...,qr-&gt;xps&#39;</span><span class="p">,</span> <span class="n">dipole</span><span class="p">,</span> <span class="n">dipole_d1</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">with_j</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">vk</span><span class="o">*</span><span class="n">scale_k</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...pq,xrs...,sr-&gt;xpq&#39;</span><span class="p">,</span> <span class="n">dipole</span><span class="p">,</span> <span class="n">dipole_d1</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">vj</span><span class="p">,</span> <span class="n">vk</span><span class="o">*</span><span class="n">scale_k</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span> <span class="c1"># multiple density matrices, ie uhf</span>
+        <span class="n">vk</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...pq,xrs...,iqr-&gt;ixps&#39;</span><span class="p">,</span> <span class="n">dipole</span><span class="p">,</span> <span class="n">dipole_d1</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">with_j</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">vk</span><span class="o">*</span><span class="n">scale_k</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...pq,xrs...,isr-&gt;ixpq&#39;</span><span class="p">,</span> <span class="n">dipole</span><span class="p">,</span> <span class="n">dipole_d1</span><span class="p">,</span> <span class="n">dm</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">vj</span><span class="p">,</span> <span class="n">vk</span><span class="o">*</span><span class="n">scale_k</span><span class="p">]</span></div>
+
+
+
+<span class="c1"># h1 is the right-hand-side of the CPHF for the MO response</span>
+<span class="c1"># the S^[x] dependent terms are added in solve_mo1 function</span>
+<span class="c1"># modified make_h1 based on rks hessian</span>
+<div class="viewcode-block" id="make_h1">
+<a class="viewcode-back" href="../../../lumeq.polariton.html#lumeq.polariton.qed_ks.make_h1">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_h1</span><span class="p">(</span><span class="n">hessobj</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="p">,</span> <span class="n">mo_occ</span><span class="p">,</span> <span class="n">chkfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">atmlst</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">hessobj</span><span class="o">.</span><span class="n">mol</span>
+    <span class="k">if</span> <span class="n">atmlst</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">atmlst</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">)</span>
+
+    <span class="n">nao</span><span class="p">,</span> <span class="n">nmo</span> <span class="o">=</span> <span class="n">mo_coeff</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">mocc</span> <span class="o">=</span> <span class="n">mo_coeff</span><span class="p">[:,</span><span class="n">mo_occ</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">dm0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">mocc</span><span class="p">,</span> <span class="n">mocc</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span>
+
+    <span class="n">mf</span> <span class="o">=</span> <span class="n">hessobj</span><span class="o">.</span><span class="n">base</span>
+
+    <span class="n">grad_method</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">nuc_grad_method</span><span class="p">()</span>
+    <span class="n">hcore_deriv</span> <span class="o">=</span> <span class="n">grad_method</span><span class="o">.</span><span class="n">hcore_generator</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+
+    <span class="c1"># dse contributions</span>
+    <span class="n">dipole</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">dipole</span>
+    <span class="n">dipole_d1</span><span class="p">,</span> <span class="n">quadrupole_d1</span> <span class="o">=</span> <span class="n">get_multipole_matrix_d1</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">mf</span><span class="o">.</span><span class="n">c_lambda</span><span class="p">,</span> <span class="n">mf</span><span class="o">.</span><span class="n">origin</span><span class="p">)</span>
+    <span class="n">dse_d1</span> <span class="o">=</span> <span class="n">grad_method</span><span class="o">.</span><span class="n">dse_fock_d1</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="n">dm0</span><span class="p">,</span> <span class="n">dipole_d1</span><span class="p">,</span> <span class="n">quadrupole_d1</span><span class="p">)</span>
+
+    <span class="n">ni</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">_numint</span>
+    <span class="n">ni</span><span class="o">.</span><span class="n">libxc</span><span class="o">.</span><span class="n">test_deriv_order</span><span class="p">(</span><span class="n">mf</span><span class="o">.</span><span class="n">xc</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">raise_error</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">omega</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">hyb</span> <span class="o">=</span> <span class="n">ni</span><span class="o">.</span><span class="n">rsh_and_hybrid_coeff</span><span class="p">(</span><span class="n">mf</span><span class="o">.</span><span class="n">xc</span><span class="p">,</span> <span class="n">spin</span><span class="o">=</span><span class="n">mol</span><span class="o">.</span><span class="n">spin</span><span class="p">)</span>
+    <span class="n">hybrid</span> <span class="o">=</span> <span class="n">ni</span><span class="o">.</span><span class="n">libxc</span><span class="o">.</span><span class="n">is_hybrid_xc</span><span class="p">(</span><span class="n">mf</span><span class="o">.</span><span class="n">xc</span><span class="p">)</span>
+
+    <span class="n">mem_now</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">current_memory</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">max_memory</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">2000</span><span class="p">,</span> <span class="n">mf</span><span class="o">.</span><span class="n">max_memory</span><span class="o">*</span><span class="mf">.9</span><span class="o">-</span><span class="n">mem_now</span><span class="p">)</span>
+    <span class="n">h1ao</span> <span class="o">=</span> <span class="n">rks_hess</span><span class="o">.</span><span class="n">_get_vxc_deriv1</span><span class="p">(</span><span class="n">hessobj</span><span class="p">,</span> <span class="n">mo_coeff</span><span class="p">,</span> <span class="n">mo_occ</span><span class="p">,</span> <span class="n">max_memory</span><span class="p">)</span>
+    <span class="n">aoslices</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">aoslice_by_atom</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i0</span><span class="p">,</span> <span class="n">ia</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atmlst</span><span class="p">):</span>
+        <span class="n">shl0</span><span class="p">,</span> <span class="n">shl1</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="n">aoslices</span><span class="p">[</span><span class="n">ia</span><span class="p">]</span>
+        <span class="n">shls_slice</span> <span class="o">=</span> <span class="p">(</span><span class="n">shl0</span><span class="p">,</span> <span class="n">shl1</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">mol</span><span class="o">.</span><span class="n">nbas</span><span class="p">)</span><span class="o">*</span><span class="mi">3</span>
+        <span class="k">if</span> <span class="n">hybrid</span><span class="p">:</span>
+            <span class="n">vj1</span><span class="p">,</span> <span class="n">vj2</span><span class="p">,</span> <span class="n">vk1</span><span class="p">,</span> <span class="n">vk2</span> <span class="o">=</span> \
+                    <span class="n">rhf_hess</span><span class="o">.</span><span class="n">_get_jk</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="s1">&#39;int2e_ip1&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;s2kl&#39;</span><span class="p">,</span>
+                                     <span class="p">[</span><span class="s1">&#39;ji-&gt;s2kl&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dm0</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">],</span>  <span class="c1"># vj1</span>
+                                      <span class="s1">&#39;lk-&gt;s1ij&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dm0</span>         <span class="p">,</span>  <span class="c1"># vj2</span>
+                                      <span class="s1">&#39;li-&gt;s1kj&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dm0</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">],</span>  <span class="c1"># vk1</span>
+                                      <span class="s1">&#39;jk-&gt;s1il&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dm0</span>         <span class="p">],</span> <span class="c1"># vk2</span>
+                                     <span class="n">shls_slice</span><span class="o">=</span><span class="n">shls_slice</span><span class="p">)</span>
+            <span class="n">veff</span> <span class="o">=</span> <span class="n">vj1</span> <span class="o">-</span> <span class="n">hyb</span> <span class="o">*</span> <span class="mf">.5</span> <span class="o">*</span> <span class="n">vk1</span>
+            <span class="n">veff</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">vj2</span> <span class="o">-</span> <span class="n">hyb</span> <span class="o">*</span> <span class="mf">.5</span> <span class="o">*</span> <span class="n">vk2</span>
+            <span class="k">if</span> <span class="n">omega</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">mol</span><span class="o">.</span><span class="n">with_range_coulomb</span><span class="p">(</span><span class="n">omega</span><span class="p">):</span>
+                    <span class="n">vk1</span><span class="p">,</span> <span class="n">vk2</span> <span class="o">=</span> \
+                        <span class="n">rhf_hess</span><span class="o">.</span><span class="n">_get_jk</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="s1">&#39;int2e_ip1&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;s2kl&#39;</span><span class="p">,</span>
+                                         <span class="p">[</span><span class="s1">&#39;li-&gt;s1kj&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dm0</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">],</span>  <span class="c1"># vk1</span>
+                                          <span class="s1">&#39;jk-&gt;s1il&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dm0</span>         <span class="p">],</span> <span class="c1"># vk2</span>
+                                         <span class="n">shls_slice</span><span class="o">=</span><span class="n">shls_slice</span><span class="p">)</span>
+                <span class="n">veff</span> <span class="o">-=</span> <span class="p">(</span><span class="n">alpha</span><span class="o">-</span><span class="n">hyb</span><span class="p">)</span> <span class="o">*</span> <span class="mf">.5</span> <span class="o">*</span> <span class="n">vk1</span>
+                <span class="n">veff</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">-=</span> <span class="p">(</span><span class="n">alpha</span><span class="o">-</span><span class="n">hyb</span><span class="p">)</span> <span class="o">*</span> <span class="mf">.5</span> <span class="o">*</span> <span class="n">vk2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">vj1</span><span class="p">,</span> <span class="n">vj2</span> <span class="o">=</span> <span class="n">rhf_hess</span><span class="o">.</span><span class="n">_get_jk</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="s1">&#39;int2e_ip1&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;s2kl&#39;</span><span class="p">,</span>
+                                        <span class="p">[</span><span class="s1">&#39;ji-&gt;s2kl&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dm0</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">],</span>  <span class="c1"># vj1</span>
+                                         <span class="s1">&#39;lk-&gt;s1ij&#39;</span><span class="p">,</span> <span class="o">-</span><span class="n">dm0</span>         <span class="p">],</span> <span class="c1"># vj2</span>
+                                        <span class="n">shls_slice</span><span class="o">=</span><span class="n">shls_slice</span><span class="p">)</span>
+            <span class="n">veff</span> <span class="o">=</span> <span class="n">vj1</span>
+            <span class="n">veff</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">vj2</span>
+
+        <span class="n">veff</span> <span class="o">-=</span> <span class="n">dse_fock_d1_s</span><span class="p">(</span><span class="n">dipole</span><span class="p">,</span> <span class="n">dipole_d1</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">],</span> <span class="n">dm0</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">],</span> <span class="n">with_j</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">veff</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">dse_d1</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span>
+        <span class="n">h1ao</span><span class="p">[</span><span class="n">ia</span><span class="p">]</span> <span class="o">+=</span> <span class="n">veff</span> <span class="o">+</span> <span class="n">veff</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">h1ao</span><span class="p">[</span><span class="n">ia</span><span class="p">]</span> <span class="o">+=</span> <span class="n">hcore_deriv</span><span class="p">(</span><span class="n">ia</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">chkfile</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">h1ao</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ia</span> <span class="ow">in</span> <span class="n">atmlst</span><span class="p">:</span>
+            <span class="n">lib</span><span class="o">.</span><span class="n">chkfile</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">chkfile</span><span class="p">,</span> <span class="s1">&#39;scf_f1ao/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="o">%</span><span class="n">ia</span><span class="p">,</span> <span class="n">h1ao</span><span class="p">[</span><span class="n">ia</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">chkfile</span></div>
+
+
+
+
+<div class="viewcode-block" id="Hessian">
+<a class="viewcode-back" href="../../../lumeq.polariton.html#lumeq.polariton.qed_ks.Hessian">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Hessian</span><span class="p">(</span><span class="n">rks_hess</span><span class="o">.</span><span class="n">Hessian</span><span class="p">):</span>
+    <span class="n">partial_hess_elec</span> <span class="o">=</span> <span class="n">partial_hess_elec</span>
+    <span class="n">make_h1</span> <span class="o">=</span> <span class="n">make_h1</span></div>
+
+
+<span class="n">polariton_cs</span><span class="o">.</span><span class="n">Hessian</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">class_as_method</span><span class="p">(</span><span class="n">Hessian</span><span class="p">)</span>
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="c1">#infile = &#39;h2o.in&#39;</span>
+    <span class="c1">#parameters = parser(infile)</span>
+
+    <span class="c1">#charge, spin, atom = parameters.get(section_names[0])[1:4]</span>
+    <span class="c1">#functional, basis = get_rem_info(parameters.get(section_names[1]))[:2]</span>
+    <span class="c1">#mol = build_molecule(atom, basis, charge, spin, verbose=0)</span>
+
+    <span class="n">hf</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            H    0. 0. -0.459</span>
+<span class="s2">            F    0. 0.  0.459</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="n">h2o</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">            H    1.6090032   -0.0510674    0.4424329</span>
+<span class="s2">            O    0.8596350   -0.0510674   -0.1653507</span>
+<span class="s2">            H    0.1102668   -0.0510674    0.4424329</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="n">atom</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()[</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">hf</span>
+
+    <span class="n">functional</span> <span class="o">=</span> <span class="s1">&#39;hf&#39;</span>
+    <span class="n">mol</span> <span class="o">=</span> <span class="n">build_molecule</span><span class="p">(</span><span class="n">atom</span><span class="p">,</span> <span class="s1">&#39;sto-3g&#39;</span><span class="p">)</span>
+
+    <span class="n">frequency</span> <span class="o">=</span> <span class="mf">0.42978</span> <span class="c1"># gs doesn&#39;t depend on frequency</span>
+    <span class="n">coupling</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">.5</span><span class="p">])</span>
+
+    <span class="n">mf</span> <span class="o">=</span> <span class="n">polariton_cs</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span> <span class="c1"># in coherent state</span>
+    <span class="n">mf</span><span class="o">.</span><span class="n">xc</span> <span class="o">=</span> <span class="n">functional</span>
+    <span class="n">mf</span><span class="o">.</span><span class="n">grids</span><span class="o">.</span><span class="n">prune</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">mf</span><span class="o">.</span><span class="n">get_multipole_matrix</span><span class="p">(</span><span class="n">coupling</span><span class="p">)</span>
+
+    <span class="n">natoms</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">natm</span>
+
+    <span class="n">e_tot</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
+    <span class="n">hessobj</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">Hessian</span><span class="p">()</span>
+    <span class="n">hess</span> <span class="o">=</span> <span class="n">hessobj</span><span class="o">.</span><span class="n">kernel</span><span class="p">()</span>
+    <span class="n">hess</span> <span class="o">=</span> <span class="n">hess</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span> <span class="n">natoms</span><span class="o">*</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;hess:&#39;</span><span class="p">,</span> <span class="n">hess</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+
+    <span class="n">norder</span><span class="p">,</span> <span class="n">step_size</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">1e-4</span>
+
+    <span class="n">fd_e</span><span class="p">,</span> <span class="n">fd_mo</span> <span class="o">=</span> <span class="n">finite_difference</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span> <span class="n">norder</span><span class="p">,</span> <span class="n">step_size</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="c1">#fd_mo[0::3,5,3] = 0.</span>
+    <span class="c1">#fd_mo[np.abs(fd_mo)&gt;2.] = 0.</span>
+    <span class="c1">#print_matrix(&#39;fd_mo:&#39;, np.array(fd_mo), 5, 1)</span>
+
+    <span class="n">fd_mo1</span> <span class="o">=</span> <span class="n">fd_orbital_rotation_mo1</span><span class="p">(</span><span class="n">mf</span><span class="p">,</span> <span class="n">fd_mo</span><span class="p">)</span>
+    <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;fd_mo1&#39;</span><span class="p">,</span> <span class="n">fd_mo1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">mo1</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">chkfile</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">hessobj</span><span class="o">.</span><span class="n">chkfile</span><span class="p">,</span> <span class="s1">&#39;scf_mo1&#39;</span><span class="p">)</span>
+    <span class="n">mo1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="n">mo1</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">mo1</span><span class="p">],</span> <span class="n">fd_mo1</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;mo1:&#39;</span><span class="p">,</span> <span class="n">mo1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;cpscf mo1 diff:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">fd_mo1</span><span class="o">-</span><span class="n">mo1</span><span class="p">))</span>
+
+    <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;fd_e:&#39;</span><span class="p">,</span> <span class="n">fd_e</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;hessian diff:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">fd_e</span><span class="o">-</span><span class="n">hess</span><span class="p">))</span>
+
+    <span class="c1">#from lumeq.utils import read_matrix</span>
+    <span class="c1">#nao = mf.mo_coeff.shape[0]</span>
+    <span class="c1">#coeff1 = read_matrix(&#39;qc-diff&#39;, 1, nao*nao, &#39;Alpha MO coefficients&#39;, 5)</span>
+    <span class="c1">#coeff1 = coeff1.reshape(2, nao, nao).transpose(0,2,1)</span>
+    <span class="c1">#coeff1[1] = change_matrix_phase_c(coeff1[0], coeff1[1])</span>
+    <span class="c1">#print_matrix(&#39;coeff1:&#39;, coeff1, 5, 1)</span>
+    <span class="c1">#print_matrix(&#39;coeff diff:&#39;, (coeff1[1]-coeff1[0])/2*5e3, 5, 1)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

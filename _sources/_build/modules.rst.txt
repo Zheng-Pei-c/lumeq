@@ -1,7 +1,0 @@
-wavefunction_analysis
-=====================
-
-.. toctree::
-   :maxdepth: 4
-
-   wavefunction_analysis

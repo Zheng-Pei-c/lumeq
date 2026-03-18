@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.opt.riemannian &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.opt.riemannian</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">np</span><span class="p">,</span> <span class="n">scipy</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.opt</span><span class="w"> </span><span class="kn">import</span> <span class="n">gradient_descent</span><span class="p">,</span> <span class="n">conjugate_gradient</span><span class="p">,</span> <span class="n">newton_2nd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_ortho_basis</span><span class="p">,</span> <span class="n">print_matrix</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">the manifold code refers to Alan Edelman, Tomas, Arias, and Steven Smith,</span>
+<span class="sd">                            SIAM J. Matrix Anal. Appl. 1998</span>
+<span class="sd">as well as other packages such as `pymanopt`, `manopt`, etc</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="get_random_matrix">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.get_random_matrix">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_random_matrix</span><span class="p">(</span><span class="n">ndim</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sym</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ndim</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span> <span class="c1"># square matrix</span>
+        <span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">ndim</span>
+
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">ndim</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="c1"># vector</span>
+        <span class="k">return</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="n">ndim</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">ndim</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> <span class="c1"># rectrangular matrix</span>
+        <span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">ndim</span>
+
+    <span class="n">A</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">sym</span> <span class="ow">and</span> <span class="p">(</span><span class="n">m</span><span class="o">==</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="mf">.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">A</span> <span class="o">+</span> <span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">A</span></div>
+
+
+
+<div class="viewcode-block" id="solve_sylvester">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.solve_sylvester">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">solve_sylvester</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;iter&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    solve X from `AX + XB = C` aka. Lyapunov, Stein equation</span>
+<span class="sd">    return X</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">I</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">B</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
+
+    <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">I</span><span class="p">,</span> <span class="n">A</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">I</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">n</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">C</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">kernel</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">C</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">C</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kernel</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">C</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+
+
+<div class="viewcode-block" id="Riemannian">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Riemannian</span><span class="p">():</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ndim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">x0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">A</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">B</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">retraction</span><span class="o">=</span><span class="s1">&#39;qr&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A: the quadratic function kernel</span>
+<span class="sd">        B: orthogonal metric (overlap), default is I_n</span>
+<span class="sd">        x0: initial point on the manifold</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ndim</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ndim</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Riemannian dimension is not given&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">retraction</span> <span class="o">=</span> <span class="s1">&#39;norm&#39;</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">retraction</span> <span class="o">==</span> <span class="s1">&#39;norm&#39;</span><span class="p">:</span>
+                <span class="n">retraction</span> <span class="o">=</span> <span class="s1">&#39;qr&#39;</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;required retraction is not appliable and changed to qr&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span> <span class="c1"># get a random symmetric matrix</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_A</span> <span class="o">=</span> <span class="n">get_random_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">,</span> <span class="mi">12345</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_A</span> <span class="o">=</span> <span class="n">A</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">=</span> <span class="n">B</span>
+            <span class="c1"># B^1/2, B^-1/2, B^-1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Z</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Binv</span> <span class="o">=</span> <span class="n">get_ortho_basis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;lowdin&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># identity matrix</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_L</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Z</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Binv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_B</span><span class="p">)</span>
+
+
+        <span class="k">try</span><span class="p">:</span> <span class="c1"># get the actual retraction method</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">retraction</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;retraction_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">retraction</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;required retraction method is not implemented&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)):</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_random_matrix</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">12345</span><span class="p">,</span> <span class="n">sym</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">retraction</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_sanity</span><span class="p">()</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dimension</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;actual dimension is not implemented&#39;</span><span class="p">)</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">norm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        calculate the length of a tangent vector v of point x</span>
+<span class="sd">        use euclidean norm by default</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        calculate the distance between two tangent vectors at one point</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#TODO: is this true? I just wrote it down in a second...</span>
+        <span class="n">dv</span> <span class="o">=</span> <span class="n">v1</span> <span class="o">-</span> <span class="n">v2</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">dv</span><span class="p">,</span> <span class="n">dv</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Riemannian.exp">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.exp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        geodesic mapping tangent vector v of x to other points on manifold</span>
+<span class="sd">        exp_p: T_p M -&gt; M</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;actual exp is not implemented&#39;</span><span class="p">)</span></div>
+
+
+
+    <span class="n">geodesic</span> <span class="o">=</span> <span class="n">exp</span>
+
+
+<div class="viewcode-block" id="Riemannian.log">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.log">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        geodesic mapping points on manifold to the tangent space of the first point</span>
+<span class="sd">        log_p: M -&gt; T_p M</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;actual log is not implemented&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Riemannian.retraction">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.retraction">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retraction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        approximation to exponential geodesic mapping</span>
+<span class="sd">        project new vector x+v from point x to the manifold</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;actual retraction is not implemented&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Riemannian.inverse_retraction">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.inverse_retraction">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inverse_retraction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        approximation to logrithrim geodesic mapping</span>
+<span class="sd">        project points to get the connecting tangent vector at first point</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;actual inverse_retraction is not implemented&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Riemannian.projection">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.projection">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">projection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        project a general matrix v to the tangent space of a point x on the manifold</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;actual projection is not implemented&#39;</span><span class="p">)</span></div>
+
+
+
+    <span class="n">to_tangent_space</span> <span class="o">=</span> <span class="n">projection</span>
+
+
+<div class="viewcode-block" id="Riemannian.transport">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.transport">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transport</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">v0</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        parallel or vector transport moves tangent vector v0 at point x0 to point x1</span>
+<span class="sd">        `T_{x0-&gt;x1} (v0): v0 \in T_{x0} M -&gt; v1 \in T_{x1} M = Proj_M (x1, v0)`</span>
+<span class="sd">        here x0 is a dummy variable</span>
+<span class="sd">        project v0 to the tangent space of x1</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">v0</span><span class="p">)</span></div>
+
+
+
+    <span class="c1">#TODO: on same point or two points?</span>
+<div class="viewcode-block" id="Riemannian.weingarten">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.weingarten">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">weingarten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        connection between tangent vectors</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;actual weingarten is not implemented&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Riemannian.check_tangent">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.check_tangent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_tangent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        verify the obtained vector v is truly a tangent</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;actual check_tangent is not implemented&#39;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Riemannian.riemannian_gradient">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.riemannian_gradient">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">riemannian_gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">grad</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        project euclidean gradient to riemannian gradient of a function</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Riemannian.riemannian_hessian">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.riemannian_hessian">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">riemannian_hessian</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">hess</span><span class="p">,</span> <span class="n">normal</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        project euclidean hessian to riemannian hessian of a function</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">normal</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># euclidean_gradient - riemannian_gradient</span>
+            <span class="n">normal</span> <span class="o">=</span> <span class="n">grad</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">hess</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">weingarten</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">normal</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Riemannian.gradient_descent">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.gradient_descent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gradient_descent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nmax</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">thresh</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span>
+                         <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="c1"># assign a fixed suitable size by default</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_A</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ymin&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;eigenvalue&#39;</span><span class="p">:</span>
+            <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;ymin&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">eigenvalue</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">gradient_descent</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">func_grad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">retraction</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">x0</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">nmax</span><span class="p">,</span> <span class="n">thresh</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Riemannian.conjugate_gradient">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Riemannian.conjugate_gradient">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">conjugate_gradient</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cg_method</span><span class="o">=</span><span class="s1">&#39;fletcher_reeves&#39;</span><span class="p">,</span>
+                           <span class="n">nmax</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">thresh</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="c1"># assign a fixed suitable size by default</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_A</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;preconditioner&#39;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">preconditioner</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="n">conjugate_gradient</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">func_grad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">retraction</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">transport</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">preconditioner</span><span class="p">,</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">x0</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">cg_method</span><span class="p">,</span> <span class="n">nmax</span><span class="p">,</span> <span class="n">thresh</span><span class="p">,</span>
+                                <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</div>
+
+
+
+
+<span class="c1"># TODO: fix the N*N case</span>
+<div class="viewcode-block" id="OrthogonalGroup">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OrthogonalGroup</span><span class="p">(</span><span class="n">Riemannian</span><span class="p">):</span> <span class="c1"># orthogonal group manifold</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    the points are n*n square matrix, n-dimensions and n-planes</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="OrthogonalGroup.check_sanity">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.check_sanity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ndim</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span> <span class="ow">and</span> <span class="n">ndim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">!=</span><span class="n">ndim</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;points on OrthogonalGroup should be square matrix&#39;</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">eigenvalue</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_A</span>
+        <span class="n">e</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">A</span><span class="p">)</span>
+
+        <span class="n">arg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="n">e</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">e</span><span class="p">[</span><span class="n">arg</span><span class="p">],</span> <span class="n">v</span><span class="p">[:,</span><span class="n">arg</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">e</span>
+
+
+    <span class="c1"># x0 is nd square matrix</span>
+<div class="viewcode-block" id="OrthogonalGroup.func">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.func">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span> <span class="c1"># &lt;x|A|x&gt; / &lt;x|x&gt;</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;assume x is normalized&quot;&quot;&quot;</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_A</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;m...,mn,n...-&gt;...&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="OrthogonalGroup.func_grad">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.func_grad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">func_grad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span> <span class="c1"># 2 (I - |x&gt;&lt;x|) A|x&gt; = 2 (A - &lt;x|A|x&gt;I ) |x&gt;</span>
+        <span class="c1"># the returned grad has been projected on the tangent space</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;assume x is normalized&quot;&quot;&quot;</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_A</span>
+        <span class="c1">#x /= np.linalg.norm(x) # put it on sphere</span>
+        <span class="n">Ax</span> <span class="o">=</span> <span class="mf">2.</span><span class="o">*</span> <span class="p">(</span><span class="n">A</span> <span class="o">@</span> <span class="n">x</span><span class="p">)</span> <span class="c1">#np.einsum(&#39;mn,n...-&gt;m...&#39;, A, x)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Ax</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="OrthogonalGroup.projection">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.projection">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">projection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="c1">#return (v - x * np.sum(np.einsum(&#39;m...,m...-&gt;...&#39;, x, v)))</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="n">x</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="OrthogonalGroup.retraction_norm">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.retraction_norm">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retraction_norm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;put (x+v) on the sphere&quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">v</span><span class="o">*</span><span class="n">dt</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="OrthogonalGroup.retraction_qr">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.retraction_qr">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retraction_qr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="c1">#TODO: fix this bug!!!</span>
+        <span class="n">x</span> <span class="o">+=</span> <span class="n">x</span> <span class="o">@</span> <span class="n">x</span>
+        <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">q</span></div>
+
+
+
+<div class="viewcode-block" id="OrthogonalGroup.retraction_polar">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.retraction_polar">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retraction_polar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span></div>
+
+
+
+<div class="viewcode-block" id="OrthogonalGroup.retraction_cayley">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.retraction_cayley">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retraction_cayley</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="c1">#TODO: where is the step size</span>
+        <span class="n">I</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">v</span> <span class="o">*=</span> <span class="mf">.5</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">((</span><span class="n">I</span> <span class="o">-</span> <span class="n">v</span><span class="p">))</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">I</span> <span class="o">+</span> <span class="n">v</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,jk,kl-&gt;il&#39;</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="OrthogonalGroup.exp">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.exp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">expm</span><span class="p">(</span><span class="n">v</span><span class="o">*</span><span class="n">dt</span><span class="p">)</span> <span class="o">@</span> <span class="n">x</span></div>
+
+
+
+    <span class="c1">#TODO: what about log?</span>
+<div class="viewcode-block" id="OrthogonalGroup.log">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.OrthogonalGroup.log">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="k">return</span></div>
+</div>
+
+
+
+
+<div class="viewcode-block" id="Stiefel">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Stiefel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Stiefel</span><span class="p">(</span><span class="n">OrthogonalGroup</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    `St(k,n) = {p \in F^{n*k} | p^\dagger B p = I_k}`</span>
+<span class="sd">    the point p is a n*k matrix, n-dimensions and k-planes</span>
+<span class="sd">    quotient space from OrthogonalGroup where k&lt;n</span>
+<span class="sd">    whose tangent vector V is on the tangent space of point p</span>
+<span class="sd">    `T_p St(k,n) = {V \in F^{n*k} | p^\dagger B V + V^\dagger B p = 0_k}`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Stiefel.check_sanity">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Stiefel.check_sanity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ndim</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ndim</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span> <span class="ow">and</span> <span class="n">ndim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&lt;</span><span class="n">ndim</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;points on Stiefel should be long rectagular matrix&#39;</span><span class="p">)</span></div>
+
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dimension</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">):</span>
+        <span class="n">n</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="nb">float</span><span class="p">:</span> <span class="c1"># \mathbb{R}</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="o">*</span><span class="n">k</span> <span class="o">-</span> <span class="n">k</span><span class="o">*</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="nb">complex</span><span class="p">:</span> <span class="c1"># \mathbb{C}</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">((</span><span class="mi">2</span><span class="o">*</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">k</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># quaternion \mathbb{H}</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">((</span><span class="mi">4</span><span class="o">*</span><span class="n">n</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">k</span> <span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">*</span><span class="n">k</span><span class="p">)</span>
+
+
+    <span class="c1">#TODO: find the distance for T_p St</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">):</span>
+        <span class="k">return</span>
+
+
+<div class="viewcode-block" id="Stiefel.projection">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Stiefel.projection">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">projection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        `Proj(p,V) = V - p Sym(p^\dagger B V)`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">@</span> <span class="n">v</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="mf">.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">tmp</span> <span class="o">+</span> <span class="n">tmp</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="n">x</span> <span class="o">@</span> <span class="n">tmp</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Stiefel.retraction_qr">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Stiefel.retraction_qr">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retraction_qr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        `Retr_p V = QD where QR = qr(p+V) and D=diag(sgn(diag(R)+.5))`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">v</span><span class="o">*</span><span class="n">dt</span>
+        <span class="c1">#TODO: compare this with pymanopt</span>
+        <span class="c1">#return pymanopt.tools.multi.multiqr(x)[0]</span>
+        <span class="n">q</span><span class="p">,</span> <span class="n">r</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="o">+</span><span class="mf">.5</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,j-&gt;ij&#39;</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Stiefel.retraction_polar">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Stiefel.retraction_polar">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retraction_polar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        `Retr_p V = U V^\dagger where UsV^\dagger = svd(p+V)`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">v</span><span class="o">*</span><span class="n">dt</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">u</span> <span class="o">@</span> <span class="n">vt</span></div>
+
+
+
+    <span class="c1">#TODO: implement qr method</span>
+<div class="viewcode-block" id="Stiefel.inverse_retraction_qr">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Stiefel.inverse_retraction_qr">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inverse_retraction_qr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="k">return</span></div>
+
+
+
+<div class="viewcode-block" id="Stiefel.inverse_retraction_polar">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Stiefel.inverse_retraction_polar">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inverse_retraction_polar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="n">pt</span> <span class="o">=</span> <span class="n">x1</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">x2</span>
+        <span class="c1">#TODO: it seems identity should be replaced by overlap metric</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">solve_sylvester</span><span class="p">(</span><span class="n">pt</span><span class="p">,</span> <span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">x1</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x2</span> <span class="o">@</span> <span class="p">(</span><span class="n">v</span><span class="o">*</span><span class="n">dt</span><span class="p">)</span> <span class="o">-</span> <span class="n">x1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Stiefel.weingarten">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Stiefel.weingarten">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">weingarten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">normal</span><span class="p">):</span>
+        <span class="c1"># grad is not used</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">normal</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="mf">.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">tmp</span> <span class="o">+</span> <span class="n">tmp</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+        <span class="n">w</span> <span class="o">=</span> <span class="n">v</span> <span class="o">@</span> <span class="n">x</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">normal</span>
+        <span class="n">w</span> <span class="o">+=</span> <span class="n">x</span> <span class="o">@</span> <span class="n">tmp</span>
+        <span class="k">return</span> <span class="n">w</span></div>
+
+
+
+    <span class="c1">#TODO: where is the time dt?</span>
+<div class="viewcode-block" id="Stiefel.exp">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Stiefel.exp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        `exp_p V = (p \\ V) exp((p^\dagger V &amp; - V^\dagger V \\ I_n &amp; p^\dagger V)) (exp(-p^\dagger V) \\ 0_n)`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pt_tv</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">v</span>
+        <span class="n">identity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ndim</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># column dimension</span>
+
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">])</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">block</span><span class="p">([[</span><span class="n">pt_tv</span><span class="p">,</span> <span class="o">-</span><span class="n">v</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">v</span><span class="p">,],</span>
+                      <span class="p">[</span><span class="n">identity</span><span class="p">,</span> <span class="n">pt_tv</span><span class="p">],])</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">expm</span><span class="p">(</span><span class="n">b</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_p</span><span class="p">]</span> <span class="c1">#TODO: fix undefined self._p I guess it is k</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">expm</span><span class="p">(</span><span class="o">-</span><span class="n">pt_tv</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">a</span> <span class="o">@</span> <span class="p">(</span><span class="n">b</span> <span class="o">@</span> <span class="n">c</span><span class="p">)</span></div>
+
+
+
+    <span class="c1">#TODO: can we find log for stiefel?</span>
+<div class="viewcode-block" id="Stiefel.log">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Stiefel.log">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="k">return</span></div>
+
+
+
+<div class="viewcode-block" id="Stiefel.check_tangent">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Stiefel.check_tangent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_tangent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="n">dot1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ji,jk-&gt;ik&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">v</span><span class="p">)</span>
+        <span class="n">dot2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ji,jk-&gt;ik&#39;</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">is_tangent</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">dot1</span><span class="p">,</span> <span class="n">dot2</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;is it a true tangent?&#39;</span><span class="p">,</span> <span class="n">is_tangent</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_tangent</span><span class="p">:</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;dot:&#39;</span><span class="p">,</span> <span class="n">dot1</span><span class="o">-</span><span class="n">dot2</span><span class="p">,</span> <span class="n">digits</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="s1">&#39;e&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">is_tangent</span></div>
+</div>
+
+
+
+
+<div class="viewcode-block" id="Grassmann_Quotient">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Grassmann_Quotient</span><span class="p">(</span><span class="n">Stiefel</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Grassmann manifold represented as a quotient of the Stiefel manifold.</span>
+
+<span class="sd">    This implementation works with the orbital coefficient matrix ``p`` rather</span>
+<span class="sd">    than the projector built from it.</span>
+
+<span class="sd">    Notes:</span>
+<span class="sd">        The quotient-space relations used here are</span>
+
+<span class="sd">        .. code-block:: text</span>
+
+<span class="sd">            Gr(k, n) = St(k, n) / O(k)</span>
+<span class="sd">                     = {p in F^(n x k) | p^dagger B p = I_k, P B P = P}</span>
+
+<span class="sd">            P = p p^dagger</span>
+<span class="sd">            T_p Gr(k, n) = {V in F^(n x k) | p^dagger B V = 0}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Grassmann_Quotient.check_sanity">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.check_sanity">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_sanity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x0</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">x</span> <span class="o">@</span> <span class="n">x</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span>
+        <span class="n">p2</span> <span class="o">=</span> <span class="n">p</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">@</span> <span class="n">p</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p2</span><span class="p">):</span>
+            <span class="k">return</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Initial point is not on quotient Grassmannian&#39;</span><span class="p">)</span></div>
+
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dimension</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">):</span>
+        <span class="n">n</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="n">k</span><span class="p">)</span><span class="o">*</span><span class="n">k</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="nb">float</span> <span class="k">else</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="nb">complex</span> <span class="k">else</span> <span class="mi">4</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="o">*</span><span class="n">d</span><span class="p">)</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">((</span><span class="n">v1</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">@</span> <span class="n">v2</span><span class="p">),</span> <span class="n">compute_uv</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">s</span><span class="p">[</span><span class="n">s</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.projection">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.projection">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">projection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        the resulted tangent vector is perpendicular to BX</span>
+<span class="sd">        `&lt;\Delta, BX&gt; = 0`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#p = x @ x.conj().T # projector, aka `density matrix`</span>
+        <span class="c1">#return (self._Binv - p) @ v</span>
+        <span class="c1">#TODO: which one is correct?</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">x</span> <span class="o">@</span> <span class="n">x</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">v</span> <span class="o">-</span> <span class="n">p</span> <span class="o">@</span> <span class="n">v</span><span class="p">)</span></div>
+
+
+
+    <span class="c1">#TODO: should these be same?</span>
+<div class="viewcode-block" id="Grassmann_Quotient.retraction_qr">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.retraction_qr">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retraction_qr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span> <span class="c1"># same as stiefel</span>
+        <span class="k">return</span></div>
+
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.retraction_polar">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.retraction_polar">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retraction_polar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span> <span class="c1"># same as stiefel</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">v</span><span class="o">*</span><span class="n">dt</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">u</span> <span class="o">@</span> <span class="n">vt</span></div>
+
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.inverse_retraction_polar">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.inverse_retraction_polar">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inverse_retraction_polar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+        <span class="n">pt</span> <span class="o">=</span> <span class="n">x1</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">x2</span>
+        <span class="n">pt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">pt</span><span class="p">)</span> <span class="c1"># get inverse</span>
+        <span class="c1">#TODO: double check!</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x2</span> <span class="o">@</span> <span class="p">(</span><span class="n">pt</span><span class="o">*</span><span class="n">dt</span><span class="p">)</span> <span class="o">-</span> <span class="n">x1</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.weingarten">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.weingarten">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">weingarten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">normal</span><span class="p">):</span>
+        <span class="c1"># normal is not used</span>
+        <span class="c1"># grad is euclidean gradient</span>
+        <span class="k">return</span> <span class="n">v</span> <span class="o">@</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">grad</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.exp">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.exp">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        `exp_p (V) = p V cos(s) V^\dagger + U sin(s) V^\dagger`</span>
+<span class="sd">        qr is needed for numerically stablity</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#TODO: why v.conj().T @ self._B @ v</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="c1"># save the hard work</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tang_u</span> <span class="o">=</span> <span class="n">u</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tang_s</span> <span class="o">=</span> <span class="n">s</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tang_vt</span> <span class="o">=</span> <span class="n">vt</span>
+
+        <span class="n">s</span> <span class="o">*=</span> <span class="n">dt</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,kj,k-&gt;ik&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">vt</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="p">(</span><span class="n">y</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,j-&gt;ij&#39;</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">s</span><span class="p">)))</span> <span class="o">@</span> <span class="n">vt</span>
+
+        <span class="c1"># it seems necessary to re-orthonormalize numerically</span>
+        <span class="c1"># even though it is quite expensive.</span>
+        <span class="c1">#TODO: compare it with pymanopt</span>
+        <span class="c1">#q, _ = pymanopt.tools.multi.multiqr(y)</span>
+        <span class="n">q</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">qr</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">q</span></div>
+
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.log">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.log">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        adopted from alg. 1 from 10.1007/s10444-023-10090-8</span>
+<span class="sd">        recovers Stiefel from exp operation and avoids matrix inverse</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ytx</span> <span class="o">=</span> <span class="n">x2</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="bp">self</span><span class="o">.</span><span class="n">_B</span> <span class="o">@</span> <span class="n">x1</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">ytx</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1">#s = np.sqrt(1.-s**2)</span>
+        <span class="c1">#idx = np.where(s&gt;1e-9)[0]</span>
+        <span class="c1">#s = s[idx]</span>
+        <span class="c1">#u, vt = np.flip(u[:,idx], axis=1), np.flip(vt[idx], axis=0)</span>
+
+        <span class="c1">#ytx = np.einsum(&#39;ij,jk,k-&gt;ik&#39;, x2, u, 1./s)</span>
+        <span class="c1">#u = ytx - (x1 @ x1.conj().T) @ ytx</span>
+
+        <span class="n">x2</span> <span class="o">=</span> <span class="n">x2</span> <span class="o">@</span> <span class="p">(</span><span class="n">u</span> <span class="o">@</span> <span class="n">vt</span><span class="p">)</span>
+        <span class="n">ytx</span> <span class="o">=</span> <span class="n">x2</span> <span class="o">-</span> <span class="p">(</span><span class="n">x1</span> <span class="o">@</span> <span class="n">x1</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">@</span> <span class="n">x2</span>
+        <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">ytx</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="n">s</span> <span class="o">*=</span> <span class="n">dt</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,j,jk-&gt;ik&#39;</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">vt</span><span class="p">)</span></div>
+
+
+        <span class="c1">#At = x2.conj().T - ytx @ x1.conj().T</span>
+        <span class="c1">#Bt = np.linalg.solve(ytx, At)</span>
+        <span class="c1">#u, s, vt = np.linalg.svd(Bt.conj().T, full_matrices=False)</span>
+        <span class="c1">#s *= dt</span>
+        <span class="c1">#return np.einsum(&#39;ij,j,jk-&gt;ik&#39;, u, np.arctan(s), vt)</span>
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.horizontal_lift">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.horizontal_lift">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">horizontal_lift</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">lift</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        `\Delta = (0 &amp; - B^T \\ B &amp; 0)`</span>
+<span class="sd">        `\Delta_p^horizontal = \Delta * p = p_\perp * B` in Stiefel representation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">tangent_type</span><span class="p">():</span>
+            <span class="n">n0</span><span class="p">,</span> <span class="n">k0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ndim</span>
+            <span class="n">n</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+            <span class="n">n1</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+
+            <span class="k">if</span> <span class="n">k</span><span class="o">==</span><span class="n">k0</span> <span class="ow">and</span> <span class="n">n1</span><span class="o">==</span><span class="n">n0</span><span class="p">:</span> <span class="c1"># Delta</span>
+                <span class="k">return</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">k</span><span class="o">==</span><span class="p">(</span><span class="n">n0</span><span class="o">-</span><span class="n">k0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">n2</span><span class="o">==</span><span class="n">k0</span><span class="p">:</span> <span class="c1"># B</span>
+                <span class="k">return</span> <span class="mi">2</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;point and tangent do not match&#39;</span><span class="p">)</span>
+
+        <span class="n">itype</span> <span class="o">=</span> <span class="n">tangent_type</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">lift</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">itype</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...ij,jk-&gt;...ik&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">itype</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,...jk-&gt;...ik&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">itype</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span> <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...ij,kj-&gt;...ik&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+            <span class="k">elif</span> <span class="n">itype</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span> <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ji,...jk-&gt;...ik&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">v</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.get_tangent">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.get_tangent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_tangent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">horizontal_lift</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.check_tangent">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.check_tangent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_tangent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="n">dot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ji,jk-&gt;ik&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">v</span><span class="p">)</span>
+        <span class="n">is_tangent</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">dot</span><span class="p">)</span><span class="o">&lt;</span><span class="mf">1e-10</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="c1"># all zeros</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;is it a true tangent?&#39;</span><span class="p">,</span> <span class="n">is_tangent</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_tangent</span><span class="p">:</span>
+            <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;dot:&#39;</span><span class="p">,</span> <span class="n">dot</span><span class="p">,</span> <span class="n">digits</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="s1">&#39;e&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">is_tangent</span></div>
+
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.transport">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.transport">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transport</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">vg</span><span class="p">,</span> <span class="n">v0</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        parallel transport v0 at x0 along geodesic defined by vg</span>
+<span class="sd">        to tangent space of x1</span>
+<span class="sd">        refer to 10.1137/S0895479895290954</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vg</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">vg</span><span class="p">,</span> <span class="n">full_matrices</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># use the saved geodesics</span>
+            <span class="n">u</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">vt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tang_u</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tang_s</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tang_vt</span>
+
+        <span class="n">s</span> <span class="o">*=</span> <span class="n">dt</span>
+
+        <span class="n">y</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,kj,k-&gt;ik&#39;</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">vt</span><span class="o">.</span><span class="n">conj</span><span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        <span class="n">y</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,j-&gt;ij&#39;</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">y</span> <span class="o">@</span> <span class="n">u</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span> <span class="o">+</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">u</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="n">u</span> <span class="o">@</span> <span class="n">u</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;ij,...jk-&gt;...ik&#39;</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">v0</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.tangent_solver">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.tangent_solver">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tangent_solver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">hess</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;direct&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;direct&#39;</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">solve_sylvester</span><span class="p">(</span><span class="n">hess</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="o">.</span><span class="n">T</span><span class="nd">@grad</span><span class="p">),</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">projection</span><span class="p">(</span><span class="n">grad</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">v</span></div>
+
+
+
+<div class="viewcode-block" id="Grassmann_Quotient.newton_2nd">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann_Quotient.newton_2nd">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">newton_2nd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gradf</span><span class="p">,</span> <span class="n">hessf</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">nmax</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">thresh</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">gradf</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+            <span class="k">return</span> <span class="mf">2.</span><span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_A</span> <span class="o">@</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">hessf</span><span class="p">():</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_A</span>
+
+        <span class="k">return</span> <span class="n">newton_2nd</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">func</span><span class="p">,</span> <span class="n">gradf</span><span class="p">,</span> <span class="n">hessf</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tangent_solver</span><span class="p">,</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">geodesic</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">nmax</span><span class="p">,</span> <span class="n">thresh</span><span class="p">)</span></div>
+</div>
+
+
+
+
+<div class="viewcode-block" id="Grassmann">
+<a class="viewcode-back" href="../../../lumeq.opt.html#lumeq.opt.riemannian.Grassmann">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">Grassmann</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">ndim</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ndim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">x0</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;x0&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">ndim</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">x0</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">n</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">ndim</span>
+
+    <span class="k">if</span> <span class="n">ndim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Grassmann dimension is not given&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">k</span> <span class="o">&lt;</span> <span class="n">n</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Grassmann_Quotient</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">k</span> <span class="o">==</span> <span class="n">n</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">Grassmann_Projection</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">pymanopt</span>
+
+    <span class="n">ndim</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">get_random_matrix</span><span class="p">(</span><span class="n">ndim</span><span class="p">)</span>
+
+    <span class="n">nmax</span> <span class="o">=</span> <span class="mi">60</span>
+
+    <span class="n">itype</span> <span class="o">=</span> <span class="s1">&#39;sphere&#39;</span>
+    <span class="c1">#itype = &#39;stiefel&#39;</span>
+
+    <span class="n">cg_method</span> <span class="o">=</span> <span class="s1">&#39;fletcher_reeves&#39;</span>
+
+    <span class="k">if</span> <span class="n">itype</span> <span class="o">==</span> <span class="s1">&#39;sphere&#39;</span><span class="p">:</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">get_random_matrix</span><span class="p">([</span><span class="n">ndim</span><span class="p">])</span>
+        <span class="n">surf_obj</span> <span class="o">=</span> <span class="n">OrthogonalGroup</span><span class="p">(</span><span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">,</span> <span class="n">A</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+        <span class="n">surf_obj2</span> <span class="o">=</span> <span class="n">pymanopt</span><span class="o">.</span><span class="n">manifolds</span><span class="o">.</span><span class="n">Sphere</span><span class="p">(</span><span class="n">ndim</span><span class="p">)</span>
+
+        <span class="nd">@pymanopt</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">autograd</span><span class="p">(</span><span class="n">surf_obj2</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">point</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">point</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">A</span> <span class="o">@</span> <span class="n">point</span>
+
+    <span class="k">elif</span> <span class="n">itype</span> <span class="o">==</span> <span class="s1">&#39;stiefel&#39;</span><span class="p">:</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">get_random_matrix</span><span class="p">((</span><span class="n">ndim</span><span class="p">,</span> <span class="n">ndim</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">surf_obj</span> <span class="o">=</span> <span class="n">Stiefel</span><span class="p">(</span><span class="n">x0</span><span class="o">=</span><span class="n">x0</span><span class="p">,</span> <span class="n">A</span><span class="o">=</span><span class="n">A</span><span class="p">)</span>
+        <span class="n">surf_obj2</span> <span class="o">=</span> <span class="n">pymanopt</span><span class="o">.</span><span class="n">manifolds</span><span class="o">.</span><span class="n">Stiefel</span><span class="p">(</span><span class="n">ndim</span><span class="p">,</span> <span class="n">ndim</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="nd">@pymanopt</span><span class="o">.</span><span class="n">function</span><span class="o">.</span><span class="n">autograd</span><span class="p">(</span><span class="n">surf_obj2</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">cost</span><span class="p">(</span><span class="n">point</span><span class="p">):</span>
+            <span class="c1">#return np.trace(point.T @ A @ point)</span>
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;m...,mn,n...-&gt;...&#39;</span><span class="p">,</span> <span class="n">point</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">point</span><span class="p">))</span>
+
+    <span class="c1">#xs, ys = surf_obj.gradient_descent(nmax=nmax)</span>
+    <span class="c1">#xs, ys = surf_obj.gradient_descent(ymin=&#39;eigenvalue&#39;)</span>
+    <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="n">surf_obj</span><span class="o">.</span><span class="n">gradient_descent</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;backtracking&#39;</span><span class="p">,</span> <span class="n">nmax</span><span class="o">=</span><span class="n">nmax</span><span class="p">)</span>
+    <span class="c1">#print(&#39;x:&#39;, xs[-1])</span>
+    <span class="c1">#print(&#39;norm:&#39;, np.einsum(&#39;ji,jk-&gt;ik&#39;, xs[-1], xs[-1]).diagonal())</span>
+
+    <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="n">surf_obj</span><span class="o">.</span><span class="n">conjugate_gradient</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;backtracking&#39;</span><span class="p">,</span> <span class="n">cg_method</span><span class="o">=</span><span class="n">cg_method</span><span class="p">,</span> <span class="n">nmax</span><span class="o">=</span><span class="n">nmax</span><span class="p">)</span>
+
+    <span class="n">problem</span> <span class="o">=</span> <span class="n">pymanopt</span><span class="o">.</span><span class="n">Problem</span><span class="p">(</span><span class="n">surf_obj2</span><span class="p">,</span> <span class="n">cost</span><span class="p">)</span>
+
+    <span class="c1">#optimizer_name = &#39;SteepestDescent&#39;</span>
+    <span class="n">optimizer_name</span> <span class="o">=</span> <span class="s1">&#39;ConjugateGradient&#39;</span>
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">pymanopt</span><span class="o">.</span><span class="n">optimizers</span><span class="p">,</span> <span class="n">optimizer_name</span><span class="p">)(</span>
+                        <span class="n">max_iterations</span><span class="o">=</span><span class="n">nmax</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">beta_rule</span><span class="o">=</span><span class="s1">&#39;FletcherReeves&#39;</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">problem</span><span class="p">,</span> <span class="n">initial_point</span><span class="o">=</span><span class="n">surf_obj</span><span class="o">.</span><span class="n">x0</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;result:&#39;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+    <span class="c1">#point = result.point</span>
+    <span class="c1">#print(&#39;norm:&#39;, np.einsum(&#39;ji,jk-&gt;ik&#39;, point, point).diagonal())</span>
+
+    <span class="c1">## plot</span>
+    <span class="c1">#import matplotlib.pyplot as plt</span>
+    <span class="c1">#from mpl_toolkits.mplot3d import Axes3D</span>
+
+    <span class="c1">#f = sphere.func</span>
+    <span class="c1">#resolution = 51</span>
+    <span class="c1">#C = np.zeros((resolution, resolution))</span>
+    <span class="c1">#X, Y, Z = np.mgrid[-1:1:complex(resolution), -1:1:complex(resolution), -1:1:complex(resolution)]</span>
+
+    <span class="c1">#for i in range(resolution):</span>
+    <span class="c1">#    for j in range(resolution):</span>
+    <span class="c1">#        v = np.array([X[i, j, 0], Y[i, j, 0], Z[i, j, 0]])</span>
+    <span class="c1">#        C[i, j] = f(v)</span>
+
+    <span class="c1">#fig = plt.figure()</span>
+    <span class="c1">#ax = fig.add_subplot(111, projection=&#39;3d&#39;)</span>
+    <span class="c1">#ax.plot_surface(X[:, :, 0], Y[:, :, 0], Z[:, :, 0], facecolors=plt.cm.viridis(C), rstride=1, cstride=1, alpha=0.7, antialiased=True)</span>
+    <span class="c1">#ax.set_xlabel(&#39;X&#39;)</span>
+    <span class="c1">#ax.set_ylabel(&#39;Y&#39;)</span>
+    <span class="c1">#ax.set_zlabel(&#39;Z&#39;)</span>
+    <span class="c1">#ax.set_title(&#39;Rayleigh Quotient on the Sphere&#39;)</span>
+
+    <span class="c1">#ax.plot(xs[:,0], xs[:,1], xs[:,2], &#39;.&#39;, markersize=10, color=&#39;r&#39;)</span>
+
+    <span class="c1">#plt.show()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

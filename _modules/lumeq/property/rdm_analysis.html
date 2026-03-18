@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.property.rdm_analysis &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.property.rdm_analysis</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">sys</span><span class="p">,</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.pyscf_helper</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">scf</span><span class="p">,</span> <span class="n">tdscf</span><span class="p">,</span> <span class="n">gto</span><span class="p">,</span> <span class="n">lib</span>
+
+<div class="viewcode-block" id="assemble_amplitudes">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.rdm_analysis.assemble_amplitudes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">assemble_amplitudes</span><span class="p">(</span><span class="n">xy</span><span class="p">,</span> <span class="n">nstates</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rpa</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    reshape the transition amplitudes from pyscf tdscf module</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        xy: ``tdscf.xy`` tuples.</span>
+<span class="sd">        nstates (int, optional): Number of excited states.</span>
+<span class="sd">        rpa (bool, optional): Whether to include the RPA ``Y`` amplitudes.</span>
+<span class="sd">        itype (str): One of ``&#39;r&#39;``, ``&#39;ro&#39;``, or ``&#39;u&#39;``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: Reshaped ``(xs, ys)`` transition amplitudes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nstates</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">reshape_xys</span><span class="p">([</span><span class="n">xy</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="n">itype</span><span class="p">)</span>
+
+    <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">itype</span> <span class="o">==</span> <span class="s1">&#39;u&#39;</span><span class="p">:</span>
+        <span class="n">xsa</span><span class="p">,</span> <span class="n">xsb</span><span class="p">,</span> <span class="n">ysa</span><span class="p">,</span> <span class="n">ysb</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_xy</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">xy</span><span class="p">):</span>
+            <span class="p">(</span><span class="n">xia</span><span class="p">,</span> <span class="n">xib</span><span class="p">),</span> <span class="p">(</span><span class="n">yia</span><span class="p">,</span> <span class="n">yib</span><span class="p">)</span> <span class="o">=</span> <span class="n">_xy</span>
+            <span class="n">xsa</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xia</span><span class="p">)</span>
+            <span class="n">xsb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xib</span><span class="p">)</span>
+            <span class="n">ysa</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">yia</span><span class="p">)</span>
+            <span class="n">ysb</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">yib</span><span class="p">)</span>
+        <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xsa</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xsb</span><span class="p">)],</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ysa</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ysb</span><span class="p">)]</span>
+
+    <span class="k">else</span><span class="p">:</span> <span class="c1"># itype in {&#39;r&#39;, &#39;ro&#39;}:</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">_xy</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">xy</span><span class="p">):</span>
+            <span class="n">xi</span><span class="p">,</span> <span class="n">yi</span> <span class="o">=</span> <span class="n">_xy</span>
+            <span class="n">xs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xi</span><span class="p">)</span>
+            <span class="n">ys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">yi</span><span class="p">)</span>
+        <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">rpa</span><span class="p">:</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># (nroots, nocc, nvir)</span>
+    <span class="k">return</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span></div>
+
+
+
+<div class="viewcode-block" id="get_transition_dm">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.rdm_analysis.get_transition_dm">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_transition_dm</span><span class="p">(</span><span class="n">xy</span><span class="p">,</span> <span class="n">coeff1</span><span class="p">,</span> <span class="n">coeff2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">2.</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    calculate transition 1-particle density matrix bewteen ground and excited states from xy amplitudes</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        xy (list): ``[xs, ys]`` amplitudes, where ``xs`` and ``ys`` are arrays</span>
+<span class="sd">            with shape ``(nstates, nocc, nvir)``.</span>
+<span class="sd">        coeff1 (numpy.ndarray): Ground-state molecular-orbital coefficients.</span>
+<span class="sd">        coeff2 (numpy.ndarray, optional): Molecular-orbital coefficients for a</span>
+<span class="sd">            different spin channel or geometry. Defaults to ``coeff1``.</span>
+<span class="sd">        scale (float): ``2`` for restricted and ``1`` for unrestricted cases.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: Transition one-particle density matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coeff2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">coeff2</span> <span class="o">=</span> <span class="n">coeff1</span>
+
+    <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="n">xy</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">o</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">rdm1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;pi,nia,qa-&gt;npq&#39;</span><span class="p">,</span> <span class="n">coeff1</span><span class="p">[:,:</span><span class="n">o</span><span class="p">],</span> <span class="n">xs</span><span class="p">,</span> <span class="n">coeff2</span><span class="p">[:,</span><span class="o">-</span><span class="n">v</span><span class="p">:]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span> <span class="c1"># add y contribution as transpose</span>
+        <span class="n">rdm1</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;pi,nia,qa-&gt;nqp&#39;</span><span class="p">,</span> <span class="n">coeff1</span><span class="p">[:,:</span><span class="n">o</span><span class="p">],</span> <span class="n">ys</span><span class="p">,</span> <span class="n">coeff2</span><span class="p">[:,</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span>
+
+    <span class="k">return</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">rdm1</span></div>
+
+
+
+<div class="viewcode-block" id="get_attach_dm">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.rdm_analysis.get_attach_dm">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_attach_dm</span><span class="p">(</span><span class="n">xy1</span><span class="p">,</span> <span class="n">orbv1</span><span class="p">,</span> <span class="n">xy2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">orbv2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">2.</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;calculate attach part of 1-particle density matrix from xy amplitudes bewteen excited states</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">xs1</span><span class="p">,</span> <span class="n">ys1</span> <span class="o">=</span> <span class="n">xy1</span>
+    <span class="k">if</span> <span class="n">xy2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">xs2</span><span class="p">,</span> <span class="n">ys2</span> <span class="o">=</span> <span class="n">xs1</span><span class="p">,</span> <span class="n">ys1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xs2</span><span class="p">,</span> <span class="n">ys2</span> <span class="o">=</span> <span class="n">xy2</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">orbv2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">orbv2</span> <span class="o">=</span> <span class="n">orbv1</span>
+
+    <span class="n">rdm1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;mia,nib-&gt;mnab&#39;</span><span class="p">,</span> <span class="n">xs1</span><span class="p">,</span> <span class="n">xs2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ys1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">rdm1</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;mia,nib-&gt;mnba&#39;</span><span class="p">,</span> <span class="n">ys1</span><span class="p">,</span> <span class="n">ys2</span><span class="p">)</span>
+    <span class="c1">#print(&#39;attach: %8.4f&#39; % np.trace(rdm1))</span>
+    <span class="k">return</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;pa,mnab,qb-&gt;mnpq&#39;</span><span class="p">,</span> <span class="n">orbv1</span><span class="p">,</span> <span class="n">rdm1</span><span class="p">,</span> <span class="n">orbv2</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span></div>
+
+
+
+<div class="viewcode-block" id="get_detach_dm">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.rdm_analysis.get_detach_dm">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_detach_dm</span><span class="p">(</span><span class="n">xy1</span><span class="p">,</span> <span class="n">orbo1</span><span class="p">,</span> <span class="n">xy2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">orbo2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">2.</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;calculate detach part of 1-particle density matrix from xy amplitudes bewteen excited states&quot;&quot;&quot;</span>
+    <span class="n">xs1</span><span class="p">,</span> <span class="n">ys1</span> <span class="o">=</span> <span class="n">xy1</span>
+    <span class="k">if</span> <span class="n">xy2</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">xs2</span><span class="p">,</span> <span class="n">ys2</span> <span class="o">=</span> <span class="n">xs1</span><span class="p">,</span> <span class="n">ys1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xs2</span><span class="p">,</span> <span class="n">ys2</span> <span class="o">=</span> <span class="n">xy2</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">orbo2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">orbo2</span> <span class="o">=</span> <span class="n">orbo1</span>
+
+    <span class="n">rdm1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;mia,nja-&gt;mnij&#39;</span><span class="p">,</span> <span class="n">xs1</span><span class="p">,</span> <span class="n">xs2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ys1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">rdm1</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;mnia,mnja-&gt;mnji&#39;</span><span class="p">,</span> <span class="n">ys1</span><span class="p">,</span> <span class="n">ys2</span><span class="p">)</span>
+    <span class="c1">#print(&#39;detach: %8.4f&#39; % np.trace(rdm1))</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">scale</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;pi,mnij,qj-&gt;mnpq&#39;</span><span class="p">,</span> <span class="n">orbo1</span><span class="p">,</span> <span class="n">rdm1</span><span class="p">,</span> <span class="n">orbo2</span><span class="o">.</span><span class="n">conj</span><span class="p">())</span></div>
+
+
+
+<div class="viewcode-block" id="get_difference_dm">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.rdm_analysis.get_difference_dm">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_difference_dm</span><span class="p">(</span><span class="n">xy1</span><span class="p">,</span> <span class="n">coeff1</span><span class="p">,</span> <span class="n">xy2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coeff2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">2.</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    calculate difference density matrix bewteen excited states</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        xy1 (list): ``[xs, ys]`` amplitudes for the first state or geometry.</span>
+<span class="sd">        xy2 (list, optional): ``[xs, ys]`` amplitudes for the second state or</span>
+<span class="sd">            geometry.</span>
+<span class="sd">        coeff1 (numpy.ndarray): Molecular orbitals of the first state or</span>
+<span class="sd">            geometry.</span>
+<span class="sd">        coeff2 (numpy.ndarray, optional): Molecular orbitals of the second</span>
+<span class="sd">            state, geometry, or spin channel.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: Difference one-particle density matrix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">coeff2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="n">coeff2</span> <span class="o">=</span> <span class="n">coeff1</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">o</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">xy1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="c1"># xs</span>
+    <span class="n">orbo1</span><span class="p">,</span> <span class="n">orbv1</span> <span class="o">=</span> <span class="n">coeff1</span><span class="p">[:,:</span><span class="n">o</span><span class="p">],</span> <span class="n">coeff1</span><span class="p">[:,</span><span class="o">-</span><span class="n">v</span><span class="p">:]</span>
+    <span class="n">orbo2</span><span class="p">,</span> <span class="n">orbv2</span> <span class="o">=</span> <span class="n">coeff2</span><span class="p">[:,:</span><span class="n">o</span><span class="p">],</span> <span class="n">coeff2</span><span class="p">[:,</span><span class="o">-</span><span class="n">v</span><span class="p">:]</span>
+
+    <span class="n">rdm1</span>  <span class="o">=</span> <span class="n">get_attach_dm</span><span class="p">(</span><span class="n">xy1</span><span class="p">,</span> <span class="n">orbv1</span><span class="p">,</span> <span class="n">xy2</span><span class="p">,</span> <span class="n">orbv2</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+    <span class="n">rdm1</span> <span class="o">+=</span> <span class="n">get_detach_dm</span><span class="p">(</span><span class="n">xy1</span><span class="p">,</span> <span class="n">orbo1</span><span class="p">,</span> <span class="n">xy2</span><span class="p">,</span> <span class="n">orbo2</span><span class="p">,</span> <span class="n">scale</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">rdm1</span></div>
+
+
+
+<div class="viewcode-block" id="cal_rdm1">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.rdm_analysis.cal_rdm1">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cal_rdm1</span><span class="p">(</span><span class="n">xy1</span><span class="p">,</span> <span class="n">coeff1</span><span class="p">,</span> <span class="n">xy2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coeff2</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="s1">&#39;trans&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    calculate 1-particle density matrices from xy amplitudes</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        xy1 (list): XY amplitudes for the first set of states.</span>
+<span class="sd">        coeff1: Molecular orbitals for the first state set.</span>
+<span class="sd">        xy2 (list, optional): XY amplitudes for the second set of states.</span>
+<span class="sd">        coeff2 (numpy.ndarray, optional): Molecular orbitals for the second</span>
+<span class="sd">            state set.</span>
+<span class="sd">        scale (float): ``2`` for restricted and ``1`` for unrestricted cases.</span>
+<span class="sd">        itype (str): Density-matrix type, e.g. ``&#39;trans&#39;`` or ``&#39;diff&#39;``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">rdm1</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="s1">&#39;trans&#39;</span> <span class="ow">in</span> <span class="n">itype</span><span class="p">:</span>
+        <span class="n">rdm1</span> <span class="o">=</span> <span class="n">get_transition_dm</span><span class="p">(</span><span class="n">xy1</span><span class="p">,</span> <span class="n">coeff1</span><span class="p">,</span> <span class="n">coeff2</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;diff&#39;</span> <span class="ow">in</span> <span class="n">itype</span><span class="p">:</span>
+        <span class="n">rdm1</span> <span class="o">=</span> <span class="n">get_difference_dm</span><span class="p">(</span><span class="n">xy1</span><span class="p">,</span> <span class="n">coeff1</span><span class="p">,</span> <span class="n">xy2</span><span class="p">,</span> <span class="n">coeff2</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">rdm1</span></div>
+
+
+
+<div class="viewcode-block" id="cal_dipoles">
+<a class="viewcode-back" href="../../../lumeq.property.html#lumeq.property.rdm_analysis.cal_dipoles">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cal_dipoles</span><span class="p">(</span><span class="n">dip_mat</span><span class="p">,</span> <span class="n">rdm</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    calculate dipole moments from dipole integrals and 1-particle density matrices</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        dip_mat (numpy.ndarray): Dipole integrals in AO basis with shape ``(3, nao, nao)``.</span>
+<span class="sd">        rdm (numpy.ndarray): One-particle density matrices with shape ``(..., nao, nao)``.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        numpy.ndarray: Dipole moments with shape ``(..., 3)``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xpq,...pq-&gt;...x&#39;</span><span class="p">,</span> <span class="n">dip_mat</span><span class="p">,</span> <span class="n">rdm</span><span class="p">)</span></div>
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">infile</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">run_pyscf_final</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="n">mol</span><span class="p">,</span> <span class="n">mf</span><span class="p">,</span> <span class="n">td</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;mol&#39;</span><span class="p">],</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;mf&#39;</span><span class="p">],</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;td&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mol</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="n">mol</span><span class="p">,</span> <span class="n">mf</span><span class="p">,</span> <span class="n">td</span> <span class="o">=</span> <span class="p">[</span><span class="n">mol</span><span class="p">],</span> <span class="p">[</span><span class="n">mf</span><span class="p">],</span> <span class="p">[</span><span class="n">td</span><span class="p">]</span>
+
+    <span class="n">dipoles</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">mol</span><span class="p">)):</span>
+        <span class="c1">#print_matrix(&#39;dipole reference:&#39;, td[n].transition_dipole())</span>
+        <span class="n">coeff</span> <span class="o">=</span> <span class="n">mf</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">mo_coeff</span>
+        <span class="n">xys</span> <span class="o">=</span> <span class="n">td</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">xy</span>
+        <span class="n">dip_mat</span> <span class="o">=</span> <span class="n">mol</span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="o">.</span><span class="n">intor</span><span class="p">(</span><span class="s1">&#39;int1e_r&#39;</span><span class="p">,</span> <span class="n">comp</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">rdm1</span> <span class="o">=</span> <span class="n">cal_rdm1</span><span class="p">(</span><span class="n">xys</span><span class="p">,</span> <span class="n">coeff</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">2.</span><span class="p">,</span> <span class="n">itype</span><span class="o">=</span><span class="s1">&#39;diff&#39;</span><span class="p">)</span>
+        <span class="n">dipole</span> <span class="o">=</span> <span class="n">cal_dipoles</span><span class="p">(</span><span class="n">dip_mat</span><span class="p">,</span> <span class="n">rdm1</span><span class="p">)</span>
+        <span class="c1">#dipoles.append(dipole)</span>
+        <span class="c1">#print_matrix(&#39;dipole:&#39;, dipole)</span>
+
+        <span class="n">nstate</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">xys</span><span class="p">)</span>
+        <span class="n">dipole2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nstate</span><span class="p">,</span> <span class="n">nstate</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="n">icount</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">xys</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">xys</span><span class="p">)):</span>
+                <span class="n">dipole2</span><span class="p">[</span><span class="n">i</span><span class="p">,</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">dipole2</span><span class="p">[</span><span class="n">j</span><span class="p">,</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">dipole</span><span class="p">[</span><span class="n">icount</span><span class="p">]</span>
+                <span class="n">icount</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">print_matrix</span><span class="p">(</span><span class="s1">&#39;dipole:&#39;</span><span class="p">,</span> <span class="n">dipole2</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nstate</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="c1">#dipoles = np.array(dipoles)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

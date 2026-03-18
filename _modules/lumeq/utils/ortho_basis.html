@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>lumeq.utils.ortho_basis &#8212; lumeq  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/alabaster.css?v=27fed22d" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for lumeq.utils.ortho_basis</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">lumeq</span><span class="w"> </span><span class="kn">import</span> <span class="n">sys</span><span class="p">,</span> <span class="n">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">print_matrix</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">fdiff</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.unit_conversion</span><span class="w"> </span><span class="kn">import</span> <span class="n">BOHR</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">gto</span>
+
+<div class="viewcode-block" id="get_ortho_basis">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.ortho_basis.get_ortho_basis">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_ortho_basis</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;lowdin&#39;</span><span class="p">,</span> <span class="n">eigen</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    S is symmetric overlap matrix of atomic basis</span>
+<span class="sd">    L = S^(1/2)</span>
+<span class="sd">    Z = S^(-1/2)</span>
+<span class="sd">    S = L * L^T</span>
+<span class="sd">    S^-1 = Z^T * Z</span>
+<span class="sd">    inv = S^(-1)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;lowdin&#39;</span><span class="p">:</span>
+        <span class="n">s</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">eigh</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="n">s</span> <span class="o">&gt;</span> <span class="mf">1e-15</span>
+        <span class="n">s</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">V</span><span class="p">[:,</span> <span class="n">idx</span><span class="p">]</span>
+
+        <span class="n">L</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">V</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">V</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">inv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">V</span><span class="o">/</span><span class="n">s</span><span class="p">,</span> <span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">eigen</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">L</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">inv</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">V</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">L</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">inv</span>
+
+    <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;cholesky&#39;</span><span class="p">:</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">scipy</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+        <span class="n">Z</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">lapack</span><span class="o">.</span><span class="n">dtrtri</span><span class="p">(</span><span class="n">L</span><span class="p">,</span> <span class="n">lower</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">inv</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">L</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">inv</span></div>
+
+
+
+<div class="viewcode-block" id="get_ortho_basis_deriv">
+<a class="viewcode-back" href="../../../lumeq.utils.html#lumeq.utils.ortho_basis.get_ortho_basis_deriv">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_ortho_basis_deriv</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">dS</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;lowdin&#39;</span><span class="p">,</span> <span class="n">l_or_z</span><span class="o">=</span><span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;iter&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;cholesky&#39;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;no direct inverse for cholesky yet and the iter is not tested&#39;</span><span class="p">)</span>
+
+    <span class="n">L</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">Sinv</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">V</span> <span class="o">=</span> <span class="n">get_ortho_basis</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">eigen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">l_or_z</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
+        <span class="n">dS</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;pq,xqr,rs-&gt;xps&#39;</span><span class="p">,</span> <span class="n">Sinv</span><span class="p">,</span> <span class="n">dS</span><span class="p">,</span> <span class="n">Sinv</span><span class="p">)</span>
+
+    <span class="n">nbas</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">solver</span> <span class="o">==</span> <span class="s1">&#39;inv&#39;</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">l_or_z</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span> <span class="n">s</span> <span class="o">=</span> <span class="mf">1.</span><span class="o">/</span><span class="n">s</span>
+        <span class="n">sinv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">nbas</span><span class="p">)</span>
+        <span class="n">sinv</span> <span class="o">+=</span> <span class="n">sinv</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nbas</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+        <span class="n">sinv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">sinv</span><span class="p">)</span>
+        <span class="c1"># s is diagonal so that we can get kronecker product easily</span>
+        <span class="c1">#s = np.diag(s)</span>
+        <span class="c1">#sinv = np.kron(I, s) + np.kron(s, I)</span>
+        <span class="c1">#sinv = np.diag(1./np.diag(sinv))</span>
+
+        <span class="n">Vinv</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">V</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+        <span class="n">V</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">V</span><span class="p">,</span> <span class="n">V</span><span class="p">)</span>
+
+        <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;pq,qr,rs-&gt;ps&#39;</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">sinv</span><span class="p">,</span> <span class="n">Vinv</span><span class="p">)</span>
+        <span class="n">d1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;pq,xq-&gt;xp&#39;</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">dS</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">dS</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">))</span>
+        <span class="n">d1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">d1</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">solver</span> <span class="o">==</span> <span class="s1">&#39;iter&#39;</span><span class="p">:</span>
+        <span class="n">I</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">nbas</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">l_or_z</span> <span class="o">==</span> <span class="s1">&#39;Z&#39;</span><span class="p">:</span>
+            <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">I</span><span class="p">,</span> <span class="n">Z</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">Z</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">I</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> <span class="c1"># &#39;L&#39;</span>
+            <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">I</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">kron</span><span class="p">(</span><span class="n">L</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">I</span><span class="p">)</span>
+
+        <span class="n">d1</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dS</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">dS</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">))</span>
+            <span class="n">d1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">),</span> <span class="n">order</span><span class="o">=</span><span class="s1">&#39;F&#39;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span></div>
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">parser</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">lumeq.utils.pyscf_helper</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_pyscf_final</span>
+
+    <span class="n">method</span> <span class="o">=</span> <span class="s1">&#39;lowdin&#39;</span>
+    <span class="n">infile</span> <span class="o">=</span> <span class="s1">&#39;../samples/h2o.in&#39;</span>
+    <span class="n">parameters</span> <span class="o">=</span> <span class="n">parser</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">run_pyscf_final</span><span class="p">(</span><span class="n">parameters</span><span class="p">)</span>
+    <span class="n">mol</span><span class="p">,</span> <span class="n">mf</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;mol&#39;</span><span class="p">],</span> <span class="n">results</span><span class="p">[</span><span class="s1">&#39;mf&#39;</span><span class="p">]</span>
+
+    <span class="n">ovlp</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">get_ovlp</span><span class="p">()</span>
+    <span class="n">L</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">Sinv</span> <span class="o">=</span> <span class="n">get_ortho_basis</span><span class="p">(</span><span class="n">ovlp</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+    <span class="c1">#print_matrix(&#39;ovlp:&#39;, ovlp, 7, 1)</span>
+    <span class="c1">#print_matrix(&#39;S^-1/2:&#39;, Z, 7, 1)</span>
+
+    <span class="n">mf_grad</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">nuc_grad_method</span><span class="p">()</span>
+    <span class="n">ovlp1</span> <span class="o">=</span> <span class="n">mf_grad</span><span class="o">.</span><span class="n">get_ovlp</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span> <span class="c1"># overlap derivative (xpq)</span>
+
+    <span class="c1"># distribute derivatives onto atoms</span>
+    <span class="n">natm</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">natm</span>
+    <span class="n">atmlst</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">natm</span><span class="p">)</span>
+    <span class="n">offsetdic</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">offset_nr_by_atom</span><span class="p">()</span>
+    <span class="n">nbas</span> <span class="o">=</span> <span class="n">ovlp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">S_d1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">natm</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ia</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atmlst</span><span class="p">):</span>
+        <span class="n">shl0</span><span class="p">,</span> <span class="n">shl1</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="n">p1</span> <span class="o">=</span> <span class="n">offsetdic</span><span class="p">[</span><span class="n">ia</span><span class="p">]</span>
+        <span class="n">S_d1</span><span class="p">[</span><span class="n">k</span><span class="p">,:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ovlp1</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span>
+        <span class="n">S_d1</span><span class="p">[</span><span class="n">k</span><span class="p">,:,:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ovlp1</span><span class="p">[:,</span><span class="n">p0</span><span class="p">:</span><span class="n">p1</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">S_d1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">S_d1</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+    <span class="n">Sinv_d1</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;pq,xqr,rs-&gt;xps&#39;</span><span class="p">,</span> <span class="n">Sinv</span><span class="p">,</span> <span class="n">S_d1</span><span class="p">,</span> <span class="n">Sinv</span><span class="p">)</span>
+
+    <span class="n">dL</span> <span class="o">=</span> <span class="n">get_ortho_basis_deriv</span><span class="p">(</span><span class="n">ovlp</span><span class="p">,</span> <span class="n">S_d1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">l_or_z</span><span class="o">=</span><span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;iter&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;lowdin&#39;</span><span class="p">:</span>
+        <span class="n">dL2</span>  <span class="o">=</span> <span class="n">get_ortho_basis_deriv</span><span class="p">(</span><span class="n">ovlp</span><span class="p">,</span> <span class="n">S_d1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">l_or_z</span><span class="o">=</span><span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;inv&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;dL-dL2 diff:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dL</span><span class="o">-</span><span class="n">dL2</span><span class="p">))</span>
+    <span class="n">dS2</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xpq,qr-&gt;xpr&#39;</span><span class="p">,</span> <span class="n">dL</span><span class="p">,</span> <span class="n">L</span><span class="p">)</span>
+    <span class="n">dS2</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;pq,xqr-&gt;xpr&#39;</span><span class="p">,</span> <span class="n">L</span><span class="p">,</span> <span class="n">dL</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;dS-(dL*L+L*dL) diff:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">S_d1</span><span class="o">-</span><span class="n">dS2</span><span class="p">))</span>
+
+    <span class="n">dZ</span> <span class="o">=</span> <span class="n">get_ortho_basis_deriv</span><span class="p">(</span><span class="n">ovlp</span><span class="p">,</span> <span class="n">S_d1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">l_or_z</span><span class="o">=</span><span class="s1">&#39;Z&#39;</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;iter&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;lowdin&#39;</span><span class="p">:</span>
+        <span class="n">dZ2</span>  <span class="o">=</span> <span class="n">get_ortho_basis_deriv</span><span class="p">(</span><span class="n">ovlp</span><span class="p">,</span> <span class="n">S_d1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">l_or_z</span><span class="o">=</span><span class="s1">&#39;Z&#39;</span><span class="p">,</span> <span class="n">solver</span><span class="o">=</span><span class="s1">&#39;inv&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;dZ-dZ2 diff:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">dZ</span><span class="o">-</span><span class="n">dZ2</span><span class="p">))</span>
+    <span class="n">dS2</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;xpq,qr-&gt;xpr&#39;</span><span class="p">,</span> <span class="n">dZ</span><span class="p">,</span> <span class="n">Z</span><span class="p">)</span>
+    <span class="n">dS2</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;pq,xqr-&gt;xpr&#39;</span><span class="p">,</span> <span class="n">Z</span><span class="p">,</span> <span class="n">dZ</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;dSinv-(dZ*Z+Z*dZ) diff:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">Sinv_d1</span><span class="o">-</span><span class="n">dS2</span><span class="p">))</span>
+
+    <span class="n">L_d1</span><span class="p">,</span> <span class="n">Z_d1</span> <span class="o">=</span> <span class="n">dL</span><span class="p">,</span> <span class="n">dZ</span>
+
+
+    <span class="c1"># doing finite difference</span>
+    <span class="n">norder</span><span class="p">,</span> <span class="n">step_size</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">1e-3</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">atom_coords</span><span class="p">()</span><span class="o">*</span><span class="n">BOHR</span>
+
+    <span class="n">S_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">natm</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+    <span class="n">L_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">natm</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+    <span class="n">Z_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">natm</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+    <span class="n">Sinv_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">natm</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">natm</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+            <span class="n">fd</span> <span class="o">=</span> <span class="n">fdiff</span><span class="p">(</span><span class="n">norder</span><span class="p">,</span> <span class="n">step_size</span><span class="p">)</span>
+            <span class="n">coords_new</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">get_x</span><span class="p">(</span><span class="n">coords</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">])</span>
+
+            <span class="n">S1</span><span class="p">,</span> <span class="n">Z1</span><span class="p">,</span> <span class="n">L1</span><span class="p">,</span> <span class="n">Sinv1</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">coords_new</span><span class="p">)):</span>
+                <span class="n">pmol</span> <span class="o">=</span> <span class="n">mol</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">pmol</span><span class="o">.</span><span class="n">set_geom_</span><span class="p">(</span><span class="n">coords_new</span><span class="p">[</span><span class="n">d</span><span class="p">])</span>
+                <span class="c1">#s12 = gto.intor_cross(&#39;int1e_ovlp&#39;, pmol, mol)</span>
+                <span class="n">ovlp1</span> <span class="o">=</span> <span class="n">mf</span><span class="o">.</span><span class="n">get_ovlp</span><span class="p">(</span><span class="n">pmol</span><span class="p">)</span>
+                <span class="c1">#print_matrix(&#39;pmf:&#39;, s12, 7, 1)</span>
+
+                <span class="n">Lx</span><span class="p">,</span> <span class="n">Zx</span><span class="p">,</span> <span class="n">Sinvx</span> <span class="o">=</span> <span class="n">get_ortho_basis</span><span class="p">(</span><span class="n">ovlp1</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">)</span>
+
+                <span class="n">S1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ovlp1</span><span class="p">)</span>
+                <span class="n">L1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Lx</span><span class="p">)</span>
+                <span class="n">Z1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Zx</span><span class="p">)</span>
+                <span class="n">Sinv1</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Sinvx</span><span class="p">)</span>
+
+            <span class="n">S_fd</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">S1</span><span class="p">),</span> <span class="mf">1.</span><span class="o">/</span><span class="n">BOHR</span><span class="p">)</span>
+            <span class="n">L_fd</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">L1</span><span class="p">),</span> <span class="mf">1.</span><span class="o">/</span><span class="n">BOHR</span><span class="p">)</span>
+            <span class="n">Z_fd</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Z1</span><span class="p">),</span> <span class="mf">1.</span><span class="o">/</span><span class="n">BOHR</span><span class="p">)</span>
+            <span class="n">Sinv_fd</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="n">fd</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">Sinv1</span><span class="p">),</span> <span class="mf">1.</span><span class="o">/</span><span class="n">BOHR</span><span class="p">)</span>
+
+    <span class="n">S_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">S_fd</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+    <span class="n">L_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">L_fd</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+    <span class="n">Z_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">Z_fd</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+    <span class="n">Sinv_fd</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">Sinv_fd</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbas</span><span class="p">,</span> <span class="n">nbas</span><span class="p">))</span>
+
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">S_d1</span> <span class="o">-</span> <span class="n">S_fd</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;S_d1-S_fd diff:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">diff</span><span class="p">))</span>
+    <span class="c1">#print_matrix(&#39;S_d1:&#39;, S_d1[0], 7, 1)</span>
+    <span class="c1">#print_matrix(&#39;S_fd:&#39;, S_fd[0], 7, 1)</span>
+
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">Sinv_d1</span> <span class="o">-</span> <span class="n">Sinv_fd</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Sinv_d1-Sinv_fd diff:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">diff</span><span class="p">))</span>
+    <span class="c1">#print_matrix(&#39;Sinv_d1:&#39;, Sinv_d1[0], 7, 1)</span>
+    <span class="c1">#print_matrix(&#39;Sinv_fd:&#39;, Sinv_fd[0], 7, 1)</span>
+
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">L_d1</span> <span class="o">-</span> <span class="n">L_fd</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;L_d1-L_fd diff:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">diff</span><span class="p">))</span>
+    <span class="c1">#print_matrix(&#39;L_d1:&#39;, L_d1[0], 7, 1)</span>
+    <span class="c1">#print_matrix(&#39;L_fd:&#39;, L_fd[0], 7, 1)</span>
+
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">Z_d1</span> <span class="o">-</span> <span class="n">Z_fd</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Z_d1-Z_fd diff:&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">diff</span><span class="p">))</span>
+    <span class="c1">#print_matrix(&#39;Z_d1:&#39;, Z_d1[0], 7, 1)</span>
+    <span class="c1">#print_matrix(&#39;Z_fd:&#39;, Z_fd[0], 7, 1)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">lumeq</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../usage.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../lumeq.html">lumeq package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2025, Zheng Pei.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
