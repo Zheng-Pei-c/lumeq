@@ -1,8 +1,9 @@
 import warnings
 import numbers
-import numpy as np
-
 import functools
+
+from lumeq import np
+
 # real-time printout
 print = functools.partial(print, flush=True)
 
@@ -11,22 +12,21 @@ def print_matrix(keyword, matrix, nwidth=6, nind=0, digits=[13,8,'f'],
     r"""
     Print multi dimensional array in formatted way.
 
-    Parameters
-        keyword : string of the title line
-        matrix : multi dimensional array
-        nwidth : int, optional
-            number of columns to print in one block (default: 6)
-        nind : int for whether to print the row/column index
-            larger than 0 to print index (default: 0)
-        digits : list of int, optional
-            [width, precision, notation], where
-            width : total width of each number (default: 13)
-            precision : number of digits after decimal point (default: 8)
-            notation : 'f' for fixed-point, 'e' for scientific (default: 'f')
-        trans : bool, optional
-            whether to transpose the last two dimensions (default: False)
-        dtype : data type, optional
-            data type to convert the input matrix (default: float)
+    Args:
+        keyword (str): Title line.
+        matrix (array-like): Multi-dimensional array.
+        nwidth (int, optional): Number of columns to print in one block.
+            Defaults to 6.
+        nind (int, optional): Whether to print the row and column indices.
+            Values larger than 0 print the indices. Defaults to 0.
+        digits (list, optional): ``[width, precision, notation]``, where
+            ``width`` is the total width of each number, ``precision`` is the
+            number of digits after the decimal point, and ``notation`` is
+            ``'f'`` for fixed-point or ``'e'`` for scientific notation.
+            Defaults to ``[13, 8, 'f']``.
+        trans (bool, optional): Whether to transpose the last two dimensions.
+            Defaults to False.
+        dtype (type, optional): Data type used to convert the input matrix.
     """
 
     if '\n' in keyword[-3:]: keyword = keyword[:-2]
@@ -116,18 +116,16 @@ def print_statistics(keyword, array, digits=[4,4]):
     r"""
     Print mean value and standard deviation of a 1D array.
 
-    Parameters
-        keyword : string of the title line
-        array : 1D array
-        digits : list of int, optional
-            [precision_mean, precision_std], where
-            precision_mean : number of digits after decimal point for mean (default: 4)
-            precision_std : number of digits after decimal point for std (default: 4)
+    Args:
+        keyword (str): Title line.
+        array (array-like): One-dimensional array.
+        digits (list, optional): ``[precision_mean, precision_std]``, where
+            ``precision_mean`` is the number of digits after the decimal point
+            for the mean and ``precision_std`` is the number of digits after the
+            decimal point for the standard deviation. Defaults to ``[4, 4]``.
     """
     v_mean = np.mean(array)
     v_std = np.std(array) / np.sqrt(len(array))
 
     if keyword[-1] != ':': keyword += ':'
     print(keyword + f' {v_mean:.{digits[0]}f} ± {v_std:.{digits[1]}f}')
-
-

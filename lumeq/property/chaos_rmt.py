@@ -18,17 +18,14 @@ def stat_wigner(s, itype='goe'):
     ``P(s) = \frac{\pi}{2} s e^{-\frac{\pi}{4} s^2}`` for GOE
     ``P(s) = \frac{32}{\pi^2} s^2 e^{-\frac{4}{\pi} s^2}`` for GUE
 
-    Parameters
-        s: array-like
-            The unfolded level spacings to be evaluated.
-        itype: str, optional
-            The type of random matrix ensemble.
+    Args:
+        s (array-like): The unfolded level spacings to be evaluated.
+        itype (str, optional): The type of random matrix ensemble.
             Can be 'goe' (Gaussian Orthogonal Ensemble),
             'gue' (Gaussian Unitary Ensemble). Default is 'goe'.
 
-    Returns
-        P: array
-            The probability density P(s) for the given unfolded level spacings.
+    Returns:
+        P (array): The probability density P(s) for the given unfolded level spacings.
     """
     if itype == 'goe':
         return 0.5 * np.pi * s * np.exp(-0.25 * np.pi * s**2)
@@ -47,19 +44,16 @@ def unfold_level_spacing(levels, deg=5, center_window=False):
     r"""
     Unfold the level spacing s = dN/dE * dE
 
-    Parameters
-        levels: array-like
-            The energy levels to be unfolded.
-        deg: int, optional
-            The degree of the polynomial fit to the staircase function N(E). Default is 5.
-        center_window: tuple of two ints, optional
-            If provided, only the levels within the center window defined by the fraction of total levels will be used for unfolding. For example, (0.2, 0.8) will use the levels between the 20th and 80th percentiles. Default is False, which uses all levels.
+    Args:
+        levels (array-like): The energy levels to be unfolded.
+        deg (int, optional): The degree of the polynomial fit to the staircase function N(E). Default is 5.
+        center_window (tuple, optional): Fractional level window used for unfolding.
+            For example, ``(0.2, 0.8)`` uses levels between the 20th and 80th percentiles.
+            Default is False, which uses all levels.
 
-    Returns
-        eps: array
-            The unfolded energy levels.
-        s: array
-            The unfolded level spacings.
+    Returns:
+        eps (array): The unfolded energy levels.
+        s (array): The unfolded level spacings.
     """
     levels = np.asarray(levels)
     if levels.ndim == 2:
@@ -87,20 +81,20 @@ def unfold_level_spacing(levels, deg=5, center_window=False):
 
 
 def spectral_form_factor(levels, times):
-    r"""
-    Compute the spectral form factor K(t) from the unfolded energy levels.
-    ``K(t) = \langle \sum_{i,j} e^{-i(E_i - E_j)t} \rangle / D^2
-           = \langle |\sum_i e^{-iE_i t}|^2 \rangle / D^2``
+    r"""Compute the spectral form factor from unfolded energy levels.
 
-    Parameters
-        levels: 2d array (nsnap, nlevels)
-            The unfolded energy levels to be analyzed.
-        times: array
-            The time points at which to compute K(t) for Fourier transform.
+    Args:
+        levels (2d array (nsnap, nlevels)): The unfolded energy levels to be analyzed.
+        times (array): The time points at which to compute K(t) for Fourier transform.
 
-    Returns
-        K: array
-            The spectral form factor K(t) at the corresponding time points.
+    Returns:
+        K (array): The spectral form factor K(t) at the corresponding time points.
+
+    Notes:
+        The spectral form factor is
+        ``K(t) = <sum_{i,j} exp(-i (E_i - E_j) t)> / D^2``.
+        Equivalently,
+        ``K(t) = <|sum_i exp(-i E_i t)|^2> / D^2``.
     """
     if len(levels.shape) == 1: levels = levels.reshape(1,-1)
 
@@ -119,21 +113,15 @@ def unfold_parameter(eps, param, ref=None):
     ``x = sqrt(C0) * (lambda - lambda0)``,
     where ``C0 = <(d eps / d lambda)^2>``.
 
-    Parameters
-        eps: 2d array (nparam, nlevels)
-            Unfolded energy levels along the parameter grid.
-        param: 1d array
-            External parameter values, e.g. electric field or time.
-        ref: float, optional
-            Reference parameter value ``lambda0``. Default is ``param[0]``.
+    Args:
+        eps (2d array (nparam, nlevels)): Unfolded energy levels along the parameter grid.
+        param (1d array): External parameter values, e.g. electric field or time.
+        ref (float, optional): Reference parameter value ``lambda0``. Default is ``param[0]``.
 
-    Returns
-        x: 1d array
-            Unfolded parameter.
-        c0: float
-            Mean squared level velocity.
-        vel: 2d array
-            Level velocities ``d eps / d lambda``.
+    Returns:
+        x (1d array): Unfolded parameter.
+        c0 (float): Mean squared level velocity.
+        vel (2d array): Level velocities ``d eps / d lambda``.
     """
     eps = np.asarray(eps)
     param = np.asarray(param, dtype=float)

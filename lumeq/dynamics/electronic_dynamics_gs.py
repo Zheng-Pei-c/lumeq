@@ -30,7 +30,7 @@ def density_purification(P, S=None):
 
 
 def cal_electronic_energy1(mf, P1, Z=None, method='lowdin'):
-    """normal energy"""
+    r"""normal energy"""
     if Z is None: Z = get_ortho_basis(mf.get_ovlp(), method)[1]
 
     # build fock
@@ -46,7 +46,7 @@ def cal_electronic_energy1(mf, P1, Z=None, method='lowdin'):
 
 
 def cal_electronic_energy2(mf, P1, Z=None, method='lowdin'):
-    """extended lagrange energy"""
+    r"""extended lagrange energy"""
     if Z is None: Z = get_ortho_basis(mf.get_ovlp(), method)[1]
 
     # build fock
@@ -265,7 +265,7 @@ class ElectronicStep():
 
 
 class ExtendedLagStep(ElectronicStep):
-    """
+    r"""
     refer: Niklasson 2009 JCP 10.1063/1.3148075
            Niklasson 2017 JCP 10.1063/1.4985893
            Niklasson 2020 JCP 10.1063/1.5143270
@@ -458,7 +458,7 @@ class ExtendedLagStep(ElectronicStep):
 
 
 class CurvyStep(ElectronicStep):
-    """
+    r"""
     refer: Herbert 2004 JCP 10.1063/1.1814934
     """
     def __init__(self, key):

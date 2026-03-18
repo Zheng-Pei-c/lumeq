@@ -1,5 +1,4 @@
-import os, sys
-import numpy as np
+from lumeq import os, sys, np
 
 """
 websites to check the conversion:

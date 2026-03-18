@@ -12,7 +12,7 @@ import sys
 sys.path.insert(0, os.path.abspath('..'))
 #sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-project = 'wavefunction_analysis'
+project = 'lumeq'
 copyright = '2025, Zheng Pei'
 author = 'Zheng Pei'
 
@@ -33,7 +33,7 @@ extensions = [
         ]
 
 templates_path = ['_templates']
-exclude_patterns = []
+exclude_patterns = ['_build']
 
 add_module_names = False
 
@@ -41,15 +41,21 @@ add_module_names = False
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'sphinx_rtd_theme'
+try:
+    import sphinx_rtd_theme  # noqa: F401
+except ImportError:
+    html_theme = 'alabaster'
+    html_theme_options = {}
+else:
+    html_theme = 'sphinx_rtd_theme'
+    html_theme_options = {
+            'vcs_pageview_mode': 'edit',
+            }
 html_static_path = ['_static']
-html_theme_options = {
-        'vcs_pageview_mode': 'edit',
-        }
 html_context = {
     'display_github': True,
     'github_user': 'Zheng-Pei-c',
-    'github_repo': 'wavefunction_analysis',
+    'github_repo': 'lumeq',
     'github_version': 'main',
     'conf_py_path': '/docs/',  # Path in the checkout to the docs root
 }

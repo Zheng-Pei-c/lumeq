@@ -6,20 +6,14 @@ class Sampler:
     """
     def __init__(self, size, variance, sigma=None, mean=0, seed=None, **kwargs):
         r"""
-        Parameters
-            size : int
-                Size of the random numbers array.
-            variance : float
-                Variance of the random numbers.
-            sigma : float, optional
-                Standard deviation of the random numbers. If provided, it overrides variance.
-            mean : float, optional
-                Mean of the random numbers. Default is 0.
-            seed : int, optional
-                Seed for the random number generator. Default is None.
-            covariance : bool, optional
-                Whether to generate correlated random numbers. Default is False.
-        """
+        Args:
+            size (int): Size of the random numbers array.
+            variance (float): Variance of the random numbers.
+            sigma (float, optional): Standard deviation of the random numbers. If provided, it overrides variance.
+            mean (float, optional): Mean of the random numbers. Default is 0.
+            seed (int, optional): Seed for the random number generator. Default is None.
+            covariance (bool, optional): Whether to generate correlated random numbers. Default is False.
+"""
         if sigma is None: sigma = np.sqrt(variance)
 
         self.size = size
@@ -39,20 +33,15 @@ class Sampler:
         Generate covariance matrix for the (to be generated) random numbers.
         Note it includes variance on the diagonal.
 
-        Parameters
-            coordinate : (N, 3) 2D Array
-                Coordinate array.
-            ell_c : float
-                Correlation length.
-            kind : str, optional
-                Type of covariance function. Default is 'exp'.
-            nugget : float, optional
-                Small diagonal added for numerical stability. Default is 0.
+        Args:
+            coordinate ((N, 3) 2D Array): Coordinate array.
+            ell_c (float): Correlation length.
+            kind (str, optional): Type of covariance function. Default is 'exp'.
+            nugget (float, optional): Small diagonal added for numerical stability. Default is 0.
 
-        Returns
-            covariance : 2D Array
-                lower/left-side of the covariance matrix.
-        """
+        Returns:
+            covariance (2D Array): lower/left-side of the covariance matrix.
+"""
         assert coordinate.shape[0] == self.size # coordinate size must match
 
         diff = coordinate[:, np.newaxis, :] - coordinate[np.newaxis, :, :]
@@ -102,15 +91,13 @@ class Sampler:
             a = exp(-dt/tau_c)
             b = sigma sqrt(1 - a^2)
 
-        Parameters
-            values : Array of previous sampled values
-            tau_c : float
-                Correlation time.
-            dt : float, optional
-                Time step. Default is 1.
+        Args:
+            values (array-like): Previously sampled values.
+            tau_c (float): Correlation time.
+            dt (float, optional): Time step. Default is 1.
 
-        Returns
-            values : Array of correlated random numbers
+        Returns:
+            numpy.ndarray: Correlated random numbers.
         """
         a = np.exp(-dt / tau_c)
         b = np.sqrt(1. - a**2)

@@ -8,19 +8,14 @@ def read_energy_coupling(outfile, nstate=2):
     r"""
     Read exciton energy and Coulomb coupling from the output file.
 
-    Parameters
-        outfile : str
-            The q-chem output file name
-        nstate : int
-            The number of exciton states per site
+    Args:
+        outfile (str): The q-chem output file name
+        nstate (int): The number of exciton states per site
 
-    Returns
-        energy : (nstate,) array
-            Exciton energy of each site in eV
-        coupling : (nstate, nstate) array
-            Exciton-exciton coupling between two sites in
-        trans_dipole : (2, nstate, 3) array
-            Transition dipole moments of two sites in au
+    Returns:
+        tuple: Exciton energies with shape ``(nstate,)``, exciton-exciton
+        coupling matrix with shape ``(nstate, nstate)``, and transition dipoles
+        with shape ``(2, nstate, 3)``.
     """
     energy = read_number(outfile, 'excitation energy', n=1, o=7, dtype=float)
     energy = np.array(energy).reshape(2,-1)[:, :nstate]
@@ -60,37 +55,23 @@ def process_parameters(cif_file, n_cell, outfile_dir='./', nstate=2, npairs=50,
     Process the input parameters and get real parameters:
     on-site energies, transition dipoles, state couplings for dimers.
 
-    Parameters
-        cif_file : str
-            The cif file name
-        n_cell : list of int
-            The number of unit cells in each direction [nx, ny, nz]
-        outfile_dir : str
-            The output file directory
-        nstate : int
-            The number of exciton states per site
-        npairs : int
-            The number of neighboring pairs to be included
-        center : int
-            The center site index needed to shift (0 for B, 1 for A)
-        debug : int
-            The debug level
+    Args:
+        cif_file (str): The cif file name
+        n_cell (list): The number of unit cells in each direction ``[nx, ny, nz]``.
+        outfile_dir (str): The output file directory
+        nstate (int): The number of exciton states per site
+        npairs (int): The number of neighboring pairs to be included
+        center (int): The center site index needed to shift (0 for B, 1 for A)
+        debug (int): The debug level
 
-    Returns
-        unit_cell : dict
-            The unit cell information
-        energy : (nstate,) array
-            Exciton energy of each site in eV
-        coupling_j : (ndimer, nstate, nstate) array
-            Exciton-exciton couplings between dimers in eV
-        dipole : (2, nstate, 3) array
-            Transition dipole moments of two sites in au
-        neighbor_index : list of [int, list of int]
-            The neighbor index list for each dimer
-        distances : (ndimer,) array
-            The distances between dimers in Angstrom
-        center_coords : (2, 3) array
-            The center of mass coordinates of the sites in Angstrom
+    Returns:
+        unit_cell (dict): The unit cell information
+        energy (numpy.ndarray): Exciton energies of each site in eV.
+        coupling_j (numpy.ndarray): Exciton-exciton couplings between dimers in eV.
+        dipole (numpy.ndarray): Transition dipole moments of two sites in au.
+        neighbor_index (list): Neighbor-index list for each dimer.
+        distances (numpy.ndarray): Distances between dimers in Angstrom.
+        center_coords (numpy.ndarray): Center-of-mass coordinates of the sites in Angstrom.
     """
     cif_file = outfile_dir + cif_file
     mol = cif_file.replace('.cif', '')
@@ -170,25 +151,17 @@ def set_model(neighbor_index, distances, model='AB', n_cell=[10,1,1],
     r"""
     Pick the model parameters based on the model type.
 
-    Parameters
-        neighbor_index : list of [int, list of int]
-            The neighbor index list for each dimer
-        distances : (ndimer,) array
-            The distances between dimers in Angstrom
-        model : str
-            The model type, e.g., 'AB', 'BC', 'ABAC', 'AB-C', 'any'
-        n_cell : list of int
-            The number of unit cells in each direction [nx, ny, nz]
-        r_cutoff : float
-            The cutoff distance in Angstrom (10, 17, 26)
-        debug : int
-            The debug level
+    Args:
+        neighbor_index (list): Neighbor-index list for each dimer.
+        distances (numpy.ndarray): Distances between dimers in Angstrom.
+        model (str): The model type, e.g., 'AB', 'BC', 'ABAC', 'AB-C', 'any'
+        n_cell (list): The number of unit cells in each direction ``[nx, ny, nz]``.
+        r_cutoff (float): The cutoff distance in Angstrom (10, 17, 26)
+        debug (int): The debug level
 
-    Returns
-        cells : (ncell, 3) array
-            The cell indices based on the model
-        neighbor_index : list of [int, list of int]
-            Refined neighbobr index list based on the model.
+    Returns:
+        cells (numpy.ndarray): Cell indices based on the model.
+        neighbor_index (list): Refined neighbor-index list based on the model.
     """
     # apply distance cutoff
     neighbor_index = neighbor_index[:np.sum(distances <= r_cutoff)]

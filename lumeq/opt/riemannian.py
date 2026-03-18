@@ -31,7 +31,7 @@ def get_random_matrix(ndim, seed=None, sym=True):
 
 
 def solve_sylvester(A, C, B=None, solver='iter'):
-    """
+    r"""
     solve X from `AX + XB = C` aka. Lyapunov, Stein equation
     return X
     """
@@ -61,7 +61,7 @@ def solve_sylvester(A, C, B=None, solver='iter'):
 class Riemannian():
     def __init__(self, ndim=None, x0=None, A=None, B=None,
                  retraction='qr', **kwargs):
-        """
+        r"""
         A: the quadratic function kernel
         B: orthogonal metric (overlap), default is I_n
         x0: initial point on the manifold
@@ -112,7 +112,7 @@ class Riemannian():
 
     @property
     def norm(self, x, v):
-        """
+        r"""
         calculate the length of a tangent vector v of point x
         use euclidean norm by default
         """
@@ -121,7 +121,7 @@ class Riemannian():
 
     @property
     def dist(self, v1, v2):
-        """
+        r"""
         calculate the distance between two tangent vectors at one point
         """
         #TODO: is this true? I just wrote it down in a second...
@@ -130,7 +130,7 @@ class Riemannian():
 
 
     def exp(self, x, v, dt=1.):
-        """
+        r"""
         geodesic mapping tangent vector v of x to other points on manifold
         exp_p: T_p M -> M
         """
@@ -141,7 +141,7 @@ class Riemannian():
 
 
     def log(self, x1, x2, dt=1.):
-        """
+        r"""
         geodesic mapping points on manifold to the tangent space of the first point
         log_p: M -> T_p M
         """
@@ -149,7 +149,7 @@ class Riemannian():
 
 
     def retraction(self, x, v):
-        """
+        r"""
         approximation to exponential geodesic mapping
         project new vector x+v from point x to the manifold
         """
@@ -157,7 +157,7 @@ class Riemannian():
 
 
     def inverse_retraction(self):
-        """
+        r"""
         approximation to logrithrim geodesic mapping
         project points to get the connecting tangent vector at first point
         """
@@ -165,7 +165,7 @@ class Riemannian():
 
 
     def projection(self, x, v):
-        """
+        r"""
         project a general matrix v to the tangent space of a point x on the manifold
         """
         raise NotImplementedError('actual projection is not implemented')
@@ -186,28 +186,28 @@ class Riemannian():
 
     #TODO: on same point or two points?
     def weingarten(self, x, v, *args, **kwargs):
-        """
+        r"""
         connection between tangent vectors
         """
         raise NotImplementedError('actual weingarten is not implemented')
 
 
     def check_tangent(self, x, v):
-        """
+        r"""
         verify the obtained vector v is truly a tangent
         """
         raise NotImplementedError('actual check_tangent is not implemented')
 
 
     def riemannian_gradient(self, x, grad):
-        """
+        r"""
         project euclidean gradient to riemannian gradient of a function
         """
         return self.projection(x, grad)
 
 
     def riemannian_hessian(self, x, v, grad, hess, normal=None):
-        """
+        r"""
         project euclidean hessian to riemannian hessian of a function
         """
         if normal is None:
@@ -246,7 +246,7 @@ class Riemannian():
 
 # TODO: fix the N*N case
 class OrthogonalGroup(Riemannian): # orthogonal group manifold
-    """
+    r"""
     the points are n*n square matrix, n-dimensions and n-planes
     """
     def check_sanity(self):
@@ -266,14 +266,14 @@ class OrthogonalGroup(Riemannian): # orthogonal group manifold
 
     # x0 is nd square matrix
     def func(self, x): # <x|A|x> / <x|x>
-        """assume x is normalized"""
+        r"""assume x is normalized"""
         A = self._A
         return np.sum(np.einsum('m...,mn,n...->...', x, A, x))
 
 
     def func_grad(self, x): # 2 (I - |x><x|) A|x> = 2 (A - <x|A|x>I ) |x>
         # the returned grad has been projected on the tangent space
-        """assume x is normalized"""
+        r"""assume x is normalized"""
         A = self._A
         #x /= np.linalg.norm(x) # put it on sphere
         Ax = 2.* (A @ x) #np.einsum('mn,n...->m...', A, x)
@@ -286,7 +286,7 @@ class OrthogonalGroup(Riemannian): # orthogonal group manifold
 
 
     def retraction_norm(self, x, v, dt=1.):
-        """put (x+v) on the sphere"""
+        r"""put (x+v) on the sphere"""
         x = x + v*dt
         return x / np.linalg.norm(x, axis=0)
 
@@ -438,13 +438,21 @@ class Stiefel(OrthogonalGroup):
 
 
 class Grassmann_Quotient(Stiefel):
-    r"""
-    Grassmann is a quotient space from Stiefel
-    with extra idempotency condition for density matrix P = p p^\dagger
-    this class uses point p rather than P
-    `Gr(k,n) = St(k,n) / O(k)
-             = {p \in F^{n*k} | p^\dagger B p = I_k, PBP = P}
-    T_p Gr(k,n) = {V \in F^{n*n} | p^\dagger V = 0}`
+    r"""Grassmann manifold represented as a quotient of the Stiefel manifold.
+
+    This implementation works with the orbital coefficient matrix ``p`` rather
+    than the projector built from it.
+
+    Notes:
+        The quotient-space relations used here are
+
+        .. code-block:: text
+
+            Gr(k, n) = St(k, n) / O(k)
+                     = {p in F^(n x k) | p^dagger B p = I_k, P B P = P}
+
+            P = p p^dagger
+            T_p Gr(k, n) = {V in F^(n x k) | p^dagger B V = 0}
     """
     def check_sanity(self):
         x = self.x0
@@ -534,7 +542,7 @@ class Grassmann_Quotient(Stiefel):
 
 
     def log(self, x1, x2, dt=1.):
-        """
+        r"""
         adopted from alg. 1 from 10.1007/s10444-023-10090-8
         recovers Stiefel from exp operation and avoids matrix inverse
         """
@@ -605,7 +613,7 @@ class Grassmann_Quotient(Stiefel):
 
 
     def transport(self, x0, vg, v0, dt=1.):
-        """
+        r"""
         parallel transport v0 at x0 along geodesic defined by vg
         to tangent space of x1
         refer to 10.1137/S0895479895290954

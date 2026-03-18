@@ -26,7 +26,7 @@ def make_h01_soc1e(mol, orbo=None, orbv=None, so_eff_charge=False, qed_fac=1):
 
 def _gen_ghf_response(mf, mo_coeff=None, mo_occ=None,
                       with_j=True, hermi=0, max_memory=None):
-    '''Generate a function to compute the product of GHF response function and
+    r'''Generate a function to compute the product of GHF response function and
     GHF density matrices. add soc components
     '''
     if mo_coeff is None: mo_coeff = mf.mo_coeff

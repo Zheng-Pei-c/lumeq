@@ -2,21 +2,17 @@ import scipy, numpy
 import pyscf
 
 def lo_weight_on_ao(mol : pyscf.gto.Mole = None, coeff_ao_lo : numpy.ndarray = None, ovlp_ao : numpy.ndarray = None):
-    """A function to calculate the weight of local orbitals on atomic orbitals.
+    r"""A function to calculate the weight of local orbitals on atomic orbitals.
 
-    Parameters:
-        mol : pyscf.gto.Mole
-            The molecule object.
-        coeff_ao_lo : numpy.ndarray
-            The coefficient matrix to transform atomic orbitals
+    Args:
+        mol (pyscf.gto.Mole): The molecule object.
+        coeff_ao_lo (numpy.ndarray): The coefficient matrix to transform atomic orbitals
             to local orbitals.
-        ovlp_ao : numpy.ndarray
-            The overlap matrix of atomic orbitals.
+        ovlp_ao (numpy.ndarray): The overlap matrix of atomic orbitals.
 
     Returns:
-        w2_ao_lo : numpy.ndarray
-            The weight of local orbitals on atomic orbitals.
-    """
+        w2_ao_lo (numpy.ndarray): The weight of local orbitals on atomic orbitals.
+"""
 
     if ovlp_ao is None:
         assert mol is not None
@@ -35,21 +31,17 @@ def lo_weight_on_ao(mol : pyscf.gto.Mole = None, coeff_ao_lo : numpy.ndarray = N
     return w2_ao_lo
 
 def lo_weight_on_atom(mol : pyscf.gto.Mole, coeff_ao_lo : numpy.ndarray = None, ovlp_ao : numpy.ndarray = None):
-    """A function to calculate the weight of local orbitals on atomic orbitals.
+    r"""A function to calculate the weight of local orbitals on atomic orbitals.
 
-    Parameters:
-        mol : pyscf.gto.Mole
-            The molecule object.
-        coeff_ao_lo : numpy.ndarray
-            The coefficient matrix to transform atomic orbitals
+    Args:
+        mol (pyscf.gto.Mole): The molecule object.
+        coeff_ao_lo (numpy.ndarray): The coefficient matrix to transform atomic orbitals
             to local orbitals.
-        ovlp_ao : numpy.ndarray
-            The overlap matrix of atomic orbitals.
+        ovlp_ao (numpy.ndarray): The overlap matrix of atomic orbitals.
 
     Returns:
-        w2_atm_lo : numpy.ndarray
-            The weight of local orbitals on each atom.
-    """
+        w2_atm_lo (numpy.ndarray): The weight of local orbitals on each atom.
+"""
 
     if ovlp_ao is None:
         ovlp_ao = mol.intor_symmetric('int1e_ovlp')
@@ -74,23 +66,18 @@ def lo_weight_on_atom(mol : pyscf.gto.Mole, coeff_ao_lo : numpy.ndarray = None, 
 def lo_weight_on_frag(frag_atms_list : list, mol : pyscf.gto.Mole,
                       coeff_ao_lo : numpy.ndarray = None,
                       ovlp_ao : numpy.ndarray = None):
-    """A function to calculate the weight of local orbitals on fragments.
+    r"""A function to calculate the weight of local orbitals on fragments.
 
-    Parameters:
-        frag_atms_list : list
-            A list of atoms in each fragment.
-        mol : pyscf.gto.Mole
-            The molecule object.
-        coeff_ao_lo : numpy.ndarray
-            The coefficient matrix to transform atomic orbitals
+    Args:
+        frag_atms_list (list): A list of atoms in each fragment.
+        mol (pyscf.gto.Mole): The molecule object.
+        coeff_ao_lo (numpy.ndarray): The coefficient matrix to transform atomic orbitals
             to local orbitals.
-        ovlp_ao : numpy.ndarray
-            The overlap matrix of atomic orbitals.
+        ovlp_ao (numpy.ndarray): The overlap matrix of atomic orbitals.
 
     Returns:
-        w2_frag_lo : numpy.ndarray
-            The weight of local orbitals on each fragment.
-    """
+        w2_frag_lo (numpy.ndarray): The weight of local orbitals on each fragment.
+"""
 
     if ovlp_ao is None:
         ovlp_ao = mol.intor_symmetric('int1e_ovlp')
@@ -118,25 +105,20 @@ def partition_lo_to_atms(mol : pyscf.gto.Mole = None,
                          coeff_ao_lo : numpy.ndarray = None,
                          w2_atm_lo : numpy.ndarray = None,
                          min_weight : float = 0.9,):
-    """A function to partition local orbitals to atoms.
+    r"""A function to partition local orbitals to atoms.
 
-    Parameters:
-        mol : pyscf.gto.Mole
-            The molecule object.
-        coeff_ao_lo : numpy.ndarray
-            The coefficient matrix to transform atomic orbitals
+    Args:
+        mol (pyscf.gto.Mole): The molecule object.
+        coeff_ao_lo (numpy.ndarray): The coefficient matrix to transform atomic orbitals
             to local orbitals.
-        w2_atm_lo : numpy.ndarray
-            The weight of local orbitals on each atom.
-        min_weight : float
-            The minimum weight of local orbitals on each atom.
+        w2_atm_lo (numpy.ndarray): The weight of local orbitals on each atom.
+        min_weight (float): The minimum weight of local orbitals on each atom.
             If the max weight is smaller than min_weight, the
             local orbital will not be assigned to the atom.
 
     Returns:
-        lo_idx_on_atm_list : list
-            The list of local orbital indices on each atom.
-    """
+        lo_idx_on_atm_list (list): The list of local orbital indices on each atom.
+"""
 
     if w2_atm_lo is None:
         w2_atm_lo = lo_weight_on_atom(mol, coeff_ao_lo, None)
@@ -163,27 +145,21 @@ def partition_lo_to_frags(frag_atms_list : list,
                           coeff_ao_lo : numpy.ndarray = None,
                           w2_frag_lo : numpy.ndarray = None,
                           min_weight : float = 0.9,):
-    """A function to partition local orbitals to fragments.
+    r"""A function to partition local orbitals to fragments.
 
-    Parameters:
-        frag_atms_list : list
-            The list of atoms in each fragment.
-        mol : pyscf.gto.Mole
-            The molecule object.
-        coeff_ao_lo : numpy.ndarray
-            The coefficient matrix to transform atomic orbitals
+    Args:
+        frag_atms_list (list): The list of atoms in each fragment.
+        mol (pyscf.gto.Mole): The molecule object.
+        coeff_ao_lo (numpy.ndarray): The coefficient matrix to transform atomic orbitals
             to local orbitals.
-        w2_frag_lo : numpy.ndarray
-            The weight of local orbitals on each atom.
-        min_weight : float
-            The minimum weight of local orbitals on each atom.
+        w2_frag_lo (numpy.ndarray): The weight of local orbitals on each atom.
+        min_weight (float): The minimum weight of local orbitals on each atom.
             If the max weight is smaller than min_weight, the
             local orbital will not be assigned to the atom.
 
     Returns:
-        lo_idx_on_frag_list : list
-            The list of local orbital indices on each fragment.
-    """
+        lo_idx_on_frag_list (list): The list of local orbital indices on each fragment.
+"""
 
     if w2_frag_lo is None:
         w2_frag_lo = lo_weight_on_frag(frag_atms_list, mol, coeff_ao_lo, None)

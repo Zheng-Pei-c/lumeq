@@ -16,10 +16,12 @@ class Exciton():
     """
     def __init__(self, key={}, **kwargs):
         r"""
-        Parameters
-            key : dict of the input parameters
-            **kwargs : other input parameters
-            The required parameters are listed below with defalut values.
+        Args:
+            key (dict): Input parameters.
+            **kwargs: Additional input parameters.
+
+        Notes:
+            The required parameters are listed below with default values.
         """
         # default parameters
         self.debug = 1
@@ -203,13 +205,15 @@ class Exciton():
         r"""
         Build the periodic exciton Hamiltonian of exciton part.
 
-        Parameters
-            energy : (nstate) exciton energy same for each site
-            coupling_j : (ndimer, nstate, nstate) exciton-exciton couplings
-            neighbor_index : list of neighbor index for couplings
+        Args:
+            energy (numpy.ndarray, optional): Exciton energies for each state.
+            coupling_j (numpy.ndarray, optional): Exciton-exciton couplings with shape
+                ``(ndimer, nstate, nstate)``.
+            neighbor_index (list, optional): Neighbor indices for the couplings.
+            **kwargs: Additional keyword arguments.
 
-        Returns
-            hamiltonian : (nsite*nstate, nsite*nstate) exciton Hamiltonian
+        Returns:
+            numpy.ndarray: Exciton Hamiltonian with shape ``(nsite*nstate, nsite*nstate)``.
         """
         self.hamiltonian = self.exciton_couplings(coupling_j, neighbor_index, **kwargs)
         diagonal = self.exciton_diagonal(energy, **kwargs)
@@ -222,16 +226,18 @@ class Exciton():
         r"""
         Get the initial exciton coefficients from the exciton Hamiltonian.
 
-        Parameters
-            H : (nsite*nstate, nsite*nstate) exciton Hamiltonian
-            method : str, method to get the initial coefficients
-                'random' : random coefficients
-                'equal' : equal superposition state
-                'ground' : ground state
-                'thermal' : thermal equilibrium state at given temperature
+        Args:
+            H (numpy.ndarray, optional): Exciton Hamiltonian with shape
+                ``(nsite*nstate, nsite*nstate)``.
+            method (str, optional): Method used to initialize the coefficients.
+                ``'random'`` gives random coefficients, ``'equal'`` gives an equal
+                superposition state, ``'ground'`` gives the ground state, and
+                ``'thermal'`` gives a thermal equilibrium state at the given
+                temperature.
 
-        Returns
-            c2 : (nsite*nstate) square of exciton coefficients
+        Returns:
+            numpy.ndarray: Squared exciton coefficients with shape
+            ``(nsite*nstate,)``.
         """
         if H is None: H = self.get_hamiltonian(**kwargs)
         if method is None: method = getattr(self, 'initial_method', 'random')
@@ -279,11 +285,12 @@ class Exciton():
         r"""
         Update the exciton coefficients with time step dt.
 
-        Parameters
-            dt : float, time step in au
+        Args:
+            dt (float): Time step in atomic units.
 
-        Returns
-            c2 : (nsite*nstate) square of exciton coefficients
+        Returns:
+            numpy.ndarray: Squared exciton coefficients with shape
+            ``(nsite*nstate,)``.
         """
         if exp_h is None:
 
@@ -316,13 +323,15 @@ class Exciton():
         r"""
         Calculate the exciton absorption spectra.
 
-        Parameters
-            dipole : (nsite*nstate, 3) transition dipole of each site
-            coefficients : (nsite*nstate) exciton coefficients
+        Args:
+            dipole (numpy.ndarray, optional): Transition dipoles for each site
+                with shape ``(nsite*nstate, 3)``.
+            coefficients (numpy.ndarray, optional): Exciton coefficients with
+                shape ``(nsite*nstate,)``.
 
-        Returns
-            evals : (nsite*nstate) exciton eigenvalues
-            f : (nsite*nstate) oscillator strengths
+        Returns:
+            tuple: Exciton eigenvalues and oscillator strengths, each with shape
+            ``(nsite*nstate,)``.
         """
         if hasattr(self, 'h_eigens'):
             evals, evecs = self.h_eigens
@@ -383,9 +392,9 @@ class ExcitonMC(Exciton):
         r"""
         Get the sampler for Monte Carlo sampling of exciton Hamiltonian.
 
-        Parameters
-            variance : float, variance of the random numbers
-            seed : int, seed for random number generator
+        Args:
+            variance (float): Variance of the random numbers.
+            seed (int): Seed for the random number generator.
         """
         self.onsite_disorder = kwargs.get('onsite_disorder', True)
         self.coupling_disorder = kwargs.get('coupling_disorder', False)
@@ -412,9 +421,10 @@ class ExcitonMC(Exciton):
         r"""
         Update the exciton Hamiltonian parameters by Monte Carlo sampling.
 
-        Parameters
-            sample : Sampler.sample() function to sample the random numbers
-                (pass in callable function for efficiency)
+        Args:
+            sample (callable, optional): Sampling function used to generate the
+                random numbers. Passing a callable avoids repeated attribute
+                lookup.
         """
         if sample is None: sample = self.sample
         if dt is None: dt = self.exciton_dt
@@ -434,11 +444,12 @@ class ExcitonMC(Exciton):
 
         Math `exp(-i H dt) = exp(-i H_d dt/2) exp(-i H_c dt) exp(-i H_d dt/2)`
 
-        Parameters
-            dt : float, time step in au
+        Args:
+            dt (float, optional): Time step in atomic units.
 
-        Returns
-            exp_h : (nsite*nstate, nsite*nstate) time propagation operator
+        Returns:
+            callable: Function that returns the time-propagation operator with
+            shape ``(nsite*nstate, nsite*nstate)``.
         """
         if dt is None: dt = self.exciton_dt
 
@@ -494,14 +505,17 @@ class ExcitonStep(Exciton):
         r"""
         Build the exciton couplings part with coordinate fluctuation.
 
-        Parameters
-            coupling_j : (ndimer, nstate, nstate) exciton-exciton couplings
-            neighbor_index : list of neighbor index for couplings
-            coupling_a : (ndimer, nmode, nstate, nstate) off-diagonal exciton-phonon couplings
-            coordinate : (nsite, nmode) oscillator coordinates
+        Args:
+            coupling_j (numpy.ndarray, optional): Exciton-exciton couplings with shape
+                ``(ndimer, nstate, nstate)``.
+            neighbor_index (list, optional): Neighbor indices for the couplings.
+            coupling_a (numpy.ndarray, optional): Off-diagonal exciton-phonon couplings with
+                shape ``(ndimer, nmode, nstate, nstate)``.
+            coordinate (numpy.ndarray, optional): Oscillator coordinates with shape
+                ``(nsite, nmode)``.
 
-        Returns
-            hamiltonian : (nsite*nstate, nsite*nstate) exciton Hamiltonian
+        Returns:
+            numpy.ndarray: Exciton Hamiltonian with shape ``(nsite*nstate, nsite*nstate)``.
         """
         if coupling_j is None: coupling_j = self.coupling_j
         if neighbor_index is None: neighbor_index = self.neighbor_index
@@ -566,10 +580,12 @@ class ExcitonDynamics():
     """
     def __init__(self, key, **kwargs):
         r"""
-        Parameters
-            key : dictionary of input parameters
-            kwargs : keyword arguments for input parameters
-            The required parameters are listed below with defalut values.
+        Args:
+            key (dict): Input parameters.
+            **kwargs: Extra input options.
+
+        Notes:
+            The required parameters are listed below with default values.
         """
         put_kwargs_to_keys(key, **kwargs)
 
@@ -717,13 +733,13 @@ def setup_exciton_dynamics(infile, key={}, nsteps=300):
     r"""
     Run the exciton dynamics simulation.
 
-    Parameters
-        infile : input file for dynamics parameters
-        key : dict of the input parameters
-        nsteps : int, total time steps for dynamics
+    Args:
+        infile (str): Input file for dynamics parameters.
+        key (dict): Input parameters.
+        nsteps (int): Total number of time steps for the dynamics.
 
-    Returns
-        obj : ExcitonDynamicsMC object
+    Returns:
+        ExcitonDynamicsMC: Configured exciton-dynamics object.
     """
     parameters = parser(infile)
     key.update(parameters.get('exciton', {}))

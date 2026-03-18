@@ -1,6 +1,4 @@
-plot/plot_orbital_property.py import os, sys
-import numpy as np
-
+from lumeq import os, sys, np
 from lumeq.property.orbital_property import cal_property_from_scratch
 
 from lumeq.plot import plt, mcolors, ticker

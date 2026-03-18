@@ -4,16 +4,11 @@ def read_molecule(data):
     r"""
     Read molecule section info from a list of strings.
 
-    Parameters:
-        data: list of strings containing molecule information
+    Args:
+        data (list): Strings containing molecule information.
 
     Returns:
-        nfrag: number of fragments
-        charge: list of charges for each fragment
-        spin: list of spins for each fragment
-        geoms: list of sym and coord strings for each fragment
-        atmsym: list of atom symbols for each fragment
-        coords: list of xyz coordinates for each fragment
+        tuple: ``(nfrag, charge, spin, geoms, atmsym, coords)``.
     """
     charge, spin = [], []
     geoms, atmsym, coords = [], [], []
@@ -290,13 +285,13 @@ def get_moment_of_inertia(weights, coords, fix_sign=False):
     r"""
     Return the moment of inertia tensor of a molecule.
 
-    Parameters:
-        weights: list of atomic masses or charges
-        coords: numpy array of atomic coordinates in bohr
-        fix_sign: whether to fix the sign of the principal axes
+    Args:
+        weights (list): Atomic masses or charges.
+        coords (numpy.ndarray): Atomic coordinates in bohr.
+        fix_sign (bool): Whether to fix the sign of the principal axes.
 
     Returns:
-        U: moment of inertia tensor
+        numpy.ndarray: Moment-of-inertia tensor.
     """
     # weights is charges or masses
     center = get_molecular_center(weights, coords)
@@ -345,10 +340,10 @@ def get_charge_or_mass(symbols, itype='charge', isotope_avg=True):
     r"""
     Return the list of atomic charges or masses for given atom symbols.
 
-    Parameters:
-        symbols: list of atom symbols
-        itype: 'charge' or 'mass'
-        isotope_avg: whether to use average mass for isotopes
+    Args:
+        symbols (list): Atom symbols.
+        itype (str): ``'charge'`` or ``'mass'``.
+        isotope_avg (bool): Whether to use the average isotopic mass.
     """
     from pyscf.data.elements import charge, MASSES, ISOTOPE_MAIN
     chgs = []
@@ -369,11 +364,11 @@ def get_molecular_center(weights, coords, itype='charge', isotope_avg=True):
     r"""
     Return the center of charges or masses of a molecule.
 
-    Parameters:
-        weights: list of atomic masses or charges
-        coords: numpy array of atomic coordinates in bohr
-        itype: 'charge' or 'mass'
-        isotope_avg: whether to use average mass for isotopes
+    Args:
+        weights (list): Atomic masses or charges, or atom symbols.
+        coords (numpy.ndarray): Atomic coordinates in bohr.
+        itype (str): ``'charge'`` or ``'mass'``.
+        isotope_avg (bool): Whether to use the average isotopic mass.
     """
     # weights is charges or masses
     if isinstance(weights[0], str): # atom symbols

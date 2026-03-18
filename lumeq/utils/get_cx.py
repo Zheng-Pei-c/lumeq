@@ -1,6 +1,4 @@
-import os, sys
-import numpy as np
-
+from lumeq import os, sys, np
 from lumeq.utils.pyscf_helper import *
 from lumeq.utils.ortho_basis import get_ortho_basis
 

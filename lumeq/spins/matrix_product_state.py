@@ -5,27 +5,37 @@ from lumeq.spins import get_spins
 from lumeq.utils import monitor_performance
 
 def mps_canonical(ndims, nsite, seed=None, normalize='both'):
-    r"""
-    Make random bra MPS wavefunction matries at top
-    order of legs: left-bottom-right
-    ket MPS at bottom is the transpose with legs in right-top-left order
-    ---1---Mt---3---                  |
-           |                          2
-           2                          |
-           |                   ---3---Mb---1---
-    the left and right legs are virtual bounds to be contracted to adjacent MPS
-    the bottom or top legs are physical bounds (spins) to be contracted to MPO
+    r"""Create a random MPS in canonical form.
 
-    Parameters
-        ndims: an array of leg dimensions [nd,ns,nd] in the order [left, bottom, right]
-            such that the first and third numbers should be same
-        nsite : number of sites in the system
-        seed : random seed for reproducibility
-        normalize : whether to normalize the random MPS
-            1, 'left', or 2, 'right', or 'both'
+    Args:
+        ndims (array-like): Leg dimensions ``[nd, ns, nd]`` in the order
+            ``[left, bottom, right]``. The first and third values should be the same.
+        nsite (int or tuple): Number of sites in the system.
+        seed (int, optional): Random seed for reproducibility.
+        normalize (str or int, optional): Normalization mode. Supported values are
+            ``1`` or ``'left'``, ``2`` or ``'right'``, and ``'both'``.
 
-    Returns
-        mps : generated matrix product state (MPS)
+    Returns:
+        list: Generated matrix product state (MPS).
+
+    Notes:
+        The bra MPS uses leg order ``[left, bottom, right]``. The ket MPS is
+        its transpose with legs ordered as ``[right, top, left]``. The left
+        and right legs are virtual bonds to be contracted with adjacent MPS
+        tensors, while the bottom or top legs are physical bonds to be
+        contracted with the MPO.
+
+        .. code-block:: text
+
+            ---1---Mt---3---
+                   |
+                   2
+                   |
+                                         |
+                                         2
+                                         |
+                                  ---3---Mb---1---
+
     """
     ntot = np.prod(nsite)
 
@@ -135,7 +145,7 @@ def _mpo_heisenberg_1d(j, hz, np_matrix=True, spin_j=.5, sigma=None):
                        + j_{z} * sigma_{i,z} sigma_{i+1,z})
                   + sum_{i} hz * sigma_{i,z}
     the indices are in the order of [left, right, top, bottom]
-    the first two indices (left and right) are used to contract neighboring MPO
+    the first two indices, left and right, are used to contract neighboring MPO
     the last two dimensions are the spin matrix indices
            |
            3
@@ -195,8 +205,8 @@ def mpo_hamil_uniform(nsite, j=None, hz=None, Hl=None, model=None, spin_j=.5,
     r"""
     Construct uniform MPO Hamiltonian at all the site
 
-    Returns
-        H : MPO Hamiltonian
+    Returns:
+        list: MPO Hamiltonian.
     """
     # hamiltonian in MPO representation
     if not isinstance(Hl, np.ndarray):
@@ -224,8 +234,8 @@ def mpo_hamil_disordered(nsite, j=None, hz=None, model=None, spin_j=.5,
     r"""
     Construct MPO Hamiltonian at all the site with disordered parameters
 
-    Returns
-        H : MPO Hamiltonian
+    Returns:
+        list: MPO Hamiltonian.
     """
     if sigma is None:
         sigma = get_spins('0+-z', j=spin_j, np_matrix=True)
@@ -258,11 +268,11 @@ def get_hamil_from_mpo(h_mpo):
     r"""
     Build the Hamiltonian in Hilbert space using the MPOs
 
-    Parameters
-        h_mpo : MPO Hamiltonian
+    Args:
+        h_mpo (list): MPO Hamiltonian.
 
-    Returns
-        H : actual Hamiltonian matrix
+    Returns:
+        numpy.ndarray: Actual Hamiltonian matrix.
     """
     # check the MPO matrices from the mpo spin function
     # by comparing to the brute-force hamiltonian matrix in Hilbert space
@@ -290,38 +300,41 @@ def get_hamil_from_mpo(h_mpo):
 
 @monitor_performance
 def zipper_from_left(Mt, O, Mb, Tl=np.ones((1,1,1))):
-    r"""
-    Contract the MPS and MPO from left <Tl Mt|MPO|Mb>
-    Tl legs order from bottom to top, default np.ones((1,1,1)) for boundary site
-    Contract Tl from the left with 1). bra Mt at top,
-                                   2). operator O at middle,
-                                   3). ket Mt at bottom.
-        /---3---*q*---1---Mt---3-k--
-        |                 |
-        |                 2
-        |                 |
-        |                 *l
-        |                 |
-        |                 3              /---3-k--
-        |                 |              |
-        Tl--2---*p*---1---O----2-j-- =   Tf--2-j--
-        |                 |              |
-        |                 4             \\---1-i--
-        |                 |
-        |                 *m
-        |                 |
-        |                 2
-        |                 |
-       \\---1---*n*---3---Mb---1-i---
+    r"""Contract one MPS/MPO site into the left zipper tensor.
 
-    Parameters
-        Mt : MPS at top as bra side
-        O : MPO at the site
-        Mb : MPS at bottom as ket side
-        Tl : contraction matrix from left
+    Args:
+        Mt (numpy.ndarray): Bra-side MPS tensor.
+        O (numpy.ndarray): MPO tensor at the current site.
+        Mb (numpy.ndarray): Ket-side MPS tensor.
+        Tl (numpy.ndarray): Current left zipper tensor.
 
-    Returns
-        Taux : contracted Tl at left
+    Returns:
+        numpy.ndarray: Updated left zipper tensor.
+
+    Notes:
+        ``Tl`` is ordered from bottom to top. The contraction attaches the bra
+        tensor Mt at top, MPO tensor O at middle,
+        and ket tensor Mb at bottom to the current left zipper:
+
+        .. code-block:: text
+
+                /---3---*q*---1---Mt---3-k--
+                |                 |
+                |                 2
+                |                 |
+                |                 *l
+                |                 |
+                |                 3              /---3-k--
+                |                 |              |
+                Tl--2---*p*---1---O----2-j-- =   Tf--2-j--
+                |                 |              |
+                |                 4              \---1-i--
+                |                 |
+                |                 *m
+                |                 |
+                |                 2
+                |                 |
+                \---1---*n*---3---Mb---1-i---
     """
     # contract from bottom to top
     #Taux = np.einsum('imn,npq,pjlm,qlk->ijk', Mb, Tl, O, Mt, optimize=True)
@@ -334,38 +347,40 @@ def zipper_from_left(Mt, O, Mb, Tl=np.ones((1,1,1))):
 
 @monitor_performance
 def zipper_from_right(Mt, O, Mb, Tr=np.ones((1,1,1))):
-    r"""
-    Contract the MPS and MPO from right <Mt|MPO|Mb Tr>
-    Tr legs order from top to bottom, default np.ones((1,1,1)) for boundary site
-    Contract Tl from the right with 1). bra Mt at top,
-                                    2). operator O at middle,
-                                    3). ket Mt at bottom.
-        --i-1---Mt---3---*q*---1--\\
-                |                  |
-                2                  |
-                |                  |
-                *l                 |
-                |                  |
-                3                  |      --1-i-\\
-                |                  |             |
-        --j-1---O----2---*p*---2---Tr =   --2-j--Tf
-                |                  |             |
-                4                  |      --3-k--/
-                |                  |
-                *m                 |
-                |                  |
-                2                  |
-                |                  |
-        --k-3---Mb---1---*n*---3---/
+    r"""Contract one MPS/MPO site into the right zipper tensor.
 
-    Parameters
-        Mt : MPS at top as bra side
-        O : MPO at the site
-        Mb : MPS at bottom as ket side
-        Tr : contraction matrix from right
+    Args:
+        Mt (numpy.ndarray): Bra-side MPS tensor.
+        O (numpy.ndarray): MPO tensor at the current site.
+        Mb (numpy.ndarray): Ket-side MPS tensor.
+        Tr (numpy.ndarray): Current right zipper tensor.
 
-    Returns
-        Taux : contracted Tr at right
+    Returns:
+        numpy.ndarray: Updated right zipper tensor.
+
+    Notes:
+        ``Tr`` is ordered from top to bottom. This is the right-to-left analog
+        of :func:`zipper_from_left`.
+
+        .. code-block:: text
+
+            --i-1---Mt---3---*q*---1---\
+                    |                  |
+                    2                  |
+                    |                  |
+                    *l                 |
+                    |                  |
+                    3                  |      --1-i--\
+                    |                  |             |
+            --j-1---O----2---*p*---2---Tr =   --2-j--Tf
+                    |                  |             |
+                    4                  |      --3-k--/
+                    |                  |
+                    *m                 |
+                    |                  |
+                    2                  |
+                    |                  |
+            --k-3---Mb---1---*n*---3---/
     """
     # contract from top to bottom
     # np.einsum('ilq,qpn,jplm,nmk->ijk', Mt, Tr, O, Mb, optimize=True)
@@ -377,31 +392,38 @@ def zipper_from_right(Mt, O, Mb, Tr=np.ones((1,1,1))):
 
 
 def dmrg_sweep(h_mpo, mps, Tzip, pick_eig='SA'):
-    r"""
-    DMRG sweeper updates MPS and construct matrix.
-    Tzip is given as the right zipper with indecies ordering from top to bottom
-    at every site so that we continue in this function
-                          1). sweep from left to right first
-                          2). and then from right to left
-                          3). return the right zipper in the end
-        |             |             |
-        3-l           3-m           1-n
-        |             |             |
-        T---2-*p*-1---O---2-*q*-2---T
-        |             |             |
-        1-i           4-j           3-k
-        |             |             |
+    r"""Perform one two-way DMRG sweep over the MPS chain.
 
-    Parameters
-        h_mpo : matrix product opertor (MPO) Hamiltonian of the system
-        mps : matrix product state (MPS) of the sites
-        Tzip : zipper matrix to contract MPS and MPO
-        pick_eig : method to pick eigenvalues
+    Args:
+        h_mpo (list): MPO Hamiltonian of the system.
+        mps (list): Current MPS tensors.
+        Tzip (list): Zipper tensors used to contract the MPS with the MPO.
+        pick_eig (str): Eigenvalue selection mode passed to ``eigsh``.
 
-    Returns
-        e_list : energies of the sites
-        mps : updated MPS
-        Tzip : updated Tzip
+    Returns:
+        tuple: Site energies, updated MPS tensors, and updated zipper tensors.
+
+    Notes:
+        ``Tzip`` is supplied as the right zipper with indices ordered from top
+        to bottom so the routine can continue with a full left-to-right sweep
+        followed by a full right-to-left sweep. The zipper contraction pattern
+        for a local update is:
+
+        .. code-block:: text
+
+            |             |             |
+            3-l           3-m           1-n
+            |             |             |
+            T---2-*p*-1---O---2-*q*-2---T
+            |             |             |
+            1-i           4-j           3-k
+            |             |             |
+
+        The routine performs one full sweep:
+
+        1. left-to-right update of the local MPS tensors,
+        2. right-to-left update of the local MPS tensors,
+        3. zipper refresh at each site.
     """
     ntot = len(h_mpo)
     e_list = []
@@ -411,7 +433,7 @@ def dmrg_sweep(h_mpo, mps, Tzip, pick_eig='SA'):
 
     # right sweep from left
     for l in range(ntot):
-        """
+        r"""
         l+2 is used for the right because two more zippers at the ends
         and the left-most is labeled by 0 rather than -1
         otherwise one need l-1 and l+1 for the left and right zipper
@@ -469,17 +491,16 @@ def dmrg_opt_gs(h_mpo, mps=None, Tzip=None, nbond=None, pick_eig='SA', nmax=10):
     r"""
     DMRG algorithm for ground-state optimization.
 
-    Parameters
-        h_mpo : MPO Hamiltonian
-        mps : initial MPS
-        Tzip : initial Tzip
-        nbond : number of virtual bonds between MPS at neighboring sites
-        pick_eig : method to pick eigenvalues
-        nmax : number of DMRG sweep loops
+    Args:
+        h_mpo (list): MPO Hamiltonian.
+        mps (list, optional): Initial MPS.
+        Tzip (list, optional): Initial zipper tensors.
+        nbond (int, optional): Number of virtual bonds between neighboring MPS sites.
+        pick_eig (str, optional): Method used to pick eigenvalues.
+        nmax (int, optional): Number of DMRG sweep loops.
 
-    Returns
-        e_list : energies of the sites
-        mps : optimized MPS
+    Returns:
+        tuple: Site energies and optimized MPS.
     """
     ntot = len(h_mpo)
 
@@ -509,13 +530,13 @@ def mpo_spin_correlation(mps, sigma=None, ns=None):
     Evaluate spin correlation function from MPS
     expval{sigma_{l}^{+} sigma_{l+1}^{-}}
 
-    Parameters
-        mps : MPS at sites
-        sigma : Pauli spin matrices
-        ns : sites on which the spin correlation is calculated
+    Args:
+        mps (list): MPS tensors at the sites.
+        sigma (tuple, optional): Pauli spin matrices.
+        ns (int or iterable, optional): Sites on which the spin correlation is calculated.
 
-    Returns
-        correlation : spin correlation value between sites ns and ns+1
+    Returns:
+        numpy.ndarray: Spin-correlation values between sites ``ns`` and ``ns+1``.
     """
     if sigma is None:
         sigma = get_spins('0+-')

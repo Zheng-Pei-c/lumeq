@@ -1,9 +1,5 @@
-import sys
-import numpy as np
+from lumeq import sys, np
 from scipy.linalg import expm
-
-import pyscf
-from pyscf import lib, gto, scf
 
 from lumeq.utils import print_matrix
 from lumeq.utils import get_ortho_basis
@@ -264,6 +260,7 @@ class Involution_Grassmann(Grassmann):
 
 
 if __name__ == '__main__':
+    from pyscf import gto, scf
     atom = """
     O       0.   0.     0.
     H       0.  -0.757  0.587

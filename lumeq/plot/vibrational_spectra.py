@@ -131,7 +131,7 @@ def fft_acf(arrays, dt, unit='au', scale_freq=True):
 
 
 def smooth(x, window='hanning', window_len=11):
-    """
+    r"""
     window: flat, hanning, hamming, bartlett, blackman
     """
     if window_len < 3:

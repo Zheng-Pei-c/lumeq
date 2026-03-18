@@ -26,7 +26,7 @@ JPCA 2024. 10.1021/acs.jpca.4c04521
 # based on scf/_response_function.py
 def _gen_uhf_response(mf, mo_coeff=None, mo_occ=None,
                       with_j=True, hermi=0, max_memory=None):
-    '''Generate a function to compute the product of UHF response function and
+    r'''Generate a function to compute the product of UHF response function and
     UHF density matrices.
     '''
     assert isinstance(mf, (rohf.ROHF, uhf.UHF))
@@ -108,7 +108,7 @@ def _gen_uhf_response(mf, mo_coeff=None, mo_occ=None,
 
 # for MRSF adopted from tdscf/rhf.py and tdscf/uhf.py
 def gen_tda_operation(mf, fock_ao=None, singlet=True, wfnsym=None):
-    '''A x
+    r'''A x
 
     Kwargs:
         wfnsym : int or str
@@ -293,7 +293,7 @@ def analyze(tdobj, verbose=None):
 # based on tdscf/rhf.py
 # change molecular orbitals
 def _contract_multipole(tdobj, ints, hermi=True, xy=None):
-    '''ints is the integral tensor of a spin-independent operator'''
+    r'''ints is the integral tensor of a spin-independent operator'''
     if xy is None: xy = tdobj.xy
     nstates = len(xy)
     pol_shape = ints.shape[:-2]
@@ -327,7 +327,7 @@ class MRSF_TDA(tdscf.uks.TDA):
     positive_eig_threshold = -0.3 # keep ground-state
 
     def gen_vind(self, mf=None):
-        '''Generate function to compute Ax'''
+        r'''Generate function to compute Ax'''
         if mf is None:
             mf = self._scf
         fock_ao = mf.get_fock()
@@ -369,7 +369,7 @@ class MRSF_TDA(tdscf.uks.TDA):
             return x0
 
     def kernel(self, x0=None, nstates=None):
-        '''TDA diagonalization solver
+        r'''TDA diagonalization solver
         '''
         cpu0 = (logger.process_clock(), logger.perf_counter())
         self.check_sanity()
@@ -430,7 +430,7 @@ MRSF_CIS = MRSF_TDA
 
 
 def convert_roks_to_uks(mf):
-    '''Convert ROKS object to UKS object for TDDFT calculation.'''
+    r'''Convert ROKS object to UKS object for TDDFT calculation.'''
     from pyscf import dft, scf
     assert isinstance(mf, dft.roks.ROKS)
 

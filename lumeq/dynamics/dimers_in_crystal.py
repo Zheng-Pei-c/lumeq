@@ -124,7 +124,7 @@ def write_eda_files(elements, coordinates, mol):
 
 
 def dipole_dipole_interaction(d1, d2, r1, r2):
-    """
+    r"""
     d1, d2: dipoles (x,y,z)
     r1, r2: dipole center coordinates (x, y, z)
     """

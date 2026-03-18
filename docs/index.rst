@@ -1,12 +1,12 @@
-.. wavefunction_analysis documentation master file, created by
+.. lumeq documentation master file, created by
    sphinx-quickstart on Sun Nov  9 11:14:03 2025.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-wavefunction_analysis documentation
-===================================
+lumeq documentation
+===================
 
-**wavefunction_analysis** is a Python package for quantum chemistry developed by Zheng Pei at `CC-ATS group <https://sites.google.com/view/ccats-group/home>`_.
+**lumeq** is a Python package for quantum chemistry developed by Zheng Pei at `CC-ATS group <https://sites.google.com/view/ccats-group/home>`_.
 It provides tools for analyzing and manipulating wavefunctions, including functionalities for computing various properties and visualizations.
 It also includes optimization algorithms for electronic structures based on Grassmann manifolds.
 Besides, it offers embedding techniques for multiscale simulations of electronic states.
@@ -22,7 +22,7 @@ Numpy, opt_einsum, and scipy are used for numerical matrix computations.
 Check out the :doc:`usage` section for further information.
 
 .. meta::
-   :github_url: https://github.com/Zheng-Pei-c/wavefunction_analysis
+   :github_url: https://github.com/Zheng-Pei-c/lumeq
 
 
 .. toctree::
@@ -30,8 +30,8 @@ Check out the :doc:`usage` section for further information.
    :caption: Contents:
 
    usage
-   wavefunction_analysis
+   lumeq
 
 .. note::
    This project is under active development.
-   Please refer to the `GitHub repository <https://github.com/Zheng-Pei-c/wavefunction_analysis>`_ for the latest updates and contributions.
+   Please refer to the `GitHub repository <https://github.com/Zheng-Pei-c/lumeq>`_ for the latest updates and contributions.

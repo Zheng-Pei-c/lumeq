@@ -13,28 +13,28 @@ Remember to leave the dagger symbol at the end of the operator string.
 """
 
 def is_creator(operator):
-    """Check if the operator is a creation operator by dagger symbol."""
+    r"""Check if the operator is a creation operator by dagger symbol."""
     return operator.endswith(('^', '†', '^dagger'))
 
 
 def is_annihilator(operator):
-    """Check if the operator is an annihilation operator."""
+    r"""Check if the operator is an annihilation operator."""
     return not is_creator(operator)
 
 
 def remove_dagger(operator):
-    """Remove the dagger symbol from the operator string."""
+    r"""Remove the dagger symbol from the operator string."""
     return operator.split('^')[0].split('†')[0]
 
 
 def get_orbital_index(operator):
-    """Extract the orbital index from the operator string."""
+    r"""Extract the orbital index from the operator string."""
     return remove_dagger(operator).split('_')[0]
 
 
 _known_spins = ['alpha', 'beta', None] # known spin labels
 def get_spin_label(operator):
-    """Extract the spin label from the operator string."""
+    r"""Extract the spin label from the operator string."""
     if '_' in operator:
         spin = remove_dagger(operator.split('_')[1])
         if spin in ('a', 'alpha', 'up', 'α'):
@@ -47,26 +47,27 @@ def get_spin_label(operator):
 
 
 def get_spin_orbital_index(operator):
-    """Get the spin orbital index from the operator string."""
+    r"""Get the spin orbital index from the operator string."""
     return get_orbital_index(operator) + '_' + str(get_spin_label(operator))
 
 
 def is_same_pattern(contraction1, contraction2):
-    """Check if two contraction patterns are the same, ignoring order."""
+    r"""Check if two contraction patterns are the same, ignoring order."""
     set1 = {frozenset(pair) for pair in contraction1}
     set2 = {frozenset(pair) for pair in contraction2}
     return set1 == set2
 
 
 def has_pattern(contraction_list, target_pattern):
-    """Check if a target contraction pattern exists in a list of contraction patterns.
+    r"""Check if a target contraction pattern exists in a list of contraction patterns.
 
-    Parameters
-        contraction_list : list of contraction patterns (each pattern is a list of pairs)
-        target_pattern : a contraction pattern (list of pairs) to search for
+    Args:
+        contraction_list (list): List of contraction patterns, where each pattern is a
+            list of pairs.
+        target_pattern (list): Contraction pattern to search for.
 
-    Returns
-        exists : True if target_pattern exists in contraction_list, False otherwise
+    Returns:
+        exists (bool): True if ``target_pattern`` exists in ``contraction_list``.
     """
     for pattern in contraction_list:
         if is_same_pattern(pattern, target_pattern):
@@ -75,14 +76,14 @@ def has_pattern(contraction_list, target_pattern):
 
 
 def get_list(operators):
-    """
+    r"""
     Convert input operators string to a list.
 
-    Parameters
-        operators : list or str separated by spaces or commas
+    Args:
+        operators (list or str): Operator list, or a string separated by spaces or commas.
 
-    Returns
-        operators_list : list of operator strings
+    Returns:
+        operators_list (list): List of operator strings.
     """
     if isinstance(operators, str):
         operators = operators.replace(',', ' ').split()
@@ -93,16 +94,17 @@ def wick_pairs(operators, exceptions=[], index=False):
     r"""
     Pick all the possible Wick contraction pairs from a string of creation and annihilation operators.
 
-    Parameters
-        operators : list or str separated by spaces or commas
-            A list of strings representing creation and annihilation operators with optional spin labels.
+    Args:
+        operators (list or str): A list of strings representing creation and
+            annihilation operators with optional spin labels, or a string
+            separated by spaces or commas.
             Eg. ['a^', 'i', 'b†', 'j_α', 'c_b^', 'k_beta']
-                 or "a^ i b† j_α c_b^ k_beta"
-        exceptions : (list of) tuple pairs of operators that should not be contracted
-        index : if True, return the indices of the operators instead of the operator strings
+            or "a^ i b† j_α c_b^ k_beta"
+        exceptions (tuple or list, optional): Operator pairs that should not be contracted.
+        index (bool, optional): If True, return operator indices instead of operator strings.
 
-    Returns
-        pairs : a list of the possible contraction pairs of the operators
+    Returns:
+        pairs (list): All possible contraction pairs of the operators.
     """
     operators = get_list(operators)
 
@@ -150,32 +152,32 @@ def wick_pairs(operators, exceptions=[], index=False):
 
 
 def index_to_operators(operators, pairs_index):
-    """
+    r"""
     Convert pairs of operator indices to operator strings.
 
-    Parameters
-        operators : list of operator strings
-        pairs_index : list of tuple pairs of indices
+    Args:
+        operators (list): Operator strings.
+        pairs_index (list): Tuple pairs of operator indices.
 
-    Returns
-        pairs : list of tuple pairs of operator strings
+    Returns:
+        pairs (list): Tuple pairs of operator strings.
     """
     pairs = [(operators[i], operators[j]) for (i, j) in pairs_index]
     return pairs
 
 
 def wick_contraction(operators, pairs, expand=True):
-    """
+    r"""
     Perform Wick contraction on the given pairs of operators.
 
-    Parameters
-        operators : list of operator strings
-        pairs : list of tuple pairs of indices to be contracted
-        expand : True return product patterns;
-                 False return dict of lists of contraction patterns
+    Args:
+        operators (list): Operator strings.
+        pairs (list): Tuple pairs of indices to be contracted.
+        expand (bool, optional): If True, return product patterns. Otherwise return a
+            dictionary of lists of contraction patterns.
 
-    Returns
-        contractions : list of contraction patterns in the form of strings
+    Returns:
+        contractions (list): Contraction patterns.
     """
     operators = get_list(operators)
     n_op = len(operators) # total number of operators
@@ -213,14 +215,14 @@ def wick_contraction(operators, pairs, expand=True):
 
 
 def wick_delta(contractions):
-    """
+    r"""
     Convert contraction pairs into delta functions.
 
-    Parameters
-        contractions : list of contraction patterns in the form of strings
+    Args:
+        contractions (list): Contraction patterns.
 
-    Returns
-        deltas : list of delta function strings representing the contractions
+    Returns:
+        deltas (list): Delta-function strings representing the contractions.
     """
     if isinstance(contractions[0], list): # loop over multiple contraction patterns
         return [wick_delta(pair) for pair in contractions]
@@ -243,15 +245,16 @@ def wick_delta(contractions):
 
 
 def find_delta_sign(contractions_index, dtype=str):
-    """
+    r"""
     Determine the sign of the contraction based on the number of crossings.
 
-    Parameters
-        contractions : list of contraction pairs
-        dtype : data type of the return value (str or int)
+    Args:
+        contractions_index (list): List of contraction pairs.
+        dtype (type): Return type, typically ``str`` or ``int``.
 
-    Returns
-        sign : '+' or '-' (+1 or -1) depending on the number of crossings
+    Returns:
+        sign (str or int): ``'+'`` or ``'-'`` (or ``+1`` / ``-1``) depending on the
+            number of crossings.
     """
     sign = 1
     n = len(contractions_index)
@@ -272,15 +275,15 @@ def find_delta_sign(contractions_index, dtype=str):
 
 
 def contract_hamil_delta(hamiltonian, deltas):
-    """
+    r"""
     Contract the Hamiltonian operator with delta functions.
 
-    Parameters
-        hamiltonian : Hamiltonian operator string
-        deltas : list of delta function strings
+    Args:
+        hamiltonian (str): Hamiltonian operator string.
+        deltas (list): Delta-function strings.
 
-    Returns
-        strings : list of contracted Hamiltonian terms as strings
+    Returns:
+        strings (list): Contracted Hamiltonian terms as strings.
     """
     if isinstance(deltas, str): # single set of contraction pattern
         deltas = [deltas]
@@ -333,14 +336,14 @@ def contract_hamil_delta(hamiltonian, deltas):
 
 
 def combine_same_terms(contracted_strings):
-    """
+    r"""
     Apply symmetry to two-electron integrals in the contracted strings.
 
-    Parameters
-        contracted_strings : list of operator strings
+    Args:
+        contracted_strings (list): Operator strings.
 
-    Returns
-        sym_strings : list of operator strings with symmetry applied
+    Returns:
+        sym_strings (list): Operator strings with symmetry applied.
     """
     strings = []
     strings_dict = defaultdict(list)
@@ -363,15 +366,15 @@ def combine_same_terms(contracted_strings):
 
 
 def plot_wick_diagram(operators, contractions, colors=None, width=None, end=''):
-    """
+    r"""
     Plot Wick contraction diagram using graphviz.
 
-    Parameters
-        operators : list of operator strings
-        contractions : list of contraction patterns
-        colors : list of colors for the contraction lines
-        width : line width for the contraction lines
-        end : symbols to append at the end of each line
+    Args:
+        operators (list): Operator strings.
+        contractions (list): Contraction patterns.
+        colors (list, optional): Colors for the contraction lines.
+        width (float, optional): Line width for the contraction lines.
+        end (str, optional): Symbols to append at the end of each line.
     """
     if isinstance(contractions[0], list): # loop over multiple contraction patterns
         return [plot_wick_diagram(operators, c, colors, width, end) for c in contractions]
@@ -410,11 +413,11 @@ def print_math(string, title, filename=None, latex=False):
     r"""
     Print mathematical expression in string format.
 
-    Parameters
-        string : string of the mathematical expression
-        title : title to print before the expression
-        filename : if provided, save the expression to the specified file
-        latex : bool, if True print in LaTeX format (default: False)
+    Args:
+        string (str): Mathematical expression.
+        title (str): Title printed before the expression.
+        filename (str, optional): If provided, save the expression to this file.
+        latex (bool, optional): If True, print in LaTeX format.
     """
     if latex:
         string = string.replace('ell', r'\ell')
@@ -438,15 +441,14 @@ def commutator(op1, op2, op3=None, sign='-'):
     [[op1, op2, op3] = ([[op1, op2], op3] + [op1, [op2, op3]]) / 2
     = (op1 op2 op3 + op3 op2 op1) - [[op1, op3]_+, op2]_+ / 2
 
-    Parameters
-        op1 : first operator string
-        op2 : second operator string
-        op3 : optional third operator string for double commutator
-        sign : sign between the two terms in the commutator (default: '-')
+    Args:
+        op1: First operator string.
+        op2: Second operator string.
+        op3 (str, optional): Third operator string for a double commutator.
+        sign (str, optional): Sign between the two terms in the commutator.
 
-    Returns
-        result : commutator result as a list of strings
-        factor : list of factors for each term in the result
+    Returns:
+        tuple: ``(result, factor)`` for the commutator expansion.
     """
     if op3 is None:
         if isinstance(op1, list) and isinstance(op2, list):
@@ -469,24 +471,24 @@ def commutator(op1, op2, op3=None, sign='-'):
 
 def sqo_evaluation(bra, middle, ket, exceptions=[], title='', hamiltonian=None,
                    latex=True, diagram=False, colors=None):
-    """
+    r"""
     Evaluate the Wick contractions for the given second-quantization operator (sqo) strings of bra, middle, and ket,
     while excluding specified operator pairs from contraction.
 
-    Parameters
-        bra : left side excitation operator string
-        middle : middle operator string
-        ket : right side excitation operator string
-        exceptions : list of tuples, each containing a pair of operators to exclude from contraction
-        title : optional title for the evaluation
-        hamiltonian : Hamiltonian operator string to be contracted with the deltas
-            is middle if None by default
-        latex : if True, format the output of delta strings for LaTeX rendering
-        diagram : if True, plot the Wick contraction diagram
-        colors : list of colors for the contraction lines in the diagram
+    Args:
+        bra: Left excitation operator string.
+        middle: Middle operator string.
+        ket: Right excitation operator string.
+        exceptions (list, optional): Operator pairs to exclude from contraction.
+        title (str, optional): Title for the evaluation.
+        hamiltonian (str, optional): Hamiltonian operator string to contract with the
+            deltas. Uses ``middle`` if None.
+        latex (bool, optional): If True, format the delta strings for LaTeX rendering.
+        diagram (bool, optional): If True, plot the Wick contraction diagram.
+        colors (list, optional): Colors for the contraction lines in the diagram.
 
-    Returns
-        contractions : list of contraction patterns
+    Returns:
+        tuple: ``(contractions, deltas, strings)``.
     """
     if isinstance(bra, list): # in order of left-to-right
         bra = ' '.join(bra)

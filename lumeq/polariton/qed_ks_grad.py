@@ -1,17 +1,15 @@
-import sys
-import numpy as np
+from lumeq import sys, np
+from lumeq.utils.pyscf_helper import *
+from lumeq.utils import convert_units, print_matrix, fdiff
+from lumeq.polariton import polariton_cs, polariton_ns
+from lumeq.polariton.qed_ks import get_lambda2
+from lumeq.utils.fdiff import change_matrix_phase_c
 
 from pyscf import lib
 from pyscf import gto
 from pyscf.lib import logger
 from pyscf.dft.rks import RKS
 from pyscf.grad import rks as rks_grad
-
-from lumeq.utils.pyscf_helper import *
-from lumeq.utils import convert_units, print_matrix, fdiff
-from lumeq.polariton import polariton_cs, polariton_ns
-from lumeq.polariton.qed_ks import get_lambda2
-from lumeq.utils.fdiff import change_matrix_phase_c
 
 def finite_difference(mf, norder=2, step_size=1e-4, ideriv=2, extra=False):
     scf_method = mf.__class__ # .__name__ to get the class name

@@ -1,6 +1,4 @@
-import os, sys
-import numpy as np
-
+from lumeq import os, sys, np
 from lumeq.utils import convert_units
 from lumeq.plot import plt, mcolors, ticker
 

@@ -29,7 +29,7 @@ if not _logger_performance.handlers:
 
 
 def set_performance_log(level=1, filename=None, debug=None):
-    """
+    r"""
     Configure performance monitoring and optionally change the output destination.
     - level = 0 disables monitoring
     - level >= 1 enables monitoring with increasing detail
@@ -52,7 +52,7 @@ def set_performance_log(level=1, filename=None, debug=None):
 
 
 def monitor_performance(_func=None, *, level=1):
-    """
+    r"""
     decorator for monitoring memory of CPU (GPU) and timing of wall, CPU (GPU).
     Use either as @monitor_performance or @monitor_performance(level=1).
     """

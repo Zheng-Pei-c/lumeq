@@ -11,7 +11,7 @@ This Green's function approach follows:
 
 def greens_func_e0_gauss(x, center, width=1e-4, scaling=1., itype='both',
                          appro=False):
-    """
+    r"""
     Greens function of the unperturbed exciton states
     disordered state energy spectrum has Gaussian distribution
     """
@@ -49,7 +49,7 @@ def greens_func_e0_gauss(x, center, width=1e-4, scaling=1., itype='both',
 
 
 def greens_func_e0_lorentz(x, center, width=1e-4, scaling=1., itype='both'):
-    """
+    r"""
     Greens function of the unperturbed exciton states
     disordered state energy spectrum has Lorentzian distribution
     # width is a small phenomenological parameter
@@ -76,7 +76,7 @@ def greens_func_e0_lorentz(x, center, width=1e-4, scaling=1., itype='both'):
 
 def self_energy_same_coupling(x, coupling, center, width=1e-4, method='gauss-0',
                               itype='both'):
-    """
+    r"""
     this function assumes:
     1. same coupling strengths for all the states whose disorder is given by width
     2. disordered state energy spectrum following Gaussian or Lorentzian distribution
@@ -93,7 +93,7 @@ def self_energy_same_coupling(x, coupling, center, width=1e-4, method='gauss-0',
 
 
 def greens_func_p(x, sigma, omega, width=1e-4, itype='both'):
-    """
+    r"""
     Greens function of the polariton states
     # sigma[0] and sigma[1] are the real and imaginary parts, respectively
     # omega is the photon energy
@@ -105,7 +105,7 @@ def greens_func_p(x, sigma, omega, width=1e-4, itype='both'):
 
 
 def density_of_states_p(x, sigma, omega, width=1e-4):
-    """
+    r"""
     density of states of the polariton states
     # sigma[0] and sigma[1] are the real and imaginary parts, respectively
     # omega is the photon energy
@@ -116,7 +116,7 @@ def density_of_states_p(x, sigma, omega, width=1e-4):
 
 
 def greens_func_e(g0, gc, coupling, itype='both'):
-    """
+    r"""
     Greens function of exciton states
     """
     scaling = coupling**2
@@ -149,7 +149,7 @@ def greens_func_e(g0, gc, coupling, itype='both'):
 
 
 def density_of_states_e(g0, gc, coupling):
-    """
+    r"""
     density of states of the polariton states
     # sigma[0] and sigma[1] are the real and imaginary parts, respectively
     # omega is the photon energy
@@ -160,14 +160,14 @@ def density_of_states_e(g0, gc, coupling):
 
 
 def absorption_spectra(x, coupling, dos):
-    """
+    r"""
     assume same coupling
     """
     return (coupling**2) * x * dos
 
 
 def plot_sigma(ax, x, coupling, omega0, omegac, width, method, axis_label):
-    """
+    r"""
     sigma represents the self-energy
     """
     #print('V/$\sigma$:', coupling, width, coupling/width)

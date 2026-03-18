@@ -14,7 +14,7 @@ def get_boltzmann_beta(temperature):
 class harmonic_oscillator():
     r"""Harmonic oscillator class."""
     def __init__(self, key={}, **kwargs):
-        """
+        r"""
         needed parameters:
         commom:
             mass, coordinate, velocity,
@@ -48,10 +48,10 @@ class harmonic_oscillator():
         r"""
         Generate the initial oscillator coordinate and velocity.
 
-        Parameters
-            n_site: number of total molecular sites
-            init_method: method to initialize coordinate and velocity
-                'thermo': Boltzmann distribution at init_temp
+        Args:
+            n_site (int, optional): Total number of molecular sites.
+            init_method (str, optional): Initialization method. ``'thermo'`` uses the
+                Boltzmann distribution at ``init_temp``.
         """
         if n_site is None: n_site = self.n_site
         if init_method is None: init_method = self.init_method
@@ -100,12 +100,14 @@ class harmonic_oscillator():
         r'''
         Update the oscillator coordinate and velocity, as well as the energy.
 
-        Parameters
-            force : force acting on the oscillator
-            half : 1 or 2, indicating the first or second half of the update
+        Args:
+            force (numpy.ndarray): Force acting on the oscillator.
+            half (int): ``1`` or ``2``, indicating the first or second half of
+                the update.
 
-        Returns
-            force : projected force after the update (only for half=2)
+        Returns:
+            numpy.ndarray: Projected force after the update, only for
+            ``half=2``.
         '''
         if isinstance(self.frequency, np.ndarray) or isinstance(self.frequency, float): # add oscillator force first
             force -= np.einsum('i,i,ix->ix', self.mass, self.omega2, self.coordinate)
@@ -237,18 +239,14 @@ def remove_trans_rotat_velocity(velocity, mass, coords):
     r"""
     Remove the translational and rotational components from the velocity.
 
-    Parameters
-        velocity : ndarray
-            The velocities of the particles (shape: (n_particles, 3)).
-        mass : ndarray
-            The masses of the particles (shape: (n_particles,)).
-        coords : ndarray
-            The coordinates of the particles (shape: (n_particles, 3)).
+    Args:
+        velocity (ndarray): The velocities of the particles (shape: (n_particles, 3)).
+        mass (ndarray): The masses of the particles (shape: (n_particles,)).
+        coords (ndarray): The coordinates of the particles (shape: (n_particles, 3)).
 
-    Returns
-        velocity : ndarray
-            The projected velocities with translational and rotational components removed.
-    """
+    Returns:
+        velocity (ndarray): The projected velocities with translational and rotational components removed.
+"""
     # remove translation (ie. center of mass velocity)
     p_com = np.einsum('i,ix->x', mass, velocity) / len(mass)
     velocity -= np.einsum('i,x->ix', 1./mass, p_com)
@@ -269,18 +267,14 @@ def remove_trans_rotat_force(force, mass, coords):
     r"""
     Remove the translational and rotational components from the force.
 
-    Parameters
-        force : ndarray
-            The forces acting on the particles (shape: (n_particles, 3)).
-        mass : ndarray
-            The masses of the particles (shape: (n_particles,)).
-        coords : ndarray
-            The coordinates of the particles (shape: (n_particles, 3)).
+    Args:
+        force (ndarray): The forces acting on the particles (shape: (n_particles, 3)).
+        mass (ndarray): The masses of the particles (shape: (n_particles,)).
+        coords (ndarray): The coordinates of the particles (shape: (n_particles, 3)).
 
-    Returns
-        force : ndarray
-            The projected forces with translational and rotational components removed.
-    """
+    Returns:
+        force (ndarray): The projected forces with translational and rotational components removed.
+"""
     # remove translation (ie. center of mass force)
     f_com = np.sum(force, axis=0) / np.sum(mass)
     force -= np.einsum('i,x->ix', mass, f_com)
@@ -363,12 +357,12 @@ class NuclearStep(harmonic_oscillator):
         r"""
         Generate the initial nuclear coordinate and velocity.
 
-        Parameters
-            init_method: method to initialize coordinate and velocity
-                'restart': read in from stored variables
-                'kick': zero initial velocity
-                'thermo': Boltzmann distribution at init_temp
-                'random': random velocity with given kinetic energy
+        Args:
+            init_method (str, optional): Method used to initialize the
+                coordinates and velocities. ``'restart'`` reads stored values,
+                ``'kick'`` sets zero initial velocity, ``'thermo'`` samples a
+                Boltzmann distribution at ``init_temp``, and ``'random'`` uses
+                random velocities with the given kinetic energy.
         """
         # coordinate has been given
         if init_method is None: init_method = self.init_method

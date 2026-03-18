@@ -1,16 +1,14 @@
-import sys
-import numpy as np
-
-from functools import reduce
-from pyscf import lib
-from pyscf.hessian import thermo
-from pyscf.data import nist
-
+from lumeq import sys, np
 from lumeq.utils.pyscf_helper import *
 from lumeq.utils import convert_units, print_matrix
 from lumeq.polariton.qed_ks import polariton_cs
 from lumeq.polariton.qed_ks_grad import get_multipole_matrix_d1, finite_difference
 from lumeq.plot.vibrational_spectra import get_dipole_dev, infrared
+
+from functools import reduce
+from pyscf import lib
+from pyscf.hessian import thermo
+from pyscf.data import nist
 
 """
 diagonalize the matter and photon Hessian here
@@ -20,7 +18,7 @@ LINDEP_THRESHOLD = 1e-7
 
 def project_trans_rotation(mol, hess, exclude_trans=True, exclude_rot=True,
                            mass=None):
-    '''Each column is one mode
+    r'''Each column is one mode
     '''
     if mass is None:
         mass = mol.atom_mass_list(isotope_avg=True)

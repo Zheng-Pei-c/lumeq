@@ -8,14 +8,14 @@ from .utils import broadening, fit_val
 
 
 def get_plot_colors(n):
-    """
+    r"""
     Generate a list of distinct colors using matplotlib.
 
-    Parameters
-        n : number of colors to generate
+    Args:
+        n (int): Number of colors to generate.
 
-    Returns
-        colors : list of color strings
+    Returns:
+        list: Color strings.
     """
     try:
         import matplotlib.pyplot as plt

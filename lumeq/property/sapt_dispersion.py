@@ -1,4 +1,4 @@
-property/sapt_dispersion.py from lumeq import sys, np
+from lumeq import sys, np
 from lumeq.utils import print_matrix
 from lumeq.property.rdm_analysis import assemble_amplitudes
 
@@ -50,7 +50,7 @@ def cal_sapt(mols, mo_coeffs, amps, energies, omega=None, itype='r'):
 
 
 def cal_sapt_r(mol, mo_coeffs, amps, nstates, omega=None):
-    """
+    r"""
     mol is the supermolecule
     """
     nbas0, nbas1 = mo_coeffs[0].shape[0], mo_coeffs[1].shape[0]
@@ -72,7 +72,7 @@ def cal_sapt_r(mol, mo_coeffs, amps, nstates, omega=None):
 
 
 def cal_sapt_u(mol, mo_coeffs, amps, nstates, omega=None):
-    """
+    r"""
     mol is the supermolecule
     """
     nbas0, nbas1 = mo_coeffs[0][0].shape[0], mo_coeffs[1][0].shape[0]

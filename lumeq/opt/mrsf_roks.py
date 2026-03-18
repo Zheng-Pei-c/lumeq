@@ -21,32 +21,35 @@ JPCA 2024. 10.1021/acs.jpca.4c04521
 """
 
 def mrsf_dimension_transform(nocc, nvir, nbas, singlet=True):
-    r"""
-    Build the transform matrix to fix the dimention of amplitudes
-    for MRSF excited-state calculation.
-    Refer to JCP 2019 10.1063/1.5086895.
-    The spin-pairing of the A matrix can be seen from Fig. 1.
+    r"""Build the MRSF amplitude-dimension transform matrices.
+
+    The returned matrices reorder and combine spin-flip excitation blocks for
+    the singlet or triplet MRSF working equations.
+
+    Args:
+        nocc: Numbers of alpha and beta occupied orbitals.
+        nvir: Numbers of alpha and beta virtual orbitals.
+        nbas (int): Number of AO basis functions.
+        singlet (bool): Whether to calculate the singlet (`True`) or triplet (`False`).
+
+    Returns:
+        U (numpy.ndarray): Transform matrix for singlet and triplet excited states.
+            The rows collect the relevant excitation blocks for the bra side.
+        Ut (numpy.ndarray): Reordered transform matrix for the ket side.
+            This matrix is the reordered partner used on the ket side.
+
+    Notes:
+        Reference: JCP 2019, 10.1063/1.5086895.
+
+        The spin-pairing structure of the A matrix follows Fig. 1:
+
+        .. code-block:: text
+
             [U S  ] [alpha->beta,  alpha->beta ] [U S]
             [UCO  ] [alpha->alpha, alpha->alpha] [UOV]
             [UOV  ] [beta ->beta,  beta ->beta ] [UCO]
             [UCOCO] [alpha->beta,  beta ->alpha] [UCOCO]
-            [UOVOV] [beta ->alpha, alpga->beta ] [UOVOV]
-
-    Parameters
-        nocc : numbers of alpha and beta occupied orbitals (electrons)
-        nvir : numbers of alpha and beta virtual orbitals
-        nbas : number of AO basis set
-        singlet : bool to calculate singlet (True) or triplet (False)
-
-    Returns
-        U : transform matrix for singlet and triplet excited-states
-            [singlet or triplet, CO1, CO2, O1V, O2V, CO1CO2, O1VO2V]
-            excitation types: C_alpha --> O_beta, O_alpha --> V_beta
-                              C_alpha --> V_beta, C_beta --> V_alpha
-            used for bra side
-        Ut : reorder U as
-            [s or t, O2V, O1V, CO2, CO1, CO1CO2, O1VO2V]
-            for ket side
+            [UOVOV] [beta ->alpha, alpha->beta ] [UOVOV]
     """
     nocca, noccb = nocc
     nvira, nvirb = nvir
@@ -82,7 +85,7 @@ def mrsf_dimension_transform(nocc, nvir, nbas, singlet=True):
 # based on scf/_response_function.py
 def _gen_rhf_response(mf, mo_coeff=None, mo_occ=None,
                       singlet=True, hermi=0, max_memory=None):
-    '''Generate a function to compute the product of UHF response function and
+    r'''Generate a function to compute the product of UHF response function and
     UHF density matrices.
     '''
     assert isinstance(mf, (rohf.ROHF, uhf.UHF))
@@ -163,7 +166,7 @@ def _gen_rhf_response(mf, mo_coeff=None, mo_occ=None,
 
 # for MRSF adopted from tdscf/rhf.py
 def gen_tda_operation(mf, fock_ao=None, singlet=True, wfnsym=None):
-    '''A x
+    r'''A x
 
     Kwargs:
         wfnsym : int or str
@@ -344,7 +347,7 @@ def analyze(tdobj, verbose=None):
 # based on tdscf/rhf.py
 # change molecular orbitals
 def _contract_multipole(tdobj, ints, hermi=True, xy=None):
-    '''ints is the integral tensor of a spin-independent operator'''
+    r'''ints is the integral tensor of a spin-independent operator'''
     if xy is None: xy = tdobj.xy
     nstates = len(xy)
     pol_shape = ints.shape[:-2]
@@ -403,7 +406,7 @@ class MRSF_TDA(tdscf.rks.TDA):
     #positive_eig_threshold = -0.3 # keep ground-state
 
     def gen_vind(self, mf=None):
-        '''Generate function to compute Ax'''
+        r'''Generate function to compute Ax'''
         if mf is None:
             mf = self._scf
         fock_ao = mf.get_fock()
@@ -464,7 +467,7 @@ class MRSF_TDA(tdscf.rks.TDA):
             return x0
 
     def kernel(self, x0=None, nstates=None):
-        '''TDA diagonalization solver
+        r'''TDA diagonalization solver
         '''
         cpu0 = (logger.process_clock(), logger.perf_counter())
         self.check_sanity()

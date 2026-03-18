@@ -1,12 +1,9 @@
-import os, sys
-import numpy as np
-
-import pyscf
-from pyscf import scf, tdscf, gto, lib
-
+from lumeq import os, sys, np
 from lumeq.utils import convert_units
 from lumeq.utils.pyscf_helper import *
 from lumeq.utils.unit_conversion import EV2J, E_MASS
+
+from pyscf import scf, tdscf, gto, lib
 
 def cal_orbital_property(mol, mf):
     orbital_property = {}

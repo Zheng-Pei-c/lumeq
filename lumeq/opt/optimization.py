@@ -47,7 +47,7 @@ def gradient_descent(func, gradf, retraction, x0,
 
 
 def line_search(method='armijo'):
-    """
+    r"""
     method options: float, newton, backtracking, armijo, steepest
     """
     if isinstance(method, float): # step size is a given constant
@@ -70,7 +70,7 @@ def ls_steepest(step=1.):
 
 def ls_backtracking(func, gradf, retraction, x0,
                     tau=.5, r=1e-4, alpha=1.):
-    """
+    r"""
     alpha is the step size we need to determine
     reduce it from a large value
     """

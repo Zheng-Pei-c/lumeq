@@ -18,17 +18,24 @@ def cal_wf_overlap_r(Xm, Ym, Xn, Yn, Cm, Cn, S):
     vec3: `(S_vv - S_vo S_oo^-1 S_ov)` in vv
     vec4: `S_oo^-1` in oo
 
-    Parameters
-        Xm : (nroots, nocc, nvir) ndarray excitation amplitudes at geometry m
-        Ym : (nroots, nocc, nvir) ndarray de-excitation amplitudes
-        Xn : (nroots, nocc, nvir) ndarray excitation amplitudes at geometry n
-        Yn : (nroots, nocc, nvir) ndarray de-excitation amplitudes
-        Cm : (nbasis, nbasis) ndarray mo_coeff at geometry m
-        Cn : (nbasis, nbasis) ndarray mo_coeff at geometry n
-        S  : (nbasis, nbasis) ndarray overlap matrix between geometry m and n
+    Args:
+        Xm (numpy.ndarray): Excitation amplitudes at geometry ``m`` with shape
+            ``(nroots, nocc, nvir)``.
+        Ym (numpy.ndarray): De-excitation amplitudes with shape
+            ``(nroots, nocc, nvir)``.
+        Xn (numpy.ndarray): Excitation amplitudes at geometry ``n`` with shape
+            ``(nroots, nocc, nvir)``.
+        Yn (numpy.ndarray): De-excitation amplitudes with shape
+            ``(nroots, nocc, nvir)``.
+        Cm (numpy.ndarray): Molecular-orbital coefficients at geometry ``m``
+            with shape ``(nbasis, nbasis)``.
+        Cn (numpy.ndarray): Molecular-orbital coefficients at geometry ``n``
+            with shape ``(nbasis, nbasis)``.
+        S (numpy.ndarray): Overlap matrix between geometries ``m`` and ``n``
+            with shape ``(nbasis, nbasis)``.
 
-    Returns
-        ovlp : ndarray
+    Returns:
+        numpy.ndarray: Wavefunction overlap matrix.
     """
     # restricted case has same orbitals for alpha and beta electrons
     has_m = True if isinstance(Xm, np.ndarray) else False

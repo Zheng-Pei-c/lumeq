@@ -9,7 +9,7 @@ from lumeq.plot import plt
 _spin_names = ['0', 'x', 'y', 'z', '+', '-']
 
 def get_spin(x, j=.5):
-    """
+    r"""
     spin matrices from qutip package
     """
     # x takes 0, x, y, z, +, -
@@ -26,7 +26,7 @@ def get_spin(x, j=.5):
 
 
 def get_spin_mat(x, j=.5):
-    """
+    r"""
     reload get_spin() but return numpy matrix by qutip full() function
     """
     # x takes 0, x, y, z, +, -
@@ -59,12 +59,13 @@ def get_spins(xs='all', j=.5, np_matrix=True):
 
 
 def get_prod_spin_list(n, xs='all', j=.5, np_matrix=True):
-    r"""
-    the actual sigma_{ix} matrix:
-        loop over n spins
-        set i-th spin with spin matrices while the rest are identity matrices
-        return n*d supermatrices as Hilbert space operators or basis
-    the use of these matrices gives exact Hamiltonian in rather huge dimension
+    r"""Build spin operators acting on each site in the full Hilbert space.
+
+    Notes:
+        This constructs the actual ``sigma_{i,x}`` operators by looping over
+        the ``n`` spins, placing the requested spin matrix on site ``i`` and
+        identity operators on all other sites. The returned ``n * d`` matrices
+        form Hilbert-space operators or a basis in the full product space.
     """
     sigma = get_spins(xs, j, np_matrix=False) # use qutip type here
 
@@ -88,20 +89,21 @@ def get_prod_spin_list(n, xs='all', j=.5, np_matrix=True):
 
 
 def hamil_heisenberg_1d(n, j, hz, np_matrix=True, spin_j=.5, boundary='open'):
-    r"""
-    build xxz 1d-chain spin model hamiltonian H in Hilbert space
-    H = sum_{i}^{n} ( j_{i,x} * sigma_{i,x} sigma_{i+1,x}
-                    + j_{i,y} * sigma_{i,y} sigma_{i+1,y}
-                    + j_{i,z} * sigma_{i,z} sigma_{i+1,z})
-        + sum_{i}^{n} hz_{i} * sigma_{i,z}
-    note that when j_{x} = j_{y}
-              sigma_x sigma_x + sigma_y sigma_y
-              = .5 * (sigma_p sigma_m + sigma_m sigma_p)
-              using ladder operators such that the matrices are real
-    n: number of 1/2 spins
-    j: spin coupling constant of xx, yy, zz sigma
-    hz: magnetic field strength along z axis for each spin
-    boundary condition: open or periodic
+    r"""Build the 1D Heisenberg Hamiltonian in the full Hilbert space.
+
+    Notes:
+        The Hamiltonian is
+
+        ``H = sum_i (j_{i,x} sigma_{i,x} sigma_{i+1,x}
+        + j_{i,y} sigma_{i,y} sigma_{i+1,y}
+        + j_{i,z} sigma_{i,z} sigma_{i+1,z})
+        + sum_i h_{z,i} sigma_{i,z}``.
+
+        When ``j_x = j_y``, the transverse part can be rewritten as
+        ``sigma_x sigma_x + sigma_y sigma_y
+        = 0.5 * (sigma_p sigma_m + sigma_m sigma_p)``,
+        which makes it convenient to use ladder operators and keep the matrices
+        real.
     """
     si, sx, sy, sz = get_spins(xs='0xyz', j=spin_j, np_matrix=False) # use qutip
     sigma = [sx, sy, sz] # sx variable would be damaged in the later loops
@@ -138,7 +140,7 @@ hamil_xyz_1d = hamil_heisenberg_1d
 
 
 def hamil_zeeman_1d(n, hz, np_matrix=True, spin_j=.5, sigma=None):
-    """
+    r"""
     separate the magnetic field part for efficiency
     """
     if sigma is None:
@@ -158,7 +160,7 @@ def hamil_zeeman_1d(n, hz, np_matrix=True, spin_j=.5, sigma=None):
 
 def hamil_x_1d(n, j, np_matrix=True, spin_j=.5, sigma=None, direction='x',
                boundary='open'):
-    """
+    r"""
     separate one direction for efficiency
     """
     if sigma is None:

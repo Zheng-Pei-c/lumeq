@@ -33,13 +33,16 @@ pip install -e .
 ```
 
 ### Optional Dependencies
-To include optional dependencies like `pyscf` (required for electronic structure calculations) or `torch` (for GPU support):
+To include optional dependencies like `pyscf` (for electronic-structure workflows),
+`spins` (for spin models, QAOA, and Wick-theorem utilities), or `cupy`
+(for optional GPU performance monitoring):
 
 ```bash
 pip install .[pyscf]
+pip install .[spins]
 pip install .[gpu]
-# or both
-pip install .[pyscf,gpu]
+# or combine them
+pip install .[pyscf,spins,gpu]
 ```
 
 ### Manual Installation (PYTHONPATH)
@@ -57,18 +60,23 @@ export PYTHONPATH=$PYTHONPATH:/path/to/lumeq
 
 ## Dependencies
 
+Core dependencies:
+
 -   [Python 3.x](https://www.python.org/)
 -   [numpy](https://numpy.org/)
 -   [scipy](https://scipy.org/)
 -   [opt_einsum](https://github.com/dgasmith/opt_einsum)
 -   [matplotlib](https://matplotlib.org/)
 -   [psutil](https://github.com/giampaolo/psutil) (Required for memory usage monitoring)
--   [QuTiP](https://qutip.org/)
--   [Cirq](https://quantumai.google/cirq) (Required for quantum computing applications)
--   [Cirq-Google](https://pypi.org/project/cirq-google/)
--   [SymPy](https://www.sympy.org/)
--   [PySCF](https://github.com/pyscf/pyscf) (Required for electronic structure calculations)
--   [PyTorch](https://pytorch.org/) (Required for GPU support)
+
+Optional dependencies:
+
+-   [PySCF](https://github.com/pyscf/pyscf) (`.[pyscf]`, used for electronic structure calculations)
+-   [QuTiP](https://qutip.org/) (`.[spins]`)
+-   [Cirq](https://quantumai.google/cirq) (`.[spins]`, used for quantum computing applications)
+-   [Cirq-Google](https://pypi.org/project/cirq-google/) (`.[spins]`)
+-   [SymPy](https://www.sympy.org/) (`.[spins]`)
+-   [CuPy](https://cupy.dev/) (`.[gpu]`, optional, used for GPU performance monitoring)
 
 
 
@@ -98,6 +106,12 @@ print(f"0.1 Hartree = {e_ev} eV")
 
 Wick's theorem is a powerful tool for analyzing quantum chemical wavefunctions.
 The contraction of Wick's theorem for spin-quantized operators can be automated using the `sqo_evaluation` function in the `lumeq.utils.wick_contraction` module.
+This example requires the optional spin dependencies:
+
+```bash
+pip install .[spins]
+```
+
 Here is an example of how to perform automated Wick's theorem contractions (adapted from [`samples/wick_operators.py`](https://github.com/Zheng-Pei-c/lumeq/blob/main/samples/wick_operators.py)).
 
 ```python
@@ -118,6 +132,12 @@ sqo_evaluation(Tsa, h1, Tbt, exceptions=exceptions, title='Open-shell excited-st
 
 
 ### 3. DMET Analysis
+
+This example requires the electronic-structure dependencies:
+
+```bash
+pip install .[pyscf]
+```
 
 Here is an example of how to perform Density Matrix Embedding Theory (DMET) analysis on a water cluster (adapted from [`lumeq/embedding/fragment_entangle.py`](https://github.com/Zheng-Pei-c/lumeq/blob/main/lumeq/embedding/fragment_entangle.py)).
 
@@ -158,6 +178,12 @@ get_embedding_system(mf, frgm_idx)
 
 
 ### 4. Molecular Dynamics
+
+This example requires the electronic-structure dependencies:
+
+```bash
+pip install .[pyscf]
+```
 
 You can run molecular dynamics simulations using the `dynamics` module. See [`lumeq/dynamics/molecular_dynamics.py`](https://github.com/Zheng-Pei-c/lumeq/blob/main/lumeq/dynamics/molecular_dynamics.py) for more details.
 
@@ -221,7 +247,7 @@ The package contains the following modules:
 
 ## Acknowledgements
 
-This project utilizes AI-assisted coding tools, including [GitHub Copilot](https://github.com/github/copilot.vim) and [Google Gemini](https://gemini.google.com/), for code generation and documentation.
+This project utilizes AI-assisted coding tools, including [GitHub Copilot](https://github.com/github/copilot.vim), [Google Gemini](https://gemini.google.com/), and [ChatGPT](https://chatgpt.com/), for code generation and documentation.
 
 The implementation details can be found in papers cited in the source files and my [personal notes](https://zhengpeic.github.io/notes/).
 

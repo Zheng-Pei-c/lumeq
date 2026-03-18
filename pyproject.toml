@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lumeq"
-version = "0.1.0"
-description = "A Python package for analyzing quantum chemical wavefunctions"
+version = "0.3.0"
+description = "A Python package for electronic structure, dynamics, spin models, and quantum chemistry analysis"
 readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE"}
@@ -18,15 +18,12 @@ dependencies = [
   "opt_einsum",
   "matplotlib",
   "psutil",
-  "qutip",
-  "cirq",
-  "cirq-google",
-  "sympy",
 ]
 
 [project.optional-dependencies]
 pyscf = ["pyscf"]
-gpu = ["torch"]
+gpu = ["cupy"]
+spins = ["qutip", "cirq", "cirq-google", "sympy"]
 
 [project.urls]
 "Homepage" = "https://github.com/Zheng-Pei-c/lumeq"

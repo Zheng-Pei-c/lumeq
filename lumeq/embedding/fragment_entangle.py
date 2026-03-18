@@ -21,18 +21,16 @@ def get_localized_orbital(mol, coeff, method='pipek_mezey', **kwargs):
     r"""
     Compute localized orbital basis C^{AO,LO} = S^{-1/2}
 
-    Parameters
-        mol : pyscf molecular class
-            while cell object is needed with kpts argument
-        coeff : molecular orbitals (MO) used in some localization schemes.
-            It is occupied orbitals when Intrinsic Atomic Orbitals (IAO) is used.
-        method: 'pipek_mezey', 'cholesky', 'iao', 'lowdin' or 'meta_lowdin'
+    Args:
+        mol: PySCF molecule object. A cell object is used with ``kpts``.
+        coeff: Molecular orbitals used in some localization schemes. For IAO, these are
+            occupied orbitals.
+        method (str): Localization method such as ``'pipek_mezey'``, ``'cholesky'``,
+            ``'iao'``, ``'lowdin'``, or ``'meta_lowdin'``.
+        **kwargs: Additional keyword arguments such as ``minao`` and ``kpts``.
 
-        minao : reference minimal basis for iao
-        kpts : k-points. Cell object is used rather than mol.
-
-    Returns
-        localized orbital basis
+    Returns:
+        numpy.ndarray: Localized-orbital basis.
     """
     if method == 'pipek_mezey':
         pm = lo.PM(mol, coeff)
@@ -52,16 +50,16 @@ def get_localized_orbital_rdm(coeff_lo_in_ao, coeff_mo_in_ao, ovlp_ao, nocc, sca
     Compute total density matrix alpha+beta in localized orbital (LO) basis
     S^{1/2} P S^{1/2} = C_lo^T S C_mo occ C_mo occ^T S C_lo
 
-    Parameters
-        coeff_lo_in_ao : C^{AO,LO} LO basis
-        coeff_mo_in_ao : C^{AO,MO} MO coefficients in AO basis, scf.mo_coeff in pyscf DFT class
-        ovlp_ao : S as AO overlap matrix
-        nocc : number of occupied orbitals (electrons)
-        scale : scaling factor 2 for restricted case
-        extra_orb : add virtual orbitals in the density matrix
+    Args:
+        coeff_lo_in_ao: LO basis coefficients ``C^{AO,LO}``.
+        coeff_mo_in_ao: MO coefficients ``C^{AO,MO}`` in AO basis.
+        ovlp_ao: AO overlap matrix ``S``.
+        nocc (int): Number of occupied orbitals.
+        scale (float): Scaling factor, ``2`` for the restricted case.
+        extra_orb (int): Number of virtual orbitals added to the density matrix.
 
-    Returns
-        dm_lo_in_ao : P^{LO,LO} density matrix in LO basis
+    Returns:
+        numpy.ndarray: Density matrix ``P^{LO,LO}`` in the LO basis.
     """
     # identity = np.einsum('...pi,pq,...qj->...ij', coeff_lo_in_ao, ovlp_ao, coeff_lo_in_ao)
     coeff_mo_in_lo = np.einsum('...pi,pq,...qj->...ij', coeff_lo_in_ao, ovlp_ao, coeff_mo_in_ao)
@@ -74,17 +72,17 @@ def fragment_localization(mf, frgm_list, method='pipek_mezey', extra_orb=0, min_
     r"""
     Get the localized orbitals and density matrix for fragment analysis
 
-    Parameters
-        mf : pyscf mean-field class such as HF/DFT
-        frgm_list : list of lists including atom indices in each fragment
-        method : localization method
-        extra_orb : add virtual orbitals in the density matrix build
-        min_weight : threshold for the fragment LO partition
+    Args:
+        mf: PySCF mean-field object such as HF/DFT.
+        frgm_list (list): Atom indices in each fragment.
+        method (str): Localization method.
+        extra_orb (int): Number of virtual orbitals added in the density-matrix build.
+        min_weight (float): Threshold for the fragment LO partition.
 
-    Returns
-        coeff_lo_in_ao : C^{AO,LO} localized orbital (LO) basis
-        dm_lo_in_ao : density matrix in LO basis
-        frgm_lo_idx : list of LO indices of each fragment
+    Returns:
+        coeff_lo_in_ao: Localized-orbital basis coefficients ``C^{AO,LO}``.
+        dm_lo_in_ao: Density matrix in the LO basis.
+        frgm_lo_idx (list): Local-orbital indices for each fragment.
     """
     mol = mf.mol
     coeff_mo_in_ao = mf.mo_coeff
@@ -110,20 +108,24 @@ def get_embedding_orbital(dm_lo_in_ao, coeff_lo_in_ao, ovlp_ao,
     r"""
     Embedding orbital construction from the density matrix in localized orbital basis
 
-    Parameters
-        dm_lo_in_ao : density matrix in LO basis
-        coeff_lo_in_ao : LO basis
-        ovlp_ao : overlap matrix in AO basis
-        imp_lo_idx : impurity LO index list from frgm_lo_idx
-        env_lo_idx : environment LO index list from frgm_lo_idx
-        method : bath orbitals selection
-        method==0: singular vectors of off-diagonal block of the dm in LO
-        method==1: eigenvectors of environment diagonal block of the dm in LO
-        threshold : cutoff of the singular values or eigenvalues
+    Args:
+        dm_lo_in_ao (numpy.ndarray): Density matrix in the localized-orbital
+            basis.
+        coeff_lo_in_ao (numpy.ndarray): Localized-orbital basis coefficients.
+        ovlp_ao (numpy.ndarray): Overlap matrix in the AO basis.
+        imp_lo_idx (list): Impurity localized-orbital indices from
+            ``frgm_lo_idx``.
+        env_lo_idx (list): Environment localized-orbital indices from
+            ``frgm_lo_idx``.
+        method (int): Bath-orbital selection method. ``0`` uses singular
+            vectors of the off-diagonal block of the density matrix in the LO
+            basis, and ``1`` uses eigenvectors of the environment diagonal block
+            of the density matrix in the LO basis.
+        threshold (float): Cutoff for singular values or eigenvalues.
 
-    Returns
-        coeff_eo_in_ao : C^{AO,EO} embedding orbital (EO) coefficients in ao basis
-        dm_eo_in_ao : P^{EO,EO} density matrix in EO basis
+    Returns:
+        tuple: Embedding-orbital coefficients ``C^{AO,EO}`` in the AO basis and
+        density matrix ``P^{EO,EO}`` in the EO basis.
     """
     def embed_spin_orbital(dm_lo_in_ao, iprint=0):
         if method == 0: # singular value vectors of off-diagonal block of the dm in lo
@@ -177,18 +179,15 @@ def get_embedding_energy(mf, coeff_eo_in_ao, dm_eo_in_ao, neo_imp, extra_orb=0):
     r"""
     Calculate electronic energy of the impurity in the embedding orbital basis
 
-    Parameters
-        mf : pyscf mean-field class (SCF converged)
-        coeff_eo_in_ao : C^{AO,EO} embedding orbital coefficients in AO basis
-        dm_eo_in_ao : P^{EO,EO} density matrix in EO basis
-        neo_imp : number of impurity embedding orbitals (same as localized orbitals)
-        extra_orb : number of virtual MO orbital of the whole top SCF
+    Args:
+        mf: Converged PySCF mean-field object.
+        coeff_eo_in_ao: Embedding-orbital coefficients ``C^{AO,EO}`` in AO basis.
+        dm_eo_in_ao: Density matrix ``P^{EO,EO}`` in the EO basis.
+        neo_imp (int): Number of impurity embedding orbitals.
+        extra_orb (int): Number of virtual MO orbitals in the top-level SCF.
 
-    Returns
-        energy : embedded system energy
-        nocc_eo : occupied orbital number of EO
-        e_eo : EO orbital energies
-        coeff_eo_in_ao : C^{AO,EO} embedding orbital coefficients in AO basis of embedded system
+    Returns:
+        tuple: Embedded-system energy, occupied EO count, EO energies, and EO coefficients.
     """
     neo = dm_eo_in_ao.shape[1]
     # effective number of electrons in embedding space
@@ -232,15 +231,15 @@ def get_embedding_system(mf, frgm_idx, ifrgm=0, extra_orb=0):
     r"""
     Embedding energy calculation for a given fragment
 
-    Parameters
-        mf : pyscf mean-field object
-        frgm_idx : list of list of atomic indices for each fragment
-        ifrgm : index of the fragment to be treated as impurity; if -1, loop over all fragments
-        extra_orb : number of extra orbitals to include in the density matrix (can be negative)
+    Args:
+        mf: PySCF mean-field object.
+        frgm_idx (list): Atomic indices for each fragment.
+        ifrgm (int): Fragment index treated as the impurity. If ``-1``, loop over all fragments.
+        extra_orb (int): Number of extra orbitals to include in the density matrix.
 
-    Returns
-        ifrag>0: for the chosen fragment return variables of get_embedding_energy function
-        elsewise get the whole system energy from embedded fragments
+    Returns:
+        tuple or None: For a chosen fragment, returns the values from
+            ``get_embedding_energy``. Otherwise computes the whole-system energy.
     """
 
     embed = EmbeddingMeanField(mf, frgm_idx, extra_orb=extra_orb)
@@ -269,15 +268,15 @@ class EmbeddingMeanField():
     """
     def __init__(self, mf, frgm_list, method='pipek_mezey', extra_orb=0,
                  min_weight=.8):
-        """
+        r"""
         Build localized orbital, density matrix, and LO index
 
-        Parameters
-            mf : converged pyscf mean-field object
-            frgm_list : list of atomic indices of fragments
-            method : localization method
-            extra_orb : number of extra orbitals to include in the density matrix (can be negative)
-            min_weight : threshold for the fragment LO partition
+        Args:
+            mf: Converged PySCF mean-field object.
+            frgm_list (list): Atomic indices of fragments.
+            method (str): Localization method.
+            extra_orb (int): Number of extra orbitals to include in the density matrix.
+            min_weight (float): Threshold for the fragment LO partition.
         """
         self.coeff_lo_in_ao, self.dm_lo_in_ao, \
         self.frgm_lo_idx = fragment_localization(mf, frgm_list, method=method,
@@ -286,19 +285,19 @@ class EmbeddingMeanField():
 
 
     def emb_basis_dmet(self, mf, ifrgm, embed_method=0):
-        """
+        r"""
         Build embedding basis for a given fragment
 
-        Parameters
-            mf : converged pyscf mean-field object
-                should be same as the one passed in initialization method
-            ifrgm : indix of the chosen fragment to be embedded
-            embed_method : choose embedding method.
-                0 for DMET
+        Args:
+            mf: Converged PySCF mean-field object. This should be the same
+                object passed during initialization.
+            ifrgm (int): Index of the fragment chosen as the impurity.
+            embed_method (int): Embedding method selector. ``0`` corresponds to
+                DMET.
 
-        Returns
-            self.coeff_eo_in_ao : EO coefficients in AO basis
-            self.dm_eo_in_ao : density matrix in EO basis
+        Returns:
+            tuple: Embedding-orbital coefficients in the AO basis and density
+            matrix in the EO basis.
         """
         imp_lo_idx = self.frgm_lo_idx.copy()
         self.imp_lo_idx = np.array(imp_lo_idx.pop(ifrgm))
@@ -313,15 +312,15 @@ class EmbeddingMeanField():
 
 
     def get_eomf(self, mf):
-        """
+        r"""
         Build the embedded mean-field object with reduced MO space,
         ready to be used for excited-state calculations
 
-        Parameters
-            mf : mean-field class, same as before
+        Args:
+            mf: Mean-field object, the same class used previously.
 
-        Returns
-            eomf: embedded mf object
+        Returns:
+            object: Embedded mean-field object.
         """
         # effective number of electrons in embedding space
         nelec = int(round(np.trace(self.dm_eo_in_ao)))

@@ -12,38 +12,18 @@ mu and nu indicate the left and right envrionment density matrices
 
 @monitor_performance
 def contract_from_left(mu_ba, s_ab, s_ba, mps_a, mps_b, pick_eig='LM'):
-    r"""
-    Update the environment density matrix at left by contracting it
-           with one more 2-sites (A and B) unit cell
+    r"""Update the left environment density matrix for a two-site unit cell.
 
-    Parameters
-        mu_ba : density matrix from the left connects A site via s_ba bond,
-               bottom-up indexed
-        mu_ab : also obtained from updated mu_ba and A site
-        s_ab :  weight vector connects site A (left) to B (right)
-        s_ba :  weight vector connects site B (left) to A (right)
-        mps_a : MPS state at site A, bra at top
-        mps_b : MPS state at site B, bra at top
-           /-----2---s_{BA}---4---At---7---s_{AB}----9---Bt---12---
-           |                      |                      |
-         mu_{BA}                  5                      10
-           |                      |                      |
-          \\-----1---s_{BA}---6---Ab---3---s_{AB}---11---Bb----8---
-    it is equivalent to
-           /-----2---s_{BA}---4---A----7---s_{AB}---9---B----12---
-           |                      |                     |
-         mu_{BA}                  5                     10
-           |                      |                     |
-          \\-----1---s_{BA}---3---A*---6---s_{AB}---8---B*---11---
-    we use the following summation as weigths are vectors (or diagonal)
-           /-----2-j--s_{BA}---j---A---5-m---s_{AB}---m---B----8-p---
-           |                       |                      |
-         mu_{BA}                   3-k                    6-n
-           |                       |                      |
-          \\-----1-i--s_{BA}---i---A*--4-l---s_{AB}---l---B*---7-o---
+    Args:
+        mu_ba (numpy.ndarray): Left environment density matrix on the BA bond.
+        s_ab (numpy.ndarray): Bond weights from site A to site B.
+        s_ba (numpy.ndarray): Bond weights from site B to site A.
+        mps_a (numpy.ndarray): MPS tensor on site A.
+        mps_b (numpy.ndarray): MPS tensor on site B.
+        pick_eig (str): Eigenvalue selection mode passed to ``eigsh``.
 
-    Returns
-        mu_ba, mu_ab : updated density matrix from left
+    Returns:
+        tuple: Updated ``(mu_ba, mu_ab)`` density matrices.
     """
 
     chi_ba = mps_a.shape[0]
@@ -76,38 +56,18 @@ def contract_from_left(mu_ba, s_ab, s_ba, mps_a, mps_b, pick_eig='LM'):
 
 @monitor_performance
 def contract_from_right(nu_ab, s_ab, s_ba, mps_a, mps_b, pick_eig='LM'):
-    r"""
-    Update the environment density matrix at right by contracting it
-           with one more 2-sites (A and B) unit cell
+    r"""Update the right environment density matrix for a two-site unit cell.
 
-    Parameters
-        nu_ab: density matrix from the right connects A site via s_ab bond,
-               top-down indexed
-        nu_ba: also obtained from B site and updated nu_ab
-        s_ab:  weight vector connects site A (left) to B (right)
-        s_ba:  weight vector connects site B (left) to A (right)
-        mps_a: MPS state at site A, bra at top
-        mps_b: MPS state at site B, bra at top
-            ----8---Bt---11---s_{BA}---3---At---6---s_{AB}---1----\\
-                    |                      |                       |
-                    10                     5                    nu_{AB}
-                    |                      |                       |
-            ---12---Bb----9---s_{BA}---7---Ab---4---s_{AB}---2-----/
-    it is equivalent to
-           ---11---BT----8---s_{BA}---6---AT----3---s_{AB}---1----\\
-                   |                      |                        |
-                   10                     5                     nu_{AB}
-                   |                      |                        |
-           ---12---B*T---9---s_{BA}---7---A*T---4---s_{AB}---2-----/
-    we use the following summation as weigths are vectors (or diagonal)
-        ---o-7---At---l---s_{BA}---l-4---At---i---s_{AB}---i-1----\\
-                 |                       |                         |
-                 6-n                     3-k                     nu_{AB}
-                 |                       |                         |
-        ---p-8---Ab---m---s_{BA}---m-5---Ab---j---s_{AB}---j-2-----/
+    Args:
+        nu_ab (numpy.ndarray): Right environment density matrix on the AB bond.
+        s_ab (numpy.ndarray): Bond weights from site A to site B.
+        s_ba (numpy.ndarray): Bond weights from site B to site A.
+        mps_a (numpy.ndarray): MPS tensor on site A.
+        mps_b (numpy.ndarray): MPS tensor on site B.
+        pick_eig (str): Eigenvalue selection mode passed to ``eigsh``.
 
-    Returns
-        nu_ab, nu_ba: updated density matrix from right
+    Returns:
+        tuple: Updated ``(nu_ab, nu_ba)`` density matrices.
     """
 
     chi_ab = mps_a.shape[2]
@@ -143,40 +103,18 @@ def contract_from_right(nu_ab, s_ab, s_ba, mps_a, mps_b, pick_eig='LM'):
 @monitor_performance
 def update_ortho_mps(rho_left, rho_right, weight, mps_left, mps_right,
                      tol=1e-12):
-    r"""
-    Set the dimer AB or BA linker to cononical form
-    update the weight connecting A and B sites and the MPSs
-    the left and right rho and weight should have same order:
-                    mu_ab, nu_ab, s_ab; or mu_ba, nu_ba, s_ba
-            /-----s_{AB}----\\                    /-----s_{BA}----\\
-            |                |                    |                |
-          mu_{AB}^T        nu_{AB}      or      mu_{BA}          nu_{BA}^T
-            |                |                    |                |
-           \\-----s_{AB}-----/                   \\-----s_{BA}-----/
+    r"""Bring the two-site MPS linker into canonical form.
 
-                           /---4-l---s_{AB}---l-4--\\
-                           |                        |
-    ---1-i---At---3-k--- mu_{AB}                  nu_{AB}---5-m---Bt---7-o---
-           |                                                      |
-           2-j                                                    6-n
-           |                                                      |
-    left rho is bottom-up indexed while right rho is top-down indexed
-    first step: orthogonalize density matrices and form new weight
-    second step: svd of new weight and construct new MPSs
-    A * mu * s * \nu * B = A * l_U * (l_e * l_U^T * s * r_U * r_e) * r_U^T * B
-                         = (A * l_U /l_e * U_s) * tilde{s} * (Vt_s /r_e * r_U^T * B)
-    the third dimension of A and first dimension of B might be reduced
+    Args:
+        rho_left (numpy.ndarray): Left environment density matrix.
+        rho_right (numpy.ndarray): Right environment density matrix.
+        weight (numpy.ndarray): Bond weights between the two sites.
+        mps_left (numpy.ndarray): Left MPS tensor.
+        mps_right (numpy.ndarray): Right MPS tensor.
+        tol (float): Eigenvalue cutoff for the environment density matrices.
 
-    Parameters
-        rho_left : density matrix from the left
-        rho_right : density matrix from the right
-        weight : contraction weight between sites
-        mps_left : matrix product state at left
-        mps_right : matrix product state at right
-        tol : threshold for the eigenvalues cutoff of dm rho_left and rho_right
-
-    Returns
-        updated weight, mps_left, mps_right
+    Returns:
+        tuple: Updated ``(weight, mps_left, mps_right)``.
     """
     def diag(rho):
         e, vec = LA.eigh(rho)
@@ -206,28 +144,15 @@ def update_ortho_mps(rho_left, rho_right, weight, mps_left, mps_right,
 
 @monitor_performance
 def normalize_mps(s_left, s_right, mps):
-    r"""
-    Normalize the MPS at A or B site.
-        /---1---s_{BA}---2---At---5---s_{AB}---7--\\
-        |                    |                     |
-        1                    4                     7
-        |                    |                     |
-       \\---1---s_{BA}---6---Ab---3---s_{AB}---7---/
-        since weight vectors are diagonal, it reduces to
-        /---1---s_{BA}---1---A----3---s_{AB}---3--\\
-        |                    |                     |
-        1                    2                     3
-        |                    |                     |
-       \\---1---s_{BA}---1---A*---3---s_{AB}---3---/
-    s_left and s_right are switched for site B
+    r"""Normalize a single-site MPS tensor.
 
-    Parameters
-        s_left : weight between two site from left
-        s_right : weight between two site from right
-        mps : matrix product state
+    Args:
+        s_left (numpy.ndarray): Left bond weights.
+        s_right (numpy.ndarray): Right bond weights.
+        mps (numpy.ndarray): MPS tensor to normalize.
 
-    Returns
-        normalized mps
+    Returns:
+        numpy.ndarray: Normalized MPS tensor.
     """
     s_left, s_right = s_left**2, s_right**2
     norm = np.einsum('i,ijk,ijk,k->', s_left, mps, mps.conj(), s_right, optimize=True)
@@ -236,16 +161,16 @@ def normalize_mps(s_left, s_right, mps):
 
 @monitor_performance
 def normalize_mps_2(s_ab, s_ba, mps_a, mps_b):
-    """
-    Normalize mps_a and mps_b at same time
-    same functionality as the previous normalize_mps()
+    r"""Normalize both site tensors in a two-site unit cell.
 
-    Parameters
-        s_ab, s_ba : weight between A and B sites
-        mps_a, mps_b : MPS of sites A and B
+    Args:
+        s_ab (numpy.ndarray): Bond weights from site A to site B.
+        s_ba (numpy.ndarray): Bond weights from site B to site A.
+        mps_a (numpy.ndarray): MPS tensor on site A.
+        mps_b (numpy.ndarray): MPS tensor on site B.
 
-    Returns
-        normalized mps_a and mps_b
+    Returns:
+        tuple: Normalized ``(mps_a, mps_b)``.
     """
     s_ab, s_ba = s_ab**2, s_ba**2
 
@@ -261,28 +186,16 @@ def normalize_mps_2(s_ab, s_ba, mps_a, mps_b):
 
 @monitor_performance
 def get_mps_2rdm(s_ab, s_ba, mps_a, mps_b):
-    r"""
-    Calculate the density matrix of the two-sites in a unit cell.
-    MPS is assumed in canoncial form (orthonormal).
-    rho: ketbra{ket}{bra} = ketbra{Mb}{Mt} = ketbra{26}{37}
-    rho_AB:
-                           2-j                     6-n
-                           |                       |
-      /---1---s_{BA}---1---A*---4-l---s_{AB}---4---B*---8---s_{BA}---8---\
-      |                                                                  |
-      1-i                                                                8-p
-      |                                                                  |
-      /---1---s_{BA}---1---A----5-m---s_{AB}---5---B----8---s_{BA}---8---/
-                           |                       |
-                           3-k                     7-o
-    rho_BA: switch A and B when calling the function
+    r"""Build the two-site reduced density matrices for the unit cell.
 
-    Parameters
-        s_ab, s_ba : weight between A and B sites
-        mps_a, mps_b : MPS of sites A and B
+    Args:
+        s_ab (numpy.ndarray): Bond weights from site A to site B.
+        s_ba (numpy.ndarray): Bond weights from site B to site A.
+        mps_a (numpy.ndarray): MPS tensor on site A.
+        mps_b (numpy.ndarray): MPS tensor on site B.
 
-    Returns
-        rho_ab, rho_ba : density matrix of AB and BA patterns
+    Returns:
+        tuple: Reduced density matrices ``(rho_ab, rho_ba)``.
     """
     s_ab2, s_ba2 = s_ab**2, s_ba**2
 
@@ -299,28 +212,18 @@ def get_mps_2rdm(s_ab, s_ba, mps_a, mps_b):
 
 @monitor_performance
 def evaluate_energy_mps(mpo_ab, mpo_ba, s_ab, s_ba, mps_a, mps_b):
-    r"""
-    Get energy of the two sites A and B from MPS
-    use MPS and weights directly rather than build four-index density matrices.
-    E_AB:
-      /---1---s_{BA}---1---A----4-l---s_{AB}---4---B----8---s_{BA}---8---\\
-      |                    |                       |                     |
-      |                   2-j--------\\   /--------6-n                    |
-      |                              |   |                               |
-      1-i                            H_{AB}                             8-p
-      |                              |   |                               |
-      |                   3-k--------/  \\--------7-o                    |
-      |                    |                       |                     |
-     \\---1---s_{BA}---1---A*---5-m---s_{AB}---5---B*---8---s_{BA}---8---/
-    E_BA: switch A and B
+    r"""Evaluate the average two-site energy directly from the MPS tensors.
 
-    Parameters
-        mpo_ab, mpo_ba : matrix product operators (MPO) of AB and BA
-        s_ab, s_ba : weights
-        mps_a, mps_b : MPS of sites A and B
+    Args:
+        mpo_ab (numpy.ndarray): MPO tensor for the AB pattern.
+        mpo_ba (numpy.ndarray): MPO tensor for the BA pattern.
+        s_ab (numpy.ndarray): Bond weights from site A to site B.
+        s_ba (numpy.ndarray): Bond weights from site B to site A.
+        mps_a (numpy.ndarray): MPS tensor on site A.
+        mps_b (numpy.ndarray): MPS tensor on site B.
 
-    Returns
-        averaged energy of AB and BA
+    Returns:
+        float: Average of the AB and BA energies.
     """
     s_ab2, s_ba2 = s_ab**2, s_ba**2
 
@@ -336,17 +239,18 @@ def evaluate_energy_mps(mpo_ab, mpo_ba, s_ab, s_ba, mps_a, mps_b):
 
 
 def evaluate_energy_rdm(mpo_ab, mpo_ba, rho_ab, rho_ba):
-    """
+    r"""
     Get energy of the two sites A and B
     using the density matrix from get_mps_2rdm function.
 
-    Parameters
-        mpo_ab, mpo_ba : matrix product operators (MPO) of AB and BA
-        rho_ab, rho_ba : density matrix of AB and BA
+    Args:
+        mpo_ab, mpo_ba (matrix product operators (MPO) of AB and BA):
+        rho_ab, rho_ba (density matrix of AB and BA):
 
-    Returns
+    Returns:
         averaged energy of AB and BA
-    """
+    
+"""
     e_ab = np.einsum('jnko,jnko->', mpo_ab, rho_ab, optimize=True)
     e_ba = np.einsum('jnko,jnko->', mpo_ba, rho_ba, optimize=True)
 
@@ -355,30 +259,19 @@ def evaluate_energy_rdm(mpo_ab, mpo_ba, rho_ab, rho_ba):
 
 @monitor_performance
 def apply_gate_on_mps(gate_ab, s_ab, s_ba, mps_a, mps_b, chi, tol=1e-7):
-    r"""
-    Apply a gate from left to AB dimer MPSs (bra side) for time evolution
-    use conjugate of evolution operator for the bra state
-    gate_ab: e^{1j*t*ham_ab} for real-time or e^{-tau*ham_ab} for imaginary-time
-        ---1---ss_{BA}---1---A---3---s_{AB}---3---B---5---ss_{BA}---5---
-                             |                    |
-                             2-------\\  /--------4
-                                      |  |
-                          -----6-----U_{AB}-----7-----
-    above contraction gives a matrix whose indices in order 1675,
-                            first and last are weight dimensions,
-                            while the middle two are the physical dimensions
-    subjected to svd to form new MPSs and weights s_ab
-    gate_ba: switch A and B indices when calling this function
-             so that update MPSs and s_ba
+    r"""Apply a two-site evolution gate to the AB MPS tensors.
 
-    Parameters
-        gate_ab : gate on AB pattern
-        s_ab, s_ba : weight between A and B sites
-        mps_a, mps_b : MPS of sites A and B
-        tol : cutoff for the weights
+    Args:
+        gate_ab (numpy.ndarray): Two-site gate on the AB pattern.
+        s_ab (numpy.ndarray): Bond weights from site A to site B.
+        s_ba (numpy.ndarray): Bond weights from site B to site A.
+        mps_a (numpy.ndarray): MPS tensor on site A.
+        mps_b (numpy.ndarray): MPS tensor on site B.
+        chi (int): Maximum retained bond dimension after truncation.
+        tol (float): Lower bound used when inverting small singular values.
 
-    Returns
-        updated s_ab, mps_a, mps_b
+    Returns:
+        tuple: Updated ``(s_ab, mps_a, mps_b)`` after applying the gate.
     """
     # ensure weights are above tolerance threshold
     s_ba_trim = s_ba * (s_ba > tol) + tol * (s_ba < tol)
@@ -404,17 +297,17 @@ def apply_gate_on_mps(gate_ab, s_ab, s_ba, mps_a, mps_b, chi, tol=1e-7):
 
 
 def build_evolution_gate(ham, tau, itype='imag'):
-    """
+    r"""
     Build evolution gate from given Hamiltonian
 
-    Parameters:
-        ham : Hamiltonian matrix
-        tau : time evolution step
-        itype : evolution type
-            'imag' for imaginary time and 'real' for real time evolution
+    Args:
+        ham (numpy.ndarray): Hamiltonian matrix.
+        tau (float): Time-evolution step.
+        itype (str): Evolution type. Use ``'imag'`` for imaginary-time
+            evolution and ``'real'`` for real-time evolution.
 
-    Returns
-        matrix exponential of the evolution
+    Returns:
+        numpy.ndarray: Matrix exponential of the evolution operator.
     """
     # ham has dimension as (d,d,d,d)
     from scipy.linalg import expm
@@ -427,11 +320,7 @@ def build_evolution_gate(ham, tau, itype='imag'):
 def run_tebd(ham_ab, ham_ba, mps_a, mps_b, s_ab, s_ba,
              mu_ba=None, nu_ab=None, tau=.1, itype='imag',
              nmax=1000, midstep=10):
-    r"""
-    Run time evolving block decimation based on MPS of infinite two-site unit cells
-    refer: https://doi.org/10.1103/PhysRevLett.93.040502
-           https://www.tensors.net/mps
-    """
+    r"""Run TEBD for an infinite two-site unit-cell MPS."""
     gate_ab = build_evolution_gate(ham_ab, tau, itype=itype)
     gate_ba = build_evolution_gate(ham_ba, tau, itype=itype)
 

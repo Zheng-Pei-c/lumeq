@@ -1,4 +1,4 @@
-import numpy as np
+from lumeq import np
 
 def istype(data, dtype=float):
     r"""
@@ -29,21 +29,17 @@ def read_number(filename, keyword, n=-1, o=1, dtype=int):
     r"""
     Read numbers from the output file.
 
-    Parameters
-        filename : str
-            The output file name
-        keyword : str
-            The keyword to search for the target lines
-        n : int
-            when n>=0: the nth number in the line (0-based)
+    Args:
+        filename (str): The output file name
+        keyword (str): The keyword to search for the target lines
+        n (int): when n>=0: the nth number in the line (0-based)
             when n==-1: o is the begin and end indices of the number in the line
-        o : int or tuple
-            o takes 1 or -1 for the reading order when n>=0
+        o (int or tuple): o takes 1 or -1 for the reading order when n>=0
             when n == -1: o takes the begin and end indices
-        dtype : can be int, float, or simply string
+        dtype (type): Output data type, e.g. int, float, or str.
 
-    Returns
-        numbers : array of desired data type
+    Returns:
+        numbers (numpy.ndarray): Numbers converted to the requested data type.
     """
     numbers = []
     with open(filename, 'r') as infile:
@@ -63,24 +59,18 @@ def read_array(filename, keyword=None, nline=0, ncol=4, nrange=[0,4],
     r"""
     Read an array from the output file.
 
-    Parameters
-        filename : str
-            The output file name
-        keyword : str
-            The keyword to search for the target lines
+    Args:
+        filename (str): The output file name
+        keyword (str): The keyword to search for the target lines
             when keyword is None, read the whole file
-        nline : int
-            The number of lines to read after the keyword line
-        ncol : int
-            The expected number of columns in each line
-        nrange : list of two int
-            The begin and end indices of the target data in each line
-        dtype : can be int, float, or simply string
-        same : bool
-            When same is True, only read the lines with all data of the same type
+        nline (int): The number of lines to read after the keyword line
+        ncol (int): The expected number of columns in each line
+        nrange (list): Begin and end indices of the target data in each line.
+        dtype (type): Output data type, e.g. int, float, or str.
+        same (bool): When same is True, only read the lines with all data of the same type
 
-    Returns
-        array : array of desired data type
+    Returns:
+        array (numpy.ndarray): Array converted to the requested data type.
     """
     array = []
     def kernel(line):
@@ -119,26 +109,19 @@ def read_matrix(filename, nrow, ncol, keyword, nwidth=6, nind=0, nskip=0,
     r"""
     Read a matrix from the output file.
 
-    Parameters
-        filename : str
-            The output file name
-        nrow : int
-            The number of rows of the matrix
-        ncol : int
-            The number of columns of the matrix
-        keyword : str
-            The keyword to search for the target lines
-        nwidth : int
-            The number of columns in each batch
+    Args:
+        filename (str): The output file name
+        nrow (int): The number of rows of the matrix
+        ncol (int): The number of columns of the matrix
+        keyword (str): The keyword to search for the target lines
+        nwidth (int): The number of columns in each batch
             when nwidth == -1, nwidth = ncol
-        nind : int
-            The number of index columns at the beginning of each row
-        nskip : int
-            The number of rows to skip after the keyword line
-        dtype : can be int, float, or simply string
+        nind (int): The number of index columns at the beginning of each row
+        nskip (int): The number of rows to skip after the keyword line
+        dtype (type): Output data type, e.g. int, float, or str.
 
-    Returns
-        matrix : (nrow, ncol) array
+    Returns:
+        matrix (numpy.ndarray): Matrix with shape ``(nrow, ncol)``.
     """
     if nwidth == -1: nwidth = ncol
 

@@ -36,28 +36,29 @@ contains all two qubit interactions
 """
 
 def create_qubits_1d(nsite):
-    """Initialize qubits in a 1D array."""
+    r"""Initialize qubits in a 1D array."""
     return [cirq.LineQubit(i) for i in range(nsite)]
 
 
 def create_qubits_2d(nrow, ncol):
-    """Initialize qubits in a 2D grid."""
+    r"""Initialize qubits in a 2D grid."""
     return [[cirq.GridQubit(r, c) for c in range(ncol)] for r in range(nrow)]
 
 
 def create_circuit(qubits, gamma=None, beta=None, nlayers=0, **kwargs):
-    """
+    r"""
     Create a quantum circuit with Hadamard gates on each qubit for
     equal superposition as real initial state.
 
-    Parameters
-        gamma : 𝛾 symbol holder as a parameter for U(gamma, C) operator
-        beta : ß symbol holder as a parameter for U(beta, B) operator
-        nlayers : number of layers in the circuit (discreted time evolution steps)
-        js : coupling strength values between qubits
-        hs : magnetic field values
-    Returns
-        circuit : cirq.Circuit object
+    Args:
+        qubits: Qubit container.
+        gamma: Symbol or value used for the ``U(gamma, C)`` operator.
+        beta: Symbol or value used for the ``U(beta, B)`` operator.
+        nlayers (int): Number of circuit layers.
+        **kwargs: Additional parameters such as coupling strengths and magnetic fields.
+
+    Returns:
+        cirq.Circuit: Constructed circuit.
     """
     circuit = cirq.Circuit(cirq.H.on_each(qubits))
 
@@ -76,14 +77,14 @@ def gamma_layer(qubits, gamma, js, hs):
     r"""
     Define the gamma layer of the circuit with cost Hamiltonian.
 
-    Parameters
-        qubits : defined cirq Qubit object
-        gamma : rotation angle of the targeted Hamiltonian
-        js : coupling constants between qubits
-        hs : magnetic field constants
+    Args:
+        qubits: Cirq qubit objects.
+        gamma: Rotation angle of the target Hamiltonian.
+        js: Coupling constants between qubits.
+        hs: Magnetic-field constants.
 
-    Returns
-        circuit with the rotation gates
+    Returns:
+        iterable: Rotation-gate operations.
     """
     nrow, ncol = len(qubits), len(qubits[0])
 
@@ -99,12 +100,12 @@ def beta_layer(qubits, beta):
     r"""
     Define the beta layer of the circuit for mixer.
 
-    Parameters
-        qubits : defined cirq Qubit object
-        beta : rotation angle of the initial hamiltonian \sum_i X_i
+    Args:
+        qubits: Cirq qubit objects.
+        beta: Rotation angle of the initial Hamiltonian ``sum_i X_i``.
 
-    Returns
-        circuit with the rotation gates
+    Returns:
+        iterable: Rotation-gate operations.
     """
     nrow, ncol = len(qubits), len(qubits[0])
 

@@ -6,12 +6,16 @@ from lumeq.spins import cirq, sympy
 from lumeq.spins import create_qubits_2d, create_circuit
 
 class QAOA(object):
-    r"""
-    Quantum Approximate Optimization Algorithm class.
-    prod_{k} U(beta_k, B) U(gamma_k, C) |s>
-    where |s> is the equal superposition initial state
-    U(gamma, C) = exp(-i gamma C) is the problem Hamiltonian
-    U(beta, B) = exp(-i beta B) is the mixer Hamiltonian
+    r"""Base class for Quantum Approximate Optimization Algorithm models.
+
+    Notes:
+        The variational state has the form
+        ``prod_k U(beta_k, B) U(gamma_k, C) |s>``,
+        where ``|s>`` is the equal-superposition initial state.
+
+        ``U(gamma, C) = exp(-i * gamma * C)`` is the problem-Hamiltonian
+        evolution and ``U(beta, B) = exp(-i * beta * B)`` is the mixer
+        evolution.
     """
     def __init__(self, nsite, **kwargs):
         self.nsite = nsite
@@ -30,13 +34,11 @@ class QAOA(object):
 
 
     def resolve_circuit_params(self, **kwargs):
-        """
+        r"""
         Define the circuit parameters.
 
-        Parameters
-            gamma : parameter for problem Hamiltonian (cost function)
-            beta : parameter for mixer Hamiltonian
-            nlayers : number of layers in the QAOA circuit
+        Args:
+            **kwargs: Circuit parameters such as ``gamma``, ``beta``, and ``nlayers``.
         """
         self.gamma = None
         self.beta = None
@@ -47,32 +49,33 @@ class QAOA(object):
 
     @property
     def draw_circuit(self):
-        """Draw the quantum circuit."""
+        r"""Draw the quantum circuit."""
         print('circuit:\n', self.circuit)
         #cirq.testing.assert_has_diagram(self.circuit)
 
 
     def energy_expectation(self, wf, **kwargs):
-        """
+        r"""
         Calculate the energy expectation value for a given wavefunction.
 
-        Parameters
-            wf : wavefunction is an array of size 2**(nrow*ncol)
+        Args:
+            wf (numpy.ndarray): Wavefunction array of size ``2**(nrow*ncol)``.
+            **kwargs: Additional keyword arguments.
         """
         raise NotImplementedError
 
 
     @monitor_performance
     def energy_evaluation(self, gamma, beta):
-        """
+        r"""
         Evaluate the energy expectation value for given gamma and beta on circuit.
 
-        Parameters
-            gamma : rotation angle of the targeted Hamiltonian
-            beta : rotation angle of the initial Hamiltonian
+        Args:
+            gamma (float): Rotation angle of the target Hamiltonian.
+            beta (float): Rotation angle of the initial Hamiltonian.
 
-        Returns
-            energy expectation of the simulated wavefunction from quantum circuit
+        Returns:
+            float: Energy expectation value of the simulated wavefunction.
         """
         # start simulate
         simulator = cirq.Simulator()
@@ -99,18 +102,18 @@ class QAOA(object):
 
 
     def optimizer(self, gamma, beta, eps=10**-3, max_steps=150, thresh=10**-5):
-        """
+        r"""
         Optimize rotation angles
 
-        Parameters
-            gamma : array of rotation angles for targeted Hamiltonian
-            beta : array of rotation angles for initial Hamiltonian
-            eps : finite-difference step size
-            max_steps : max loop numbers of the optimization
-            thresh : convergence threshold of the energy
+        Args:
+            gamma (float): Rotation angle for the target Hamiltonian.
+            beta (float): Rotation angle for the initial Hamiltonian.
+            eps (float): Finite-difference step size.
+            max_steps (int): Maximum number of optimization steps.
+            thresh (float): Convergence threshold for the energy.
 
-        Returns
-            gamma, beta, energy
+        Returns:
+            tuple: Optimized ``(gamma, beta, energy)``.
         """
         energy = self.energy_evaluation(gamma, beta)
         for i in range(max_steps):
@@ -139,7 +142,7 @@ class QAOA_Ising(QAOA):
     h is the magnetic field on each spin
     """
     def resolve_circuit_params(self, **kwargs):
-        """Define the circuit parameters for Ising model."""
+        r"""Define the circuit parameters for Ising model."""
         self.gamma = sympy.Symbol('gamma')
         self.beta = sympy.Symbol('beta')
         self.nlayers = kwargs.get('nlayers', 1)
@@ -163,11 +166,12 @@ class QAOA_Ising(QAOA):
 
 
     def energy_expectation(self, wf, **kwargs):
-        """
+        r"""
         Calculate the energy expectation value for a given wavefunction.
 
-        Parameters
-            wf : wavefunction is an array of size 2**(nrow*ncol)
+        Args:
+            wf (numpy.ndarray): Wavefunction array of size ``2**(nrow*ncol)``.
+            **kwargs: Additional keyword arguments.
         """
         nrow, ncol = self.nrow, self.ncol
         nsite = nrow * ncol
@@ -201,4 +205,3 @@ if __name__ == '__main__':
 
     gamma, beta = -.21, -.28
     ising.optimizer(gamma, beta)
-

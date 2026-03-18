@@ -7,13 +7,14 @@ def assemble_amplitudes(xy, nstates=None, rpa=False, itype='r'):
     r"""
     reshape the transition amplitudes from pyscf tdscf module
 
-    Parameters
-        xy : tdscf.xy tuples
-        nstates : number of excited states
-        itype : 'r', 'ro', 'u'
+    Args:
+        xy: ``tdscf.xy`` tuples.
+        nstates (int, optional): Number of excited states.
+        rpa (bool, optional): Whether to include the RPA ``Y`` amplitudes.
+        itype (str): One of ``'r'``, ``'ro'``, or ``'u'``.
 
-    Returns
-        xs, ys : reshaped transition amplitudes
+    Returns:
+        tuple: Reshaped ``(xs, ys)`` transition amplitudes.
     """
     if nstates == 1:
         return reshape_xys([xy], None, itype)
@@ -46,14 +47,16 @@ def get_transition_dm(xy, coeff1, coeff2=None, scale=2.):
     r"""
     calculate transition 1-particle density matrix bewteen ground and excited states from xy amplitudes
 
-    Parameters
-        xy : [xs, ys] where xs and ys are numpy arrays of shape (nstates, nocc, nvir)
-        coeff1 : mo_coeff of the ground state
-        coeff2 : mo_coeff of the ground state (different spin/geometry), default to coeff1
-        scale : 2 for restricted, 1 for unrestricted
+    Args:
+        xy (list): ``[xs, ys]`` amplitudes, where ``xs`` and ``ys`` are arrays
+            with shape ``(nstates, nocc, nvir)``.
+        coeff1 (numpy.ndarray): Ground-state molecular-orbital coefficients.
+        coeff2 (numpy.ndarray, optional): Molecular-orbital coefficients for a
+            different spin channel or geometry. Defaults to ``coeff1``.
+        scale (float): ``2`` for restricted and ``1`` for unrestricted cases.
 
-    Returns
-        rdm1 : transition 1-particle density matrix
+    Returns:
+        numpy.ndarray: Transition one-particle density matrix.
     """
     if not isinstance(coeff2, np.ndarray):
         coeff2 = coeff1
@@ -106,14 +109,17 @@ def get_difference_dm(xy1, coeff1, xy2=None, coeff2=None, scale=2.):
     r"""
     calculate difference density matrix bewteen excited states
 
-    Parameters
-        xy1 : [xs, ys] where xs and ys are numpy arrays
-        xy2 : [xs, ys] where xs and ys are numpy arrays
-        coeff1 : molecular orbitals of the first state/geometry
-        coeff2 : molecular orbitals of the second state/geometry/spin
+    Args:
+        xy1 (list): ``[xs, ys]`` amplitudes for the first state or geometry.
+        xy2 (list, optional): ``[xs, ys]`` amplitudes for the second state or
+            geometry.
+        coeff1 (numpy.ndarray): Molecular orbitals of the first state or
+            geometry.
+        coeff2 (numpy.ndarray, optional): Molecular orbitals of the second
+            state, geometry, or spin channel.
 
-    Returns
-        rdm1 : difference 1-particle density matrix
+    Returns:
+        numpy.ndarray: Difference one-particle density matrix.
     """
     if not isinstance(coeff2, np.ndarray):
         coeff2 = coeff1
@@ -132,13 +138,14 @@ def cal_rdm1(xy1, coeff1, xy2=None, coeff2=None, scale=2., itype='trans'):
     r"""
     calculate 1-particle density matrices from xy amplitudes
 
-    Parameters
-        xy1 : list of xy numpy array amplitudes for different states
-        xy2 : list of xy numpy array amplitudes for different states
-        coeff1 : molecular orbitals
-        coeff2 : molecular orbitals
-        scale : 2 for restricted, 1 for unrestricted
-        itype : trans or diff
+    Args:
+        xy1 (list): XY amplitudes for the first set of states.
+        coeff1: Molecular orbitals for the first state set.
+        xy2 (list, optional): XY amplitudes for the second set of states.
+        coeff2 (numpy.ndarray, optional): Molecular orbitals for the second
+            state set.
+        scale (float): ``2`` for restricted and ``1`` for unrestricted cases.
+        itype (str): Density-matrix type, e.g. ``'trans'`` or ``'diff'``.
     """
     rdm1 = []
     if 'trans' in itype:
@@ -153,12 +160,12 @@ def cal_dipoles(dip_mat, rdm):
     r"""
     calculate dipole moments from dipole integrals and 1-particle density matrices
 
-    Parameters
-        dip_mat : dipole integrals in AO basis, shape (3, nao, nao
-        rdm : 1-particle density matrices, shape (..., nao, nao)
+    Args:
+        dip_mat (numpy.ndarray): Dipole integrals in AO basis with shape ``(3, nao, nao)``.
+        rdm (numpy.ndarray): One-particle density matrices with shape ``(..., nao, nao)``.
 
-    Returns
-        dipoles : dipole moments, shape (..., 3)
+    Returns:
+        numpy.ndarray: Dipole moments with shape ``(..., 3)``.
     """
     return np.einsum('xpq,...pq->...x', dip_mat, rdm)
 

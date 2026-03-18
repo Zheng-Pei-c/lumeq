@@ -44,19 +44,15 @@ def collect_lists(fn, iterable, *args, upack=False):
     r"""
     Collect lists returned by a function into columns.
 
-    Parameters
-        fn: function
-            A function that takes an element of the iterable and returns a list of values.
-        iterable: iterable
-            An iterable of elements to process with the function.
-        *args: additional arguments
-            Additional arguments to pass to the function.
-        upack: bool, optional
-            If True, the elements of the iterable are unpacked as arguments to the function. Default is False.
+    Args:
+        fn (callable): Function that takes an element of the iterable and
+            returns a list of values.
+        iterable (iterable): An iterable of elements to process with the function.
+        *args: Additional arguments to pass to the function.
+        upack (bool, optional): If True, the elements of the iterable are unpacked as arguments to the function. Default is False.
 
-    Returns
-        list of lists
-            A list of lists, where each inner list contains the values returned by the function for each
+    Returns:
+        list[list]: Collected columns of values returned by ``fn``.
     """
     cols = None
     for x in iterable:

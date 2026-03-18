@@ -1,5 +1,4 @@
-import sys
-import numpy as np
+from lumeq import sys, np
 np.set_printoptions(precision=6)
 
 from pyscf import scf, gto, dft, df, lib
@@ -14,7 +13,7 @@ except ModuleNotFoundError:
     pass
 
 class EnergyDensity():
-    """
+    r"""
     ground-state energy density: j_only(), jk(), xc()
     excited-state energy density: coulomb_only(), coulomb_exchange(), functional()
     """
@@ -324,7 +323,7 @@ class EnergyDensity():
 
     #@profile
     def energy_density_j_only(self, dm, rho_value):
-        """
+        r"""
         ground-state dm and rho_value
         """
         nbas = self.mol.nbas
@@ -349,7 +348,7 @@ class EnergyDensity():
 
     #@profile
     def energy_density_jk(self, dm, rho_value, hf_type):
-        """
+        r"""
         ground-state dm and rho_value
         """
         nbas = self.mol.nbas
@@ -443,7 +442,7 @@ class EnergyDensity():
 
     #@profile
     def energy_density_coulomb_only(self, dm1, dm2, rho_value1, rho_value2):
-        """
+        r"""
         dm1, dm2: ground-state, transition_symmetric dm
         rho_value1, rho_value2: difference, transition rho_value
         """
@@ -469,7 +468,7 @@ class EnergyDensity():
     #@profile
     def energy_density_coulomb_exchange(self, dm1, dm2, dm3, dm4,
             rho_value1, rho_value2, hf_type):
-        """
+        r"""
         dm1, dm2: ground-state, difference, transition, transition_symmetric dm
         rho_value1, rho_value2: difference, transition rho_value
         """
@@ -525,7 +524,7 @@ class EnergyDensity():
     #@profile
     def energy_density_exchange_rsh(self, dm1, dm2, dm3,
             omega, alpha, hyb):
-        """
+        r"""
         dm1, dm2, dm3: ground-state, difference, transition dm
         """
         nbas = self.mol.nbas
@@ -878,7 +877,7 @@ class EnergyDensity():
 
     #@profile
     def group_hirshfeld_partition(self):
-        """
+        r"""
         density ratio of fragments on grid points
         """
 

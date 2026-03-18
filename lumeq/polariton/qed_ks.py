@@ -1,16 +1,14 @@
-import sys
-import numpy as np
+from lumeq import sys, np
+from lumeq.utils.pyscf_helper import *
+from lumeq.utils import convert_units, print_matrix
 
-import pyscf
+
 from pyscf import lib
 from pyscf.lib import logger
 from pyscf.dft.rks import RKS
 
-from lumeq.utils.pyscf_helper import *
-from lumeq.utils import convert_units, print_matrix
-
 def get_scaled_lambda(c_lambda, frequency, photon_coeff=1.):
-    """
+    r"""
     return frequency-scaled coupling strength (c_lambda)
     """
     if isinstance(frequency, float):
@@ -28,7 +26,7 @@ def get_lambda2(c_lambda): # lambda square for quadrupole contraction
 
 def get_multipole_matrix(mol, itype='dipole', dipole=None, quadrupole=None,
                          c_lambda=None, origin=None):
-    """
+    r"""
     c_lambda: (n_mode, 3) = coupling_strength * sqrt(2.*photon_frequency)
     """
     if origin is None:
@@ -97,7 +95,7 @@ def get_dse_elec_nuc(dipole, nuc_dip): # c_lambda is included
 
 
 def get_nuclear_dipoles(mol, c_lambda, origin=None):
-    """
+    r"""
     lambda cdot nuclear_dipole
     """
     if origin is None:
@@ -117,7 +115,7 @@ def get_energy_nuc_dip(nuc_dip):
 
 
 class polariton(RKS):
-    """
+    r"""
     QED-RKS ground state, independent of photon frequency
     """
     def get_multipole_matrix(self, c_lambda, dipole=None, quadrupole=None,
@@ -147,7 +145,7 @@ class polariton(RKS):
 
 
 class polariton_cs(polariton):
-    """
+    r"""
     in photon coherent states
     """
     def get_hcore(self, mol=None):
@@ -204,6 +202,7 @@ class polariton_cs(polariton):
 
 
     def gen_response(self, *args, **kwargs): # for CPHF or excited-states
+        r"""Generate the response-function action including DSE terms."""
         vind0 = super().gen_response(*args, **kwargs)
         singlet = kwargs.get('singlet', None) # only used for RHF, default is None
 
@@ -221,7 +220,7 @@ class polariton_cs(polariton):
 
 
 class polariton_ns(polariton):
-    """
+    r"""
     in photon number states, not recommended!
     """
     def get_hcore(self, mol=None):

@@ -111,31 +111,20 @@ def broadening(centers, heighs, width=0.0005, margin=0.05, method='gaussian',
     r"""
     Generate broadened spectrum from stick spectrum.
 
-    Parameters
-        centers : array_like
-            Positions of the stick spectrum peaks.
-        heighs : array_like
-            Heights of the stick spectrum peaks.
-        width : float, optional
-            Broadening width parameter sigma. Default is 0.0005.
-        margin : float, list or tuple, optional
-            Extra margin added to the min and max of centers for x-axis range. Default is 0.05.
-        method : str, optional
-            Broadening method. Options are 'lorentzian', 'gaussian', and 'voigt'. Default is 'gaussian'.
-        npoints : int, optional
-            Number of points in the output spectrum. Default is 1001.
-        xrange : tuple, optional
-            Tuple specifying the x-axis range (min, max). If None, it is determined from centers and margin.
-        gamma : float, optional
-            Lorentzian width parameter. Only used if method is 'voigt'.
-        gamma_table : array_like, optional
-            Table of gamma values for each peak. Only used if method is 'voigt'.
+    Args:
+        centers (array_like): Positions of the stick spectrum peaks.
+        heights (array_like): Heights of the stick spectrum peaks.
+        width (float, optional): Broadening width parameter sigma. Default is 0.0005.
+        margin (float, list or tuple, optional): Extra margin added to the min and max of centers for x-axis range. Default is 0.05.
+        method (str, optional): Broadening method. Options are 'lorentzian', 'gaussian', and 'voigt'. Default is 'gaussian'.
+        npoints (int, optional): Number of points in the output spectrum. Default is 1001.
+        xrange (tuple, optional): Tuple specifying the x-axis range (min, max). If None, it is determined from centers and margin.
+        gamma (float, optional): Lorentzian width parameter. Only used if method is 'voigt'.
+        gamma_table (array_like, optional): Table of gamma values for each peak. Only used if method is 'voigt'.
 
-    Returns
-        x : ndarray
-            x-axis values of the broadened spectrum.
-        y : ndarray
-            y-axis values of the broadened spectrum.
+    Returns:
+        x (numpy.ndarray): x-axis values of the broadened spectrum.
+        y (numpy.ndarray): y-axis values of the broadened spectrum.
     """
     if xrange:
         mi, ma = xrange

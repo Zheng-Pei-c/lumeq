@@ -6,5 +6,7 @@ Usage
 Installation
 ------------
 To install the package, use pip:
+
 .. code-block:: console
-    (.venv) $ pip3 install wavefunction_analysis
+
+   (.venv) $ pip3 install lumeq

@@ -5,7 +5,7 @@ from pathlib import Path
 from lumeq import np
 
 def _json_default(obj):
-    """Default JSON serializer for objects not serializable by default."""
+    r"""Default JSON serializer for objects not serializable by default."""
     if isinstance(obj, np.ndarray):
         return obj.tolist()
     if isinstance(obj, np.integer):
@@ -18,7 +18,7 @@ def _json_default(obj):
 
 
 def _to_numpy(obj, path=()):
-    """Recursively convert lists to numpy arrays."""
+    r"""Recursively convert lists to numpy arrays."""
     if isinstance(obj, dict):
         return {k: _to_numpy(v, path + (k,)) for k, v in obj.items()}
 
@@ -37,7 +37,7 @@ def _to_numpy(obj, path=()):
 
 
 def save_json(file_name, data, indent=4):
-    """Save data to a JSON file."""
+    r"""Save data to a JSON file."""
     if not file_name.endswith('.json'):
         file_name += '.json'
     if Path(file_name).is_file():
@@ -48,7 +48,7 @@ def save_json(file_name, data, indent=4):
 
 
 def load_json(file_name, to_numpy=False):
-    """Load data from a JSON file."""
+    r"""Load data from a JSON file."""
     if not file_name.endswith('.json'):
         file_name += '.json'
     if not Path(file_name).is_file():

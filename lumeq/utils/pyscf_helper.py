@@ -171,14 +171,13 @@ def build_molecule(molecule: MoleculeInput, basis, **kwargs):
     r"""
     Build molecule object for PySCF from MoleculeInput data and other parameters.
 
-    Parameters
+    Args:
         molecule (MoleculeInput): An instance of MoleculeInput containing the molecule data.
         basis (str): Basis set name for the molecule.
-        kwargs: Additional keyword arguments for building the molecule, such as:
-            - max_memory (int): Maximum memory in MB for PySCF calculations (default: 60000).
-            - verbose (int): Verbosity level for PySCF output (default: 0).
+        **kwargs: Extra options used to build the molecule.
+            Supported options include ``max_memory`` in MB and ``verbose``.
 
-    Returns
+    Returns:
         mol (pyscf.gto.Mole): PySCF molecule object.
     """
     max_memory = kwargs.get('max_memory', 60000)
@@ -254,15 +253,16 @@ def _run_pyscf_dft(molecule, scf_input):
     r"""
     Run PySCF DFT calculation based on the parameters provided.
 
-    Parameters
+    Args:
         molecule (MoleculeInput): An instance of MoleculeInput containing the molecule data.
         scf_input (SCFInput): An instance of SCFInput containing the SCF calculation parameters.
 
-    Returns
+    Returns:
         mol (pyscf.gto.Mole): PySCF molecule object.
         mf (pyscf.scf.SCF): PySCF mean-field object after SCF convergence.
         etot (float): Total energy of the system after SCF convergence.
-    """
+    
+"""
     mol = build_molecule(molecule, scf_input.basis,
                          max_memory=scf_input.max_memory,
                          verbose=scf_input.verbose)

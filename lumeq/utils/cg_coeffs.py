@@ -1,6 +1,4 @@
-import os, sys
-import numpy as np
-
+from lumeq import sys, np
 from lumeq.utils import print_matrix
 
 def print_cg_coeff(j1=0, m1=0, j2=0, m2=0, j3=0, m3=0, cg=0,
@@ -36,11 +34,19 @@ def print_cg_coeff(j1=0, m1=0, j2=0, m2=0, j3=0, m3=0, cg=0,
 
 
 def ladder_coeff(j, m, operator):
-    r"""
-    j could be `0, \pm 1/2, \pm 1, \pm 3/2, \pm 2`, etc
-    m is `\in {-j, -j+1, \dots, j-1, j}`
-    `C_\pm = \sqrt(j (j + 1) - m (m \pm 1)) = \sqrt((j \mp m) (j \pm m + 1))`
-    j`_\pm |jm> = C_\pm |j(m\pm1)>`
+    r"""Return the ladder-operator coefficient for angular momentum ``j, m``.
+
+    Notes:
+        ``j`` can take values such as ``0, ±1/2, ±1, ±3/2, ±2, ...`` and
+        ``m`` must lie in ``{-j, -j+1, ..., j-1, j}``.
+
+        The ladder coefficients are
+        ``C_± = sqrt(j (j + 1) - m (m ± 1))``
+        and equivalently
+        ``C_± = sqrt((j ∓ m) (j ± m + 1))``.
+
+        They satisfy
+        ``j_± |j m> = C_± |j (m ± 1)>``.
     """
     if operator == '+': operator = np.add
     elif operator == '-': operator = np.subtract

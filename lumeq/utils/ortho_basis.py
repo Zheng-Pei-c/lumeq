@@ -6,7 +6,7 @@ from lumeq.utils.unit_conversion import BOHR
 from pyscf import gto
 
 def get_ortho_basis(S, method='lowdin', eigen=False):
-    """
+    r"""
     S is symmetric overlap matrix of atomic basis
     L = S^(1/2)
     Z = S^(-1/2)

@@ -1,11 +1,9 @@
-import sys
-import numpy as np
-
+from lumeq import sys, np
 from lumeq.utils import print_matrix
 
 class fdiff():
     def __init__(self, norder=2, step_size=1e-3, unit=1.):
-        """
+        r"""
         central finite difference method
         norder 1,2,3...
         accuracy = 2 * norder

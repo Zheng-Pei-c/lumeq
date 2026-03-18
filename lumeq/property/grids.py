@@ -5,18 +5,15 @@ from pyscf.dft import numint
 from pyscf.tools import cubegen
 
 def creat_mesh_grids(mf, nxyz=None):
-    """
+    r"""
     Create mesh grids for numerical integration.
 
-    Parameters
-        mf : mean-field object from pyscf
-        nxyz : list - grid parameters for cubic grid [nx, ny, nz, resolution]
+    Args:
+        mf: PySCF mean-field object.
+        nxyz (list, optional): Cubic-grid parameters ``[nx, ny, nz, resolution]``.
 
-    Returns
-        cc : Cube object (if grid_type=2) or None
-        coords : ndarray - coordinates of the grid points
-        weights : ndarray - weights of the grid points
-        ngrids : int - number of grid points
+    Returns:
+        tuple: ``(cc, coords, weights, ngrids)``.
     """
     if nxyz is None:
         # default DFT mesh grids and weights
@@ -43,11 +40,11 @@ def creat_mesh_grids(mf, nxyz=None):
 
 class Grids:
     def __init__(self, mf, nxyz=None):
-        """
+        r"""
         Initialize the Grids object.
-        Parameters
-            mf : mean-field object from pyscf
-            nxyz : list - grid parameters for cubic grid [nx, ny, nz, resolution]
+        Args:
+            mf: PySCF mean-field object.
+            nxyz (list, optional): Cubic-grid parameters ``[nx, ny, nz, resolution]``.
         """
         cc, coords, weights, ngrids = creat_mesh_grids(mf, nxyz)
 
@@ -61,11 +58,11 @@ class Grids:
 
 
     def ao_on_grids(self):
-        """
+        r"""
         Calculate the atomic orbital values and their derivatives on the grids.
 
-        Returns
-            ao_value : ndarray - atomic orbital values and their derivatives on the grids
+        Returns:
+            numpy.ndarray: Atomic-orbital values and their derivatives on the grids.
         """
         # ao and its derivatives
         #ao_value = self.mol.eval_gto('GTOval_sph_deriv1', self.coords)
@@ -78,14 +75,14 @@ class Grids:
 
 
     def orbital_on_grids(self, mo_coeff):
-        """
+        r"""
         Calculate the molecular orbital values and their derivatives on the grids.
 
-        Parameters
-            mo_coeff : ndarray - molecular orbital coefficients
+        Args:
+            mo_coeff (numpy.ndarray): Molecular-orbital coefficients.
 
-        Returns
-            mo_value : ndarray - molecular orbital values and their derivatives on the grids
+        Returns:
+            numpy.ndarray: Molecular-orbital values and their derivatives on the grids.
         """
         # mo and its derivatives
         mo_value = np.einsum('xgm,mp->xgp', self.ao_value, mo_coeff)
@@ -97,15 +94,15 @@ class Grids:
 
 
     def density_on_grids(self, dm, xctype='GGA'):
-        """
+        r"""
         Calculate the electron density and its derivatives on the grids.
 
-        Parameters
-            dm : ndarray - density matrix
-            xctype : str - exchange-correlation functional type ('LDA' or 'GGA')
+        Args:
+            dm (numpy.ndarray): Density matrix.
+            xctype (str): Exchange-correlation functional type, e.g. ``'LDA'`` or ``'GGA'``.
 
-        Returns
-            rho_value : ndarray - electron density and its derivatives on the grids
+        Returns:
+            numpy.ndarray: Electron density and its derivatives on the grids.
         """
         # rho and its derivatives
         #rho_value = numint.eval_rho(self.mol, self.ao_value, dm, xctype=xctype)
@@ -118,15 +115,15 @@ class Grids:
 
     def plot_grid_values(self, values, title='density', filename='',
                          nums=None):
-        """
+        r"""
         Plot the grid values in 3D space.
         Cubegen
 
-        Parameters
-            values : ndarray - values to plot on the grids
-            title : str - title of the plot
-            filename : str - cubefile name to save the plot
-            orb_nums : list of orbital indices or number of plots
+        Args:
+            values (numpy.ndarray): Grid values to plot.
+            title (str): Plot title.
+            filename (str): Cube-file prefix for saving the plot.
+            nums (int, optional): Number of datasets to write when ``values`` contains multiple grids.
         """
         nx, ny, nz = self.cc.nx, self.cc.ny, self.cc.nz
         filename += title

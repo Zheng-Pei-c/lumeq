@@ -1,17 +1,14 @@
-import sys
-import numpy as np
+from lumeq import sys, np
+from lumeq.utils.pyscf_helper import *
+from lumeq.utils import convert_units, print_matrix, fdiff
+from lumeq.polariton.qed_ks import polariton_cs, get_lambda2
+from lumeq.polariton.qed_ks_grad import get_multipole_matrix_d1, cal_multipole_matrix_fd, finite_difference
 
 from pyscf import lib
 from pyscf.lib import logger
 from pyscf.dft.rks import RKS
 from pyscf.hessian import rhf as rhf_hess
 from pyscf.hessian import rks as rks_hess
-
-from lumeq.utils.pyscf_helper import *
-from lumeq.utils import convert_units, print_matrix, fdiff
-from lumeq.polariton.qed_ks import polariton_cs, get_lambda2
-from lumeq.polariton.qed_ks_grad import get_multipole_matrix_d1, cal_multipole_matrix_fd, finite_difference
-
 
 def fd_orbital_rotation_mo1(mf, fd_mo):
     mol = mf.mol
@@ -77,7 +74,7 @@ def resemble_deriv_on_atoms(mol, mat0):
 
 
 def get_multipole_matrix_d2(mol, c_lambda, origin=None):
-    """
+    r"""
     second-order analytic derivative of the multipole integrals are not implemented
     """
     #if origin is None:
