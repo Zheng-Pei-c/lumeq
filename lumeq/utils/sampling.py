@@ -84,12 +84,34 @@ class Sampler:
 
     def correlated_sample(self, values, tau_c, dt=1., **kwargs):
         r"""
-        Generate correlated random numbers from Ornstein-Uhlenbeck process.
+        Generate a temporally correlated Gaussian sample using the exact
+        discretization of an Ornstein-Uhlenbeck process.
 
-        Math : `<delta(t) delta(0)> = sigma^2 exp(-|t|/tau_c)`
-            delta^{n+1} = a delta^{n} + b N(0, sigma)
-            a = exp(-dt/tau_c)
-            b = sigma sqrt(1 - a^2)
+        .. math::
+
+           \langle \delta(t)\delta(0)\rangle = \sigma^2 e^{-|t|/\tau_c}
+
+           \delta_{n+1} = a\,\delta_n + \sigma \sqrt{(1-a^2)}\,\xi_n,
+           \qquad
+           a = e^{-\Delta t/\tau_c},
+           \qquad
+           \xi_n \sim \mathcal{N}(0,1)
+
+        Here, :math:`\sigma` is the stationary standard deviation, so the
+        update preserves :math:`\mathrm{Var}[\delta_n] = \sigma^2`.
+
+        References:
+            Hao Li, Ajay Ram Srimath Kandada, Carlos Silva, and Eric R. Bittner,
+            "Stochastic scattering theory for excitation-induced dephasing:
+            Comparison to the Anderson-Kubo lineshape,"
+            J. Chem. Phys. 153, 154115 (2020).
+            https://doi.org/10.1063/5.0026467
+
+            Daniel T. Gillespie,
+            "Exact numerical simulation of the Ornstein-Uhlenbeck process
+            and its integral,"
+            Phys. Rev. E 54, 2084-2091 (1996).
+            https://doi.org/10.1103/PhysRevE.54.2084
 
         Args:
             values (array-like): Previously sampled values.

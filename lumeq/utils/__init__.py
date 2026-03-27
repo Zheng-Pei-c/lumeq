@@ -8,7 +8,7 @@ from .parser import parser, put_keys_kwargs_to_object, put_kwargs_to_keys
 
 from .ortho_basis import get_ortho_basis
 
-from .utils import ishermitian, swap_largest_to_diagonal
+from .utils import random_matrix, ishermitian, swap_largest_to_diagonal
 from .utils import collect_lists
 
 #np.set_printoptions(precision=4, linewidth=200, suppress=True)
