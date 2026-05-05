@@ -1,5 +1,5 @@
 from lumeq import sys, np, itertools
-from lumeq.spins import sympy
+#from lumeq.spins import sympy
 from lumeq.plot import get_plot_colors
 
 import unicodedata
@@ -214,22 +214,58 @@ def wick_contraction(operators, pairs, expand=True):
     return contractions[::-1] # reverse the order for convenience
 
 
-def wick_delta(contractions):
+def delta_format(style):
+    r"""Get the write and parse functions for delta function formatting based on the specified style."""
+    if style == 'upper_lower' or ('^' in style and '_' in style):
+        def write(orb1, orb2, reverse=False):
+            if reverse:
+                return f'delta^{{{orb2}}}_{{{orb1}}}' + f'(1-n_{{{orb2}}})'
+            else:
+                return f'delta^{{{orb1}}}_{{{orb2}}}' + f'n_{{{orb2}}}'
+
+        def parse(delta_str):
+            content = delta_str.split('{')
+            orb1, orb2 = content[1].split('}')[0], content[2].split('}')[0]
+            o = delta_str.find('}', delta_str.index('}') + 1)
+            occupancy = delta_str[o+1:]
+            return orb1, orb2, occupancy
+
+    elif style in {'lower', 'comma', '_'}:
+        def write(orb1, orb2, reverse=False):
+            if reverse:
+                return f'delta_{{{orb2},{orb1}}}' + f'(1-n_{{{orb2}}})'
+            else:
+                return f'delta_{{{orb1},{orb2}}}' + f'n_{{{orb2}}}'
+
+        def parse(delta_str):
+            content = delta_str[delta_str.index('{')+1:delta_str.index('}')]
+            orb1, orb2 = content.split(',')
+            return orb1, orb2, delta_str[delta_str.index('}')+1:]
+
+    return write, parse
+
+
+def wick_delta(contractions, delta_style='comma'):
     r"""
     Convert contraction pairs into delta functions.
 
     Args:
         contractions (list): Contraction patterns.
+        delta_style (str, optional): Style for formatting delta functions.
+            Options include 'upper_lower', 'lower', 'comma', etc.
 
     Returns:
         deltas (list): Delta-function strings representing the contractions.
     """
     if isinstance(contractions[0], list): # loop over multiple contraction patterns
-        return [wick_delta(pair) for pair in contractions]
+        return [wick_delta(pair, delta_style) for pair in contractions]
 
     if len(contractions[0]) == 2:
         raise ValueError(f'Contractions should have indices as well to determine signs.\n' +
                          f'Use wick_pairs() with index=True option before wick_contraction.')
+
+
+    delta_write = delta_format(delta_style)[0]
 
     index = []
     deltas = []
@@ -238,7 +274,7 @@ def wick_delta(contractions):
         orb2 = get_spin_orbital_index(op2)
         index.append((i1, i2))
         if orb1 != orb2: # only add delta if orbitals are different
-            deltas.append('delta_{'+orb1+','+orb2+'}')
+            deltas.append(delta_write(orb1, orb2, is_creator(op2)))
 
     sign = find_delta_sign(index, dtype=str)
     return sign + ' '.join(deltas)
@@ -274,19 +310,25 @@ def find_delta_sign(contractions_index, dtype=str):
         return sign
 
 
-def contract_hamil_delta(hamiltonian, deltas):
+def contract_hamil_delta(hamiltonian, deltas, symmetry=False, exchange=False):
     r"""
     Contract the Hamiltonian operator with delta functions.
 
     Args:
         hamiltonian (str): Hamiltonian operator string.
         deltas (list): Delta-function strings.
+        symmetry (bool, optional): If True, apply symmetry to the two-electron integrals
+        exchange (bool, optional): If True, combine exchange-integral pairs as
+            antisymmetrized two-electron integrals.
 
     Returns:
         strings (list): Contracted Hamiltonian terms as strings.
     """
     if isinstance(deltas, str): # single set of contraction pattern
         deltas = [deltas]
+
+    delta_style = 'comma' if ',' in deltas[0] else 'upper_lower'
+    delta_parse = delta_format(delta_style)[1]
 
     hamiltonian = get_list(hamiltonian)
     n_hs = len(hamiltonian)
@@ -309,15 +351,14 @@ def contract_hamil_delta(hamiltonian, deltas):
                     continue
 
                 # extract orbital indices from delta function
-                content = d[d.index('{')+1:d.index('}')]
-                orb1, orb2 = content.split(',')
+                orb1, orb2, occupancy = delta_parse(d)
 
                 if h_orb == orb1:
-                    delta_terms[j] = ''  # mark for removal
                     h_terms[i] = orb2
+                    delta_terms[j] = occupancy.replace(orb1, orb2)  # mark for removal
                 elif h_orb == orb2:
-                    delta_terms[j] = ''  # mark for removal
                     h_terms[i] = orb1
+                    delta_terms[j] = occupancy.replace(orb2, orb1)  # mark for removal
 
         # reorder hamiltonian
         #h_contracted = h_terms
@@ -332,35 +373,152 @@ def contract_hamil_delta(hamiltonian, deltas):
         term_str = term_str.replace(',', ' ').replace(';', ',')
         strings.append(f'{sign} {term_str}\n')
 
-    return strings #combine_same_terms(strings)
+    if symmetry or exchange:
+        return combine_same_terms(strings, exchange=exchange)
+    return strings
 
 
-def combine_same_terms(contracted_strings):
+def combine_same_terms(contracted_strings, exchange=False):
     r"""
     Apply symmetry to two-electron integrals in the contracted strings.
 
     Args:
         contracted_strings (list): Operator strings.
+        exchange (bool, optional): If True, combine opposite-signed terms where
+            swapping the second and fourth indices of one integral gives the other
+            integral, and write the result as ``\tilde{g}``.
 
     Returns:
         sym_strings (list): Operator strings with symmetry applied.
     """
+    def get_g_key(left_key, right_key):
+        return tuple(sorted((left_key, right_key)))
+
+    def get_exchange_key(key):
+        if len(key) != 2 or len(key[0]) != 2 or len(key[1]) != 2:
+            return None
+        left_key, right_key = key
+        exchanged_left = (left_key[0], right_key[1])
+        exchanged_right = (right_key[0], left_key[1])
+        return get_g_key(exchanged_left, exchanged_right)
+
+    def key_to_g_parts(key):
+        return ' '.join(key[0]), ' '.join(key[1])
+
+    def get_product_key(prefix_terms):
+        return tuple(sorted(prefix_terms))
+
+    def parse_g_term(s):
+        s = s.strip()
+        sign = s[0] if s and s[0] in '+-' else '+'
+        body = s[1:].strip() if s and s[0] in '+-' else s
+        g_pos = body.index('g_{')
+        prefix = body[:g_pos].strip()
+        prefix_terms = prefix.split()
+        magnitude = 1
+        if prefix_terms:
+            try:
+                magnitude = float(prefix_terms[-1])
+                if magnitude.is_integer():
+                    magnitude = int(magnitude)
+                prefix_terms = prefix_terms[:-1]
+            except ValueError:
+                magnitude = 1
+        prefix = ' '.join(prefix_terms)
+        prefix_key = get_product_key(prefix_terms)
+        g_body = body[g_pos + len('g_{'):].split('}', 1)[0]
+        left, right = [part.strip() for part in g_body.split(',', 1)]
+
+        coef = magnitude if sign == '+' else -magnitude
+        left_key = tuple(left.split())
+        right_key = tuple(right.split())
+        key = get_g_key(left_key, right_key)
+        return prefix_key, prefix, key, coef, left, right
+
+    def combine_exchange_terms(vals):
+        entries = [[key, coef, left, right, False]
+                   for key, (coef, left, right) in vals.items() if coef != 0]
+        if not exchange:
+            return entries
+
+        combined = []
+        used = set()
+        entry_by_key = {entry[0]: i for i, entry in enumerate(entries)}
+        for i, entry in enumerate(entries):
+            if i in used:
+                continue
+
+            key, coef, left, right, _ = entry
+            exchange_key = get_exchange_key(key)
+            j = entry_by_key.get(exchange_key)
+            if exchange_key is None or exchange_key == key or j is None or j in used:
+                combined.append(entry)
+                used.add(i)
+                continue
+
+            partner = entries[j]
+            if coef + partner[1] != 0:
+                combined.append(entry)
+                used.add(i)
+                continue
+
+            base = entry if coef > 0 else partner
+            direct_key, direct_coef = base[0], base[1]
+            direct_left, direct_right = key_to_g_parts(direct_key)
+            combined.append([direct_key, direct_coef, direct_left, direct_right, True])
+            used.update({i, j})
+
+        return combined
+
+    def format_g_parts(coef, left, right, exchange_term=False):
+        sign = '+' if coef > 0 else '-'
+        magnitude = abs(coef)
+        symbol = r'\tilde{g}' if exchange_term else 'g'
+        coefficient = '' if magnitude == 1 else f'{magnitude} '
+        integral = f'{symbol}_{{{left}, {right}}}'
+        return sign, coefficient, integral
+
+    def format_product(key, coef, left, right, exchange_term=False):
+        sign, coefficient, integral = format_g_parts(coef, left, right, exchange_term)
+        if key:
+            return f'{sign} {coefficient}{key} {integral}'
+        return f'{sign} {coefficient}{integral}'
+
+    def format_g_term(coef, left, right, exchange_term=False):
+        sign, coefficient, integral = format_g_parts(coef, left, right, exchange_term)
+        return f'{sign} {coefficient}{integral}'
+
+    def format_grouped_terms(key, entries):
+        if len(entries) == 1:
+            _, coef, left, right, exchange_term = entries[0]
+            return format_product(key, coef, left, right, exchange_term) + '\n'
+
+        terms = [format_g_term(coef, left, right, exchange_term)
+                 for _, coef, left, right, exchange_term in entries]
+        if key:
+            return '+ ' + key + '( ' + ' '.join(terms) + ' )\n'
+        return ''.join(term + '\n' for term in terms)
+
     strings = []
-    strings_dict = defaultdict(list)
+    strings_dict = {}
     for s in contracted_strings:
         if 'g_{' not in s:
             strings.append(s)
         else:
-            sign = s[0]
-            delta, g = s[1:].split(' g_{')
-            g = sign + ' g_{' + g.split('\n')[0]
-            strings_dict[delta].append(g)
+            prefix_key, prefix, key, coef, left, right = parse_g_term(s)
+            if prefix_key not in strings_dict:
+                strings_dict[prefix_key] = [prefix, {}]
 
-    for key, vals in strings_dict.items():
-        if len(vals) == 1:
-            strings.append(key + ' ' + vals[0] + '\n')
-        else:
-            strings.append('+ ' + key + '( '+ ''.join(vals) + ' )\n')
+            vals = strings_dict[prefix_key][1]
+            if key not in vals:
+                vals[key] = [0, left, right]
+            vals[key][0] += coef
+
+    for _, (prefix, vals) in strings_dict.items():
+        entries = combine_exchange_terms(vals)
+        if len(entries) == 0:
+            continue
+        strings.append(format_grouped_terms(prefix, entries))
 
     return strings
 
@@ -422,6 +580,7 @@ def print_math(string, title, filename=None, latex=False):
     if latex:
         string = string.replace('ell', r'\ell')
         string = string.replace('delta', r'\delta')
+        string = string.replace('bar-sigma', r'{\bar{\sigma}}')
         string = string.replace('_', '_\\')
         string = string.replace('_\\{', r'_{')
 
@@ -470,7 +629,8 @@ def commutator(op1, op2, op3=None, sign='-'):
 
 
 def sqo_evaluation(bra, middle, ket, exceptions=[], title='', hamiltonian=None,
-                   latex=True, diagram=False, colors=None):
+                   latex=True, diagram=False, colors=None, delta_style='comma',
+                   symmetry=False, exchange=False):
     r"""
     Evaluate the Wick contractions for the given second-quantization operator (sqo) strings of bra, middle, and ket,
     while excluding specified operator pairs from contraction.
@@ -486,6 +646,10 @@ def sqo_evaluation(bra, middle, ket, exceptions=[], title='', hamiltonian=None,
         latex (bool, optional): If True, format the delta strings for LaTeX rendering.
         diagram (bool, optional): If True, plot the Wick contraction diagram.
         colors (list, optional): Colors for the contraction lines in the diagram.
+        delta_style (str, optional): Style for formatting delta functions in the output.
+        symmetry (bool, optional): If True, apply symmetry to the two-electron integrals in the output.
+        exchange (bool, optional): If True, combine exchange-integral pairs as
+            antisymmetrized two-electron integrals.
 
     Returns:
         tuple: ``(contractions, deltas, strings)``.
@@ -517,9 +681,9 @@ def sqo_evaluation(bra, middle, ket, exceptions=[], title='', hamiltonian=None,
         strings = plot_wick_diagram(operators, contractions, end=';', colors=colors)
         print_math(' '.join(strings), 'Wick contraction diagram:\n', latex=latex)
 
-    deltas = wick_delta(contractions)
+    deltas = wick_delta(contractions, delta_style)
 
-    strings = contract_hamil_delta(hamiltonian, deltas)
+    strings = contract_hamil_delta(hamiltonian, deltas, symmetry, exchange)
     print_math(' '.join(strings), 'Contraction result:\n', latex=latex)
 
     return contractions, deltas, strings
@@ -534,6 +698,10 @@ if __name__ == '__main__':
     print('pairs:', pairs)
     contractions = wick_contraction(operators, pairs, expand=True)
     print('contractions:', contractions)
-    deltas = wick_delta(contractions)
+    deltas = wick_delta(contractions, delta_style='upper_lower')
     print('deltas:', deltas)
     plot_wick_diagram(operators, contractions, end=';')
+
+    h = 'p_sigma^ q_tau'
+    contracted_strings = contract_hamil_delta(h, deltas)
+    print('contracted_strings:', contracted_strings)
