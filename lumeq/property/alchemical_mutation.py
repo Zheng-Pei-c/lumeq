@@ -3,6 +3,7 @@ from lumeq import np, itertools
 from pyscf import lib, gto, scf
 from pyscf.lib import logger
 from pyscf.scf import cphf
+from pyscf.dft import rks
 from pyscf.dft import libxc
 
 
@@ -40,25 +41,25 @@ def electronic_potential(mol, atmlst, mo_coeff=None, mo_occ=None):
     \partial hcore / \partial Z_A."""
     potential_ao = []
     for ia in atmlst:
-        ia = int(ia)
-        coord = mol.atom_coord(ia)
-        zeta = mol._env[mol._atm[ia, gto.PTR_ZETA]]
-        with mol.with_rinv_origin(coord), mol.with_rinv_zeta(zeta):
+        with mol.with_rinv_at_nucleus(int(ia)):
             potential_ao.append(-mol.intor('int1e_rinv'))
 
     potential_ao = np.asarray(potential_ao)
     if mo_coeff is None:
         return potential_ao
 
-    potential_mo = np.einsum('pi,xpq,qj->xij',
-                             mo_coeff, potential_ao, mo_coeff)
     if mo_occ is None:
+        potential_mo = np.einsum('pi,xpq,qj->xij',
+                             mo_coeff, potential_ao, mo_coeff)
         return potential_ao, potential_mo
 
-    occidx = mo_occ > 0
-    viridx = mo_occ == 0
-    # virtual-occupied block used as CPHF right-hand side
-    return potential_ao, potential_mo[:, viridx, :][:, :, occidx]
+    else:
+        # virtual-occupied block used as CPHF right-hand side
+        orbo = mo_coeff[:, mo_occ > 0]
+        orbv = mo_coeff[:, mo_occ == 0]
+        potential_mo = np.einsum('pa,xpq,qi->xai',
+                                 orbv, potential_ao, orbo)
+        return potential_ao, potential_mo
 
 
 def nuclear_charge_gradient(mol, atmlst):
@@ -80,6 +81,16 @@ def nuclear_charge_hessian(mol, atmlst):
             if ia != ib:
                 out[ia0, ib0] = 1.0 / rij[ia, ib]
     return out
+
+
+def _response_density(theta, mo_coeff, mo_occ, symmetric=True):
+    r"""Density response from a given orbital rotation ``theta``."""
+    orbo = mo_coeff[:, mo_occ > 0]
+    orbv = mo_coeff[:, mo_occ == 0]
+    dm = np.einsum('pa,xai,qi->xpq', orbv, theta * 2.0, orbo)
+    if symmetric:
+        dm += dm.transpose(0, 2, 1)
+    return dm
 
 
 def _gen_response_vind(mf, mo_coeff, mo_occ):
@@ -208,62 +219,7 @@ def _xc_kernel(mf, dmvo, singlet=True, max_memory=2000):
     return k1
 
 
-def alchemical_energy_gradient(mf, atmlst=None, h1ao=None,
-                               include_electronic=True, include_nuclear=True):
-    r"""First alchemical derivative \partial E / \partial Z_A.
-
-    Implements Eq. (16) of Lesiuk, Balawender, and Zachara,
-    J. Chem. Phys. 136, 034104 (2012), DOI: 10.1063/1.3674163,
-    for closed-shell restricted HF/KS at fixed geometry, electron count,
-    and AO basis:
-
-    \[
-        \frac{\partial E}{\partial Z_A}
-        =
-        \mathrm{Tr}[D h^A]
-        + \sum_{B \ne A} \frac{Z_B}{R_{AB}},
-        \qquad
-        h^A_{\mu\nu} = \langle \mu | -r_A^{-1} | \nu \rangle .
-    \]
-
-    The density matrix is spin-summed.  All derivatives are evaluated at
-    fixed geometry, fixed electron count, and fixed AO basis.  For RKS, the
-    XC functional, grid, and AO basis parameters are not differentiated with
-    respect to nuclear charge.
-
-    Args:
-        mf: Converged PySCF RHF/RKS object.  The reference must be real,
-            closed-shell, and all-electron.
-        atmlst: Atom indices for which derivatives are requested.  If
-            ``None``, all atoms are used.
-        h1ao: Optional precomputed AO potential matrices ``(natm_sel, nao, nao)``.
-        include_electronic: Include the electronic Hellmann-Feynman term.
-        include_nuclear: Include the nuclear repulsion derivative.
-
-    Returns:
-        Tagged array ``d1`` with shape ``(natm_sel,)``.  Attributes:
-        ``d1.electronic``, ``d1.nuclear``.
-    """
-    mol = mf.mol
-    atmlst = _as_atom_list(mol, atmlst)
-    electronic = np.zeros(len(atmlst))
-    nuclear = np.zeros(len(atmlst))
-
-    if include_electronic:
-        if h1ao is None:
-            h1ao = electronic_potential(mol, atmlst)
-        dm0 = mf.make_rdm1()
-        electronic = np.einsum('xpq,pq->x', h1ao, dm0).real
-
-    if include_nuclear:
-        nuclear = nuclear_charge_gradient(mol, atmlst)
-
-    total = electronic + nuclear
-    return lib.tag_array(total, electronic=electronic, nuclear=nuclear)
-
-
-def solve_charge_response(mf, atmlst=None, mo_energy=None, mo_coeff=None,
-                          mo_occ=None, h1vo=None, max_cycle=50, tol=None,
+def solve_charge_response(mf, atmlst=None, h1vo=None, max_cycle=50, tol=None,
                           level_shift=0.0, verbose=None):
     r"""Solve CPSCF response to nuclear-charge perturbations.
 
@@ -288,9 +244,6 @@ def solve_charge_response(mf, atmlst=None, mo_energy=None, mo_coeff=None,
         mf: Converged PySCF RHF/RKS object.
         atmlst: Atom indices for charge perturbations.  If ``None``, all
             atoms are used.
-        mo_energy: Optional MO energies ``(nmo,)``.
-        mo_coeff: Optional MO coefficient matrix ``(nao, nmo)``.
-        mo_occ: Optional MO occupation vector ``(nmo,)``.
         h1vo: Optional virtual-occupied MO perturbation matrices
             ``(natm_sel, nvir, nocc)``.  If omitted, they are built from
             ``int1e_rinv`` by :func:`electronic_potential`.
@@ -304,12 +257,9 @@ def solve_charge_response(mf, atmlst=None, mo_energy=None, mo_coeff=None,
         ``(natm_sel, nvir, nocc)``.  Attributes: ``mo1.h1vo`` and
         ``mo1.atmlst``.
     """
-    if mo_energy is None:
-        mo_energy = mf.mo_energy
-    if mo_coeff is None:
-        mo_coeff = mf.mo_coeff
-    if mo_occ is None:
-        mo_occ = mf.mo_occ
+    mo_energy = mf.mo_energy
+    mo_coeff = mf.mo_coeff
+    mo_occ = mf.mo_occ
     _check_supported_reference(mf, mo_coeff, mo_occ)
 
     mol = mf.mol
@@ -331,95 +281,44 @@ def solve_charge_response(mf, atmlst=None, mo_energy=None, mo_coeff=None,
     return lib.tag_array(mo1, h1vo=h1vo, atmlst=atmlst)
 
 
-def alchemical_energy_hessian(mf, atmlst=None, mo_energy=None,
-                              mo_coeff=None, mo_occ=None,
-                              response=None, h1vo=None,
-                              include_electronic=True,
-                              include_nuclear=True,
-                              symmetrize=True, max_cycle=50,
-                              tol=None, level_shift=0.0, verbose=None):
-    r"""Mixed second derivative \partial^2 E / \partial Z_A \partial Z_B.
+def nuclear_potential_on_surface(pcmobj, mol, atmlst):
+    r"""Compute the nuclear potential on PCM surface points for a given list of atoms."""
+    coords = pcmobj.surface['grid_coords']
+    charge_exp = pcmobj.surface['charge_exp']
+    fakemol = gto.fakemol_for_charges(coords, expnt=charge_exp**2)
+    atom_coords = mol.atom_coords(unit='B')
+    fakemol_nuc = gto.fakemol_for_charges(atom_coords[atmlst])
+    int2c2e = mol._add_suffix('int2c2e')
+    v_nuc = gto.mole.intor_cross(int2c2e, fakemol_nuc, fakemol)
+    return v_nuc
 
-    Implements Eq. (17) of Lesiuk, Balawender, and Zachara,
-    J. Chem. Phys. 136, 034104 (2012), DOI: 10.1063/1.3674163.
-    The electronic term is \(4 (h^A)^T U^B\), equivalently
-    \(-4 (\phi^A)^T A^{-1} \phi^B\) for \(\phi^A = -h^A\).  The factor of
-    four is the restricted closed-shell spin factor and orbital-rotation
-    normalization used by PySCF's CPHF convention.  The returned Hessian is
-    tagged with ``electronic``, ``nuclear`` components.
 
-    \[
-        \frac{\partial^2 E}{\partial Z_A \partial Z_B}
-        =
-        4 \sum_{ai} h^A_{ai} U^B_{ai}
-        + (1-\delta_{AB}) R_{AB}^{-1}.
-    \]
-
-    Args:
-        mf: Converged PySCF RHF/RKS object.
-        atmlst: Atom indices for the mixed derivatives.  If ``None``, all
-            atoms are used.
-        mo_energy: Optional MO energies ``(nmo,)``.
-        mo_coeff: Optional MO coefficient matrix ``(nao, nmo)``.
-        mo_occ: Optional MO occupation vector ``(nmo,)``.
-        response: Optional precomputed ``mo1`` from
-            :func:`solve_charge_response`.
-        h1vo: Optional MO perturbation matrices ``(natm_sel, nvir, nocc)``.
-        include_electronic: Include the CPSCF electronic response term.
-        include_nuclear: Include the nuclear repulsion mixed derivative.
-        symmetrize: Symmetrize the returned Hessian over ``A`` and ``B``.
-        max_cycle: Maximum CPHF iterations if ``response`` is not supplied.
-        tol: CPHF convergence tolerance if ``response`` is not supplied.
-        level_shift: Level shift passed to ``pyscf.scf.cphf.solve``.
-        verbose: PySCF logger verbosity.
-
-    Returns:
-        Tagged array ``d2`` with shape ``(natm_sel, natm_sel)``.
-        Attributes: ``d2.electronic``, ``d2.nuclear``.
+def surface_charges_from_potential(pcmobj, v_grids, sym=True):
+    r"""Compute surface charges from potential on grids by solving PCM equations.
     """
-    if mo_energy is None:
-        mo_energy = mf.mo_energy
-    if mo_coeff is None:
-        mo_coeff = mf.mo_coeff
-    if mo_occ is None:
-        mo_occ = mf.mo_occ
-    _check_supported_reference(mf, mo_coeff, mo_occ)
+    if not getattr(pcmobj, "_intermediates", None):
+        pcmobj.build()
 
-    mol = mf.mol
-    atmlst = _as_atom_list(mol, atmlst)
-    electronic = np.zeros((len(atmlst), len(atmlst)))
-    nuclear = np.zeros_like(electronic)
+    K = pcmobj._intermediates["K"]
+    R = pcmobj._intermediates["R"]
 
-    if include_electronic:
-        if h1vo is None and response is not None and hasattr(response, 'h1vo'):
-            h1vo = response.h1vo
-        if h1vo is None:
-            h1vo = electronic_potential(mol, atmlst, mo_coeff, mo_occ)[1]
-        else:
-            h1vo = np.asarray(h1vo)
-        if response is None:
-            response = solve_charge_response(
-                mf, atmlst=atmlst, mo_energy=mo_energy,
-                mo_coeff=mo_coeff, mo_occ=mo_occ, h1vo=h1vo,
-                max_cycle=max_cycle, tol=tol, level_shift=level_shift,
-                verbose=verbose)
-        electronic = 4.0 * np.einsum('xai,yai->xy', h1vo, response).real
+    v = np.asarray(v_grids)
+    one_vector = v.ndim == 1
+    v = v.reshape(1, -1) if one_vector else v
 
-    if include_nuclear:
-        nuclear = nuclear_charge_hessian(mol, atmlst)
+    q = np.linalg.solve(K, np.dot(R, v.T)).T
 
-    if symmetrize:
-        electronic = 0.5 * (electronic + electronic.T)
-        nuclear = 0.5 * (nuclear + nuclear.T)
+    if sym:
+        vK_1 = np.linalg.solve(K.T, v.T)
+        qt = np.dot(R.T, vK_1).T
+        q = 0.5 * (q + qt)
 
-    total = electronic + nuclear
-    return lib.tag_array(total, electronic=electronic, nuclear=nuclear)
+    return q[0] if one_vector else q
 
 
 def alchemical_energy_third_order(
-        mf, atmlst=None, mo_energy=None, mo_coeff=None, mo_occ=None,
-        response=None, h1ao=None, h1vo=None, symmetrize=True, max_cycle=50,
-        tol=None, level_shift=0.0, verbose=None):
+        mf, atmlst=None, response=None, h1ao=None, h1vo=None, symmetrize=True,
+        max_cycle=50, tol=None, level_shift=0.0, verbose=None):
     r"""Third derivative from the Wigner-rule Eq. (32).
 
     Implements Eq. (32) of Lesiuk, Balawender, and Zachara,
@@ -451,9 +350,6 @@ def alchemical_energy_third_order(
         mf: Converged PySCF RHF/RKS object.
         atmlst: Atom indices for the third derivatives.  If ``None``, all
             atoms are used.
-        mo_energy: Optional MO energies ``(nmo,)``.
-        mo_coeff: Optional MO coefficient matrix ``(nao, nmo)``.
-        mo_occ: Optional MO occupation vector ``(nmo,)``.
         response: Optional precomputed reference-charge ``mo1`` from
             :func:`solve_charge_response`.
         h1vo: Optional MO perturbation matrices at the reference charge.
@@ -468,12 +364,9 @@ def alchemical_energy_third_order(
         ``(natm_sel, natm_sel, natm_sel)``.  Attributes:
         ``d3.electronic``, ``d3.nuclear``.
     """
-    if mo_energy is None:
-        mo_energy = mf.mo_energy
-    if mo_coeff is None:
-        mo_coeff = mf.mo_coeff
-    if mo_occ is None:
-        mo_occ = mf.mo_occ
+    mo_energy = mf.mo_energy
+    mo_coeff = mf.mo_coeff
+    mo_occ = mf.mo_occ
     _check_supported_reference(mf, mo_coeff, mo_occ)
 
     mol = mf.mol
@@ -499,8 +392,7 @@ def alchemical_energy_third_order(
 
     if response is None:
         response = solve_charge_response(
-            mf, atmlst=atmlst, mo_energy=mo_energy, mo_coeff=mo_coeff,
-            mo_occ=mo_occ, h1vo=h1vo, max_cycle=max_cycle, tol=tol,
+            mf, atmlst=atmlst, h1vo=h1vo, max_cycle=max_cycle, tol=tol,
             level_shift=level_shift, verbose=verbose)
 
     vresp = mf.gen_response(mo_coeff, mo_occ, singlet=None, hermi=1)
@@ -527,69 +419,221 @@ def alchemical_energy_third_order(
     return lib.tag_array(total, electronic=electronic, nuclear=nuclear)
 
 
-def alchemical_derivatives(mf, atmlst=None, mo_energy=None, mo_coeff=None,
-                           mo_occ=None, max_cycle=50, tol=None,
-                           level_shift=0.0, verbose=None, third_order=True):
-    r"""Compute first, second, and third charge derivatives.
+class Alchem(rks.RKS):
+    r"""
+    Alchemical derivatives with respect to nuclear charges.
 
-    Uses the closed-shell CPSCF formulas of Lesiuk, Balawender, and
-    Zachara, J. Chem. Phys. 136, 034104 (2012), DOI:
-    10.1063/1.3674163.
-
-    This wrapper builds the virtual-occupied charge perturbations once,
-    solves the first-order charge response once, and reuses those
-    intermediates for
-    \(\partial E / \partial Z_A\), \(\partial^2 E / \partial Z_A \partial Z_B\),
-    and \(\partial^3 E / \partial Z_A \partial Z_B \partial Z_C\)
-
-    Args:
-        mf: Converged PySCF RHF/RKS object.
-        atmlst: Atom indices.  If ``None``, all atoms are used.
-        mo_energy: Optional MO energies ``(nmo,)``.
-        mo_coeff: Optional MO coefficient matrix ``(nao, nmo)``.
-        mo_occ: Optional MO occupation vector ``(nmo,)``.
-        max_cycle: Maximum CPHF iterations.
-        tol: CPHF convergence tolerance.
-        level_shift: Level shift passed to ``pyscf.scf.cphf.solve``.
-        verbose: PySCF logger verbosity.
-
-    Returns:
-        ``(d1, d2, d3)`` where ``d1`` is the tagged first-derivative array
-        from :func:`alchemical_energy_gradient`, ``d2`` is the tagged
-        second-derivative array from
-        :func:`alchemical_energy_hessian`, and ``d3`` is the tagged
-        third-derivative array from
-        :func:`alchemical_energy_third_order`.
+    Reference: Lesiuk, Balawender, and Zachara, J. Chem. Phys. 136, 034104 (2012),
+    DOI:  10.1063/1.3674163
     """
-    if mo_energy is None:
-        mo_energy = mf.mo_energy
-    if mo_coeff is None:
-        mo_coeff = mf.mo_coeff
-    if mo_occ is None:
-        mo_occ = mf.mo_occ
+    def set_alchem_atmlst(self, atmlst=None):
+        self.alchem_atmlst = _as_atom_list(self.mol, atmlst)
+        return self.alchem_atmlst
 
-    mol = mf.mol
-    atmlst = _as_atom_list(mol, atmlst)
-    h1ao, h1vo = electronic_potential(mol, atmlst, mo_coeff, mo_occ)
-    response = solve_charge_response(
-        mf, atmlst=atmlst, mo_energy=mo_energy, mo_coeff=mo_coeff,
-        mo_occ=mo_occ, h1vo=h1vo, max_cycle=max_cycle, tol=tol,
-        level_shift=level_shift, verbose=verbose)
 
-    first = alchemical_energy_gradient(mf, atmlst=atmlst, h1ao=h1ao)
-    second = alchemical_energy_hessian(
-        mf, atmlst=atmlst, mo_energy=mo_energy, mo_coeff=mo_coeff,
-        mo_occ=mo_occ, response=response, h1vo=h1vo)
+    def electronic_potential(self, atmlst=None):
+        r"""AO and MO representations of the electronic potential on nuclei."""
+        if atmlst is None: atmlst = self.alchem_atmlst
 
-    third = None
-    if third_order:
+        potential = electronic_potential(self.mol, atmlst, self.mo_coeff,
+                                         self.mo_occ)
+        self.potential_ao = potential[0]
+        self.potential_mo = potential[1]
+        return potential
+
+
+    def electronic_charge_gradient(self, atmlst=None):
+        r"""Electronic potential on nuclei."""
+        if atmlst is None: atmlst = self.alchem_atmlst
+        if not hasattr(self, 'potential_ao'):
+            self.electronic_potential(atmlst=atmlst)[0]
+        dm0 = self.make_rdm1()
+        return np.einsum('xpq,pq->x', self.potential_ao, dm0).real
+
+
+    def electronic_charge_hessian(self, atmlst=None, response=None):
+        r"""Second derivative of electronic energy with respect to nuclear charges."""
+        if atmlst is None: atmlst = self.alchem_atmlst
+        if not hasattr(self, 'potential_mo'):
+            self.electronic_potential(atmlst=atmlst)[1]
+        if response is None:
+            if not hasattr(self, 'response'):
+                self.solve_charge_response(atmlst=atmlst)
+            response = self.response
+
+        h1vo = self.potential_mo
+        return 4.0 * np.einsum('xai,yai->xy', h1vo, response).real
+
+
+    def solvent_charge_gradient(self, atmlst=None):
+        r"""Gradient of solvent contribution to energy with respect to nuclear charges."""
+        if atmlst is None: atmlst = self.alchem_atmlst
+        if not hasattr(self, 'with_solvent'):
+            return np.zeros(len(atmlst))
+
+        # get pcm class variable
+        pcmobj = self.with_solvent
+
+        # get pcm scf surface charges
+        if not getattr(pcmobj, '_intermediates', None):
+            pcmobj.build()
+        if 'q_sym' not in pcmobj._intermediates:
+            pcmobj.kernel(self.make_rdm1())
+        q = pcmobj._intermediates.get('q_sym', pcmobj._intermediates.get('q'))
+
+        # get nuclear potential on surface points
+        if not hasattr(self, 'v_nuc_surface'):
+            self.v_nuc_surface = nuclear_potential_on_surface(
+                    pcmobj, self.mol, atmlst)
+        v_nuc = self.v_nuc_surface
+
+        # get the gradient contribution
+        return np.einsum('g,xg->x', q, v_nuc).real
+
+
+    def solvent_charge_hessian(self, atmlst=None, dmvo=None):
+        r"""Hessian of solvent contribution to energy with respect to nuclear charges."""
+        if atmlst is None: atmlst = self.alchem_atmlst
+        if not hasattr(self, 'with_solvent'):
+            return np.zeros((len(atmlst), len(atmlst)))
+
+        if dmvo is None:
+            if not hasattr(self, 'dmvo'):
+                self.solve_charge_response(atmlst=atmlst)
+            dmvo = self.dmvo
+
+        # get pcm class variable
+        pcmobj = self.with_solvent
+
+        # get electronic potential from induced charges at surface points
+        v_ele = pcmobj._get_v(dmvo)
+        # get nuclear potential on surface points
+        if not hasattr(self, 'v_nuc_surface'):
+            self.v_nuc_surface = nuclear_potential_on_surface(
+                    pcmobj, self.mol, atmlst)
+        v_nuc = self.v_nuc_surface
+        # get induced surface charges
+        qind = surface_charges_from_potential(pcmobj, v_nuc - v_ele)
+
+        return np.einsum('xg,yg->xy', qind, v_nuc).real
+
+
+    def nuclear_charge_gradient(self, atmlst=None):
+        r"""Gradient of nuclear repulsion energy with respect to nuclear charges."""
+        if atmlst is None: atmlst = self.alchem_atmlst
+        return nuclear_charge_gradient(self.mol, atmlst)
+
+
+    def nuclear_charge_hessian(self, atmlst=None):
+        r"""Hessian of nuclear repulsion energy with respect to nuclear charges."""
+        if atmlst is None: atmlst = self.alchem_atmlst
+        return nuclear_charge_hessian(self.mol, atmlst)
+
+
+    def solve_charge_response(self, atmlst=None, h1vo=None, max_cycle=50,
+                              tol=None, level_shift=0.0, verbose=None):
+        r"""Solve CPSCF response to nuclear-charge perturbations."""
+        if atmlst is None: atmlst = self.alchem_atmlst
+        if h1vo is None:
+            if not hasattr(self, 'potential_mo'):
+                self.electronic_potential(atmlst=atmlst)[1]
+            h1vo = self.potential_mo.copy()
+
+            # add PCM contribution to the right-hand-side
+            if hasattr(self, 'with_solvent') and self.with_solvent.equilibrium_solvation:
+                pcmobj = self.with_solvent
+                # get nuclear potential on surface points
+                if not hasattr(self, 'v_nuc_surface'):
+                    self.v_nuc_surface = nuclear_potential_on_surface(
+                            pcmobj, self.mol, atmlst)
+                v_nuc = self.v_nuc_surface
+                # get induced surface charges from nuclear potential
+                qind = surface_charges_from_potential(pcmobj, v_nuc)
+                # get potential on AO basis from induced charges
+                vmat = pcmobj._get_vmat(qind)
+                orbo = self.mo_coeff[:, self.mo_occ > 0]
+                orbv = self.mo_coeff[:, self.mo_occ == 0]
+                h1vo += np.einsum('xpq,pa,qi->xai', vmat, orbv, orbo)
+
+        self.response = solve_charge_response(
+            self, atmlst=atmlst, h1vo=h1vo, max_cycle=max_cycle, tol=tol,
+            level_shift=level_shift, verbose=verbose)
+
+        # get density matrix as well
+        self.dmvo = _response_density(self.response, self.mo_coeff, self.mo_occ)
+        return self.response
+
+
+    def alchemical_gradient(self, atmlst=None):
+        r"""Gradient of total energy with respect to nuclear charges."""
+        if atmlst is None: atmlst = self.alchem_atmlst
+        electronic = self.electronic_charge_gradient(atmlst=atmlst)
+        nuclear = self.nuclear_charge_gradient(atmlst=atmlst)
+        solvent = self.solvent_charge_gradient(atmlst=atmlst)
+        total = electronic + nuclear + solvent
+
+        self.z_grad = lib.tag_array(total, electronic=electronic,
+                                    nuclear=nuclear, solvent=solvent)
+        return self.z_grad
+
+
+    def alchemical_hessian(self, atmlst=None, symmetrize=True,
+                           max_cycle=50, tol=None, level_shift=0.0,
+                           verbose=None):
+        r"""Hessian of total energy with respect to nuclear charges."""
+        if atmlst is None: atmlst = self.alchem_atmlst
+        if not hasattr(self, 'response'):
+            self.solve_charge_response(atmlst=atmlst, max_cycle=max_cycle,
+                                       tol=tol, level_shift=level_shift,
+                                       verbose=verbose)
+
+        electronic = self.electronic_charge_hessian(atmlst=atmlst)
+        nuclear = self.nuclear_charge_hessian(atmlst=atmlst)
+        solvent = self.solvent_charge_hessian(atmlst=atmlst)
+
+        if symmetrize:
+            electronic = 0.5 * (electronic + electronic.T)
+            nuclear = 0.5 * (nuclear + nuclear.T)
+            solvent = 0.5 * (solvent + solvent.T)
+
+        total = electronic + nuclear + solvent
+        self.z_hess = lib.tag_array(total, electronic=electronic,
+                                    nuclear=nuclear, solvent=solvent)
+        return self.z_hess
+
+
+    def alchemical_derivatives(self, atmlst=None, max_cycle=50, tol=None,
+                               level_shift=0.0, verbose=None, third_order=True,
+                               solvent_response=True):
+        r"""Compute first, second, and optionally third derivatives of total energy with respect to nuclear charges."""
+        if atmlst is None:
+            if not hasattr(self, 'alchem_atmlst'):
+                self.set_alchem_atmlst()
+            atmlst = self.alchem_atmlst
+
+        if solvent_response and hasattr(self, 'with_solvent'):
+            # turn on solvent response to orbital Hessian for CPHF
+            self.with_solvent.equilibrium_solvation = True
+
+        if not hasattr(self, 'response'):
+            self.solve_charge_response(atmlst=atmlst, max_cycle=max_cycle,
+                                       tol=tol, level_shift=level_shift,
+                                       verbose=verbose)
+
+        first = self.alchemical_gradient(atmlst=atmlst)
+        second = self.alchemical_hessian(atmlst=atmlst, max_cycle=max_cycle,
+                                         tol=tol, level_shift=level_shift,
+                                         verbose=verbose)
+
+        if not third_order:
+            return first, second, None
+
         third = alchemical_energy_third_order(
-            mf, atmlst=atmlst, mo_energy=mo_energy, mo_coeff=mo_coeff,
-            mo_occ=mo_occ, response=response, h1ao=h1ao, h1vo=h1vo,
-            max_cycle=max_cycle, tol=tol, level_shift=level_shift,
-            verbose=verbose)
+            self, atmlst=atmlst, response=self.response, h1ao=self.potential_ao,
+            h1vo=self.potential_mo, max_cycle=max_cycle, tol=tol,
+            level_shift=level_shift, verbose=verbose)
+        return first, second, third
 
-    return first, second, third
 
 
 def fractional_charge_mol(mol0, charges):
@@ -607,23 +651,54 @@ def fractional_charge_mol(mol0, charges):
     mol1.enuc = mol1.energy_nuc()
     return mol1
 
-def make_rks(mol, functional, pcm_options=None):
-    mf = scf.RKS(mol)
-    mf.xc = functional
-    if pcm_options is not None:
+
+def _parse_solvent_options(solvent_options):
+    if solvent_options is None:
+        return None, {}
+
+    options = dict(solvent_options)
+    model = options.pop('model', None)
+    model_alias = options.pop('solvent_model', None)
+    if model is None:
+        model = model_alias
+    elif model_alias is not None and model.lower() != model_alias.lower():
+        raise ValueError('model and solvent_model specify different solvents')
+
+    if model is None:
+        model = 'pcm'
+    return model.lower(), options
+
+
+def apply_solvent(mf, solvent_options=None):
+    model, options = _parse_solvent_options(solvent_options)
+    if model is None:
+        return mf
+
+    if model == 'pcm':
         mf = mf.PCM()
-        for key, value in pcm_options.items():
-            setattr(mf.with_solvent, key, value)
-        mf.with_solvent.equilibrium_solvation = True
+    elif model == 'smd':
+        mf = mf.SMD()
+    else:
+        raise ValueError("solvent model must be None, 'pcm', or 'smd'")
+
+    for key, value in options.items():
+        setattr(mf.with_solvent, key, value)
+    mf.with_solvent.equilibrium_solvation = True
     return mf
 
 
+def make_rks(mol, functional, solvent_options=None):
+    mf = scf.RKS(mol)
+    mf.xc = functional
+    return apply_solvent(mf, solvent_options)
+
+
 def energy_with_charges(mol0, charges, cache, functional,
-                        pcm_options=None):
+                        solvent_options=None):
     key = tuple(np.round(charges, 12))
     if key not in cache:
         mol1 = fractional_charge_mol(mol0, charges)
-        mf1 = make_rks(mol1, functional, pcm_options=pcm_options)
+        mf1 = make_rks(mol1, functional, solvent_options=solvent_options)
         mf1.init_guess = '1e'
         mf1.conv_tol = 1e-12
         mf1.max_cycle = 100
@@ -634,13 +709,13 @@ def energy_with_charges(mol0, charges, cache, functional,
     return cache[key]
 
 
-def finite_difference_derivatives(mol0, functional, pcm_options=None,
+def finite_difference_derivatives(mol0, functional, solvent_options=None,
                                   step=1e-4, step3=2e-3, third_order=True):
     charges = mol0.atom_charges().astype(float)
     natm = mol0.natm
     cache = {}
     e0 = energy_with_charges(
-        mol0, charges, cache, functional, pcm_options=pcm_options)
+        mol0, charges, cache, functional, solvent_options=solvent_options)
     fd1 = np.zeros(natm)
     fd2 = np.zeros((natm, natm))
     fd3 = np.zeros((natm, natm, natm))
@@ -651,9 +726,9 @@ def finite_difference_derivatives(mol0, functional, pcm_options=None,
         zp[ia] += step
         zm[ia] -= step
         ep = energy_with_charges(
-            mol0, zp, cache, functional, pcm_options=pcm_options)
+            mol0, zp, cache, functional, solvent_options=solvent_options)
         em = energy_with_charges(
-            mol0, zm, cache, functional, pcm_options=pcm_options)
+            mol0, zm, cache, functional, solvent_options=solvent_options)
         fd1[ia] = (ep - em) / (2.0 * step)
         fd2[ia, ia] = (ep - 2.0 * e0 + em) / step ** 2
 
@@ -670,13 +745,13 @@ def finite_difference_derivatives(mol0, functional, pcm_options=None,
             zmp[ib] += step
             zmm[[ia, ib]] -= step
             epp = energy_with_charges(
-                mol0, zpp, cache, functional, pcm_options=pcm_options)
+                mol0, zpp, cache, functional, solvent_options=solvent_options)
             epm = energy_with_charges(
-                mol0, zpm, cache, functional, pcm_options=pcm_options)
+                mol0, zpm, cache, functional, solvent_options=solvent_options)
             emp = energy_with_charges(
-                mol0, zmp, cache, functional, pcm_options=pcm_options)
+                mol0, zmp, cache, functional, solvent_options=solvent_options)
             emm = energy_with_charges(
-                mol0, zmm, cache, functional, pcm_options=pcm_options)
+                mol0, zmm, cache, functional, solvent_options=solvent_options)
             fd2[ia, ib] = fd2[ib, ia] = (
                 epp - epm - emp + emm) / (4.0 * step ** 2)
 
@@ -694,7 +769,7 @@ def finite_difference_derivatives(mol0, functional, pcm_options=None,
                 sa * sb * sc
                 * energy_with_charges(
                     mol0, z, cache, functional,
-                    pcm_options=pcm_options))
+                    solvent_options=solvent_options))
         fd3[ia, ib, ic] = value / (8.0 * step3 ** 3)
 
     return fd1, fd2, fd3
@@ -708,8 +783,9 @@ if __name__ == '__main__':
     '''
     functional = 'wb97xd'
     basis = '6-31g*'
-    pcm_options = None
-    #pcm_options = {'eps': 78.3553}
+    # solvent_options = None
+    solvent_options = {'model': 'pcm', 'eps': 78.3553}
+    # solvent_options = {'model': 'smd', 'solvent': 'water'}
 
     third_order = True
 
@@ -719,9 +795,12 @@ if __name__ == '__main__':
         unit='Angstrom',
         verbose=0,
     )
-    mf = make_rks(mol, functional, pcm_options=pcm_options)
+    mf = Alchem(mol)
+    mf.xc = functional
+    mf = apply_solvent(mf, solvent_options)
     mf.run(conv_tol=1e-12)
-    d1, d2, d3 = alchemical_derivatives(mf, tol=1e-12, third_order=third_order)
+    d1, d2, d3 = mf.alchemical_derivatives(
+        tol=1e-12, third_order=third_order)
 
     print('SCF energy:', mf.e_tot)
     print('dE/dZ:')
@@ -738,9 +817,9 @@ if __name__ == '__main__':
     print(d2.nuclear)
     print('Eq. 32 d3E/dZdZdZ:')
     print(d3)
-
     fd1, fd2, fd3 = finite_difference_derivatives(
-        mol, functional, pcm_options=pcm_options, third_order=third_order)
+        mol, functional, solvent_options=solvent_options,
+        third_order=third_order)
     print('finite-difference dE/dZ:')
     print(fd1)
     print('max |analytic - finite-difference| dE/dZ:',
