@@ -562,7 +562,7 @@ class Alchem(rks.RKS):
                       + electronic.transpose(1, 2, 0)
                       + electronic.transpose(2, 0, 1)
                       + electronic.transpose(2, 1, 0))
-        electronic += _xc_kernel(mf, dmvo)
+        electronic += _xc_kernel(self, dmvo)
 
         nuclear = np.zeros_like(electronic)
         total = electronic + nuclear
