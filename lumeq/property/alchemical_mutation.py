@@ -1,4 +1,5 @@
 from lumeq import np, itertools
+from lumeq.utils import print_matrix
 
 from pyscf import lib, gto, scf
 from pyscf.lib import logger
@@ -316,108 +317,6 @@ def surface_charges_from_potential(pcmobj, v_grids, sym=True):
     return q[0] if one_vector else q
 
 
-def alchemical_energy_third_order(
-        mf, atmlst=None, response=None, h1ao=None, h1vo=None, symmetrize=True,
-        max_cycle=50, tol=None, level_shift=0.0, verbose=None):
-    r"""Third derivative from the Wigner-rule Eq. (32).
-
-    Implements Eq. (32) of Lesiuk, Balawender, and Zachara,
-    J. Chem. Phys. 136, 034104 (2012), DOI: 10.1063/1.3674163,
-    using the second-order inhomogeneity \(B^{\beta\gamma}\) of Eq. (29).
-    No second-order CPSCF equation is solved; only the first-order charge
-    response \(U^\alpha_{ai}\) from :func:`solve_charge_response` is used.
-
-    \[
-        E^{ABC}_{e}
-        =
-        -4 \sum_{pi} B^{BC}_{pi} U^A_{pi}
-        +4 \sum_{pqi} U^B_{pi} U^C_{qi} h^A_{pq},
-        \qquad h^A_{pq} = \langle p | -r_A^{-1} | q \rangle .
-    \]
-
-    The response amplitudes use the convention ``response[A, a, i] =
-    U^A_{ai}``; they are expanded to a skew-symmetric full MO matrix with
-    zero occupied-occupied and virtual-virtual gauge blocks.  The two-electron
-    pieces in \(B^{\beta\gamma}\) are evaluated by ``mf.gen_response`` from
-    product-density seeds.  The PySCF MO convention also requires the
-    first-order orbital-energy derivative terms from Eq. (25); these are
-    the diagonal of the first-order Fock derivative ``g1mo``.  The
-    \(\delta K_{xc}/\delta\rho\) contribution is evaluated through
-    ``pyscf.grad.tdrks._contract_xc_kernel``.  No MO two-electron integral
-    transformation is formed.
-
-    Args:
-        mf: Converged PySCF RHF/RKS object.
-        atmlst: Atom indices for the third derivatives.  If ``None``, all
-            atoms are used.
-        response: Optional precomputed reference-charge ``mo1`` from
-            :func:`solve_charge_response`.
-        h1vo: Optional MO perturbation matrices at the reference charge.
-        symmetrize: Symmetrize over the three nuclear-charge indices.
-        max_cycle: Maximum CPHF iterations if ``response`` is not supplied.
-        tol: CPHF convergence tolerance if ``response`` is not supplied.
-        level_shift: Level shift passed to ``pyscf.scf.cphf.solve``.
-        verbose: PySCF logger verbosity.
-
-    Returns:
-        Tagged array ``d3`` with shape
-        ``(natm_sel, natm_sel, natm_sel)``.  Attributes:
-        ``d3.electronic``, ``d3.nuclear``.
-    """
-    mo_energy = mf.mo_energy
-    mo_coeff = mf.mo_coeff
-    mo_occ = mf.mo_occ
-    _check_supported_reference(mf, mo_coeff, mo_occ)
-
-    mol = mf.mol
-    atmlst = _as_atom_list(mol, atmlst)
-    occidx = mo_occ > 0
-    viridx = mo_occ == 0
-    occ = np.where(occidx)[0]
-    vir = np.where(viridx)[0]
-    orbo = mo_coeff[:, occidx]
-    orbv = mo_coeff[:, viridx]
-    nmo = mo_coeff.shape[1]
-    nocc = len(occ)
-    nvir = len(vir)
-
-    if h1vo is None and response is not None and hasattr(response, 'h1vo'):
-        h1vo = response.h1vo
-    if h1ao is None and h1vo is None:
-        h1ao, h1vo = electronic_potential(mol, atmlst, mo_coeff, mo_occ)
-    elif h1ao is None:
-        h1ao = electronic_potential(mol, atmlst, mo_coeff, mo_occ)[0]
-    elif h1vo is None:
-        h1vo = electronic_potential(mol, atmlst, mo_coeff, mo_occ)[1]
-
-    if response is None:
-        response = solve_charge_response(
-            mf, atmlst=atmlst, h1vo=h1vo, max_cycle=max_cycle, tol=tol,
-            level_shift=level_shift, verbose=verbose)
-
-    vresp = mf.gen_response(mo_coeff, mo_occ, singlet=None, hermi=1)
-    dmvo = np.einsum('pa,xai,qi->xpq', orbv, response * 2.0, orbo)
-    dmvo += dmvo.transpose(0, 2, 1)
-
-    v1ao = np.asarray(h1ao) + vresp(dmvo)
-    v1oo = np.einsum('xpq,pi,qj->xij', v1ao, orbo, orbo)
-    v1vv = np.einsum('xpq,pa,qb->xab', v1ao, orbv, orbv)
-    electronic  = np.einsum('xab,yai,zbi->xyz', v1vv, response, response)
-    electronic -= np.einsum('xji,yai,zaj->xyz', v1oo, response, response)
-
-    electronic *= 2.0
-    electronic = (electronic
-                  + electronic.transpose(0, 2, 1)
-                  + electronic.transpose(1, 0, 2)
-                  + electronic.transpose(1, 2, 0)
-                  + electronic.transpose(2, 0, 1)
-                  + electronic.transpose(2, 1, 0))
-    electronic += _xc_kernel(mf, dmvo)
-
-    nuclear = np.zeros_like(electronic)
-    total = electronic + nuclear
-    return lib.tag_array(total, electronic=electronic, nuclear=nuclear)
-
 
 class Alchem(rks.RKS):
     r"""
@@ -536,7 +435,7 @@ class Alchem(rks.RKS):
         if atmlst is None: atmlst = self.alchem_atmlst
         if h1vo is None:
             if not hasattr(self, 'potential_mo'):
-                self.electronic_potential(atmlst=atmlst)[1]
+                self.electronic_potential(atmlst=atmlst)
             h1vo = self.potential_mo.copy()
 
             # add PCM contribution to the right-hand-side
@@ -554,6 +453,9 @@ class Alchem(rks.RKS):
                 orbo = self.mo_coeff[:, self.mo_occ > 0]
                 orbv = self.mo_coeff[:, self.mo_occ == 0]
                 h1vo += np.einsum('xpq,pa,qi->xai', vmat, orbv, orbo)
+
+                self.solvent_h1ao = vmat
+                self.solvent_h1vo = h1vo - self.potential_mo
 
         self.response = solve_charge_response(
             self, atmlst=atmlst, h1vo=h1vo, max_cycle=max_cycle, tol=tol,
@@ -602,6 +504,71 @@ class Alchem(rks.RKS):
         return self.z_hess
 
 
+    def alchemical_third_order(self, atmlst=None, max_cycle=50, tol=None,
+                               level_shift=0.0, verbose=None):
+        r"""Third derivative of total energy with respect to nuclear charges.
+        2n+1 rule is used."""
+        if not hasattr(self, 'potential_ao') or not hasattr(self, 'potential_mo'):
+            self.electronic_potential(atmlst=atmlst)
+
+        # add PCM contribution to the right-hand-side
+        if not hasattr(self, 'solvent_h1ao') or not hasattr(self, 'solvent_h1vo'):
+            if hasattr(self, 'with_solvent') and self.with_solvent.equilibrium_solvation:
+                pcmobj = self.with_solvent
+                # get nuclear potential on surface points
+                if not hasattr(self, 'v_nuc_surface'):
+                    self.v_nuc_surface = nuclear_potential_on_surface(
+                            pcmobj, self.mol, atmlst)
+                v_nuc = self.v_nuc_surface
+                # get induced surface charges from nuclear potential
+                qind = surface_charges_from_potential(pcmobj, v_nuc)
+                # get potential on AO basis from induced charges
+                vmat = pcmobj._get_vmat(qind)
+                orbo = self.mo_coeff[:, self.mo_occ > 0]
+                orbv = self.mo_coeff[:, self.mo_occ == 0]
+                h1vo = np.einsum('xpq,pa,qi->xai', vmat, orbv, orbo)
+                self.solvent_h1ao = vmat
+                self.solvent_h1vo = h1vo
+            else:
+                self.solvent_h1ao = np.zeros_like(self.potential_ao)
+                self.solvent_h1vo = np.zeros_like(self.potential_mo)
+
+        h1ao = self.potential_ao + self.solvent_h1ao
+        h1vo = self.potential_mo + self.solvent_h1vo
+        if not hasattr(self, 'response') or not hasattr(self, 'dmvo'):
+            self.solve_charge_response(atmlst=atmlst, max_cycle=max_cycle,
+                                       tol=tol, level_shift=level_shift,
+                                       verbose=verbose)
+
+        mo_coeff = self.mo_coeff
+        mo_occ = self.mo_occ
+        orbo = mo_coeff[:, mo_occ > 0]
+        orbv = mo_coeff[:, mo_occ == 0]
+
+        dmvo = self.dmvo
+        response = self.response
+        vresp = self.gen_response(mo_coeff, mo_occ, singlet=None, hermi=1)
+
+        v1ao = np.asarray(h1ao) + vresp(dmvo)
+        v1oo = np.einsum('xpq,pi,qj->xij', v1ao, orbo, orbo)
+        v1vv = np.einsum('xpq,pa,qb->xab', v1ao, orbv, orbv)
+        electronic  = np.einsum('xab,yai,zbi->xyz', v1vv, response, response)
+        electronic -= np.einsum('xji,yai,zaj->xyz', v1oo, response, response)
+
+        electronic *= 2.0
+        electronic = (electronic
+                      + electronic.transpose(0, 2, 1)
+                      + electronic.transpose(1, 0, 2)
+                      + electronic.transpose(1, 2, 0)
+                      + electronic.transpose(2, 0, 1)
+                      + electronic.transpose(2, 1, 0))
+        electronic += _xc_kernel(mf, dmvo)
+
+        nuclear = np.zeros_like(electronic)
+        total = electronic + nuclear
+        return lib.tag_array(total, electronic=electronic, nuclear=nuclear)
+
+
     def alchemical_derivatives(self, atmlst=None, max_cycle=50, tol=None,
                                level_shift=0.0, verbose=None, third_order=True,
                                solvent_response=True):
@@ -628,9 +595,8 @@ class Alchem(rks.RKS):
         if not third_order:
             return first, second, None
 
-        third = alchemical_energy_third_order(
-            self, atmlst=atmlst, response=self.response, h1ao=self.potential_ao,
-            h1vo=self.potential_mo, max_cycle=max_cycle, tol=tol,
+        third = self.alchemical_third_order(
+            atmlst=atmlst, max_cycle=max_cycle, tol=tol,
             level_shift=level_shift, verbose=verbose)
         return first, second, third
 
@@ -782,7 +748,7 @@ if __name__ == '__main__':
     H  0.000000  0.757160  0.586260
     '''
     functional = 'wb97xd'
-    basis = '6-31g*'
+    basis = '6-311++g**'
     # solvent_options = None
     solvent_options = {'model': 'pcm', 'eps': 78.3553}
     # solvent_options = {'model': 'smd', 'solvent': 'water'}
@@ -799,36 +765,28 @@ if __name__ == '__main__':
     mf.xc = functional
     mf = apply_solvent(mf, solvent_options)
     mf.run(conv_tol=1e-12)
+    print('SCF energy:', mf.e_tot)
+
     d1, d2, d3 = mf.alchemical_derivatives(
         tol=1e-12, third_order=third_order)
 
-    print('SCF energy:', mf.e_tot)
-    print('dE/dZ:')
-    print(d1)
-    print('dE/dZ electronic:')
-    print(d1.electronic)
-    print('dE/dZ nuclear:')
-    print(d1.nuclear)
-    print('d2E/dZdZ:')
-    print(d2)
-    print('d2E/dZdZ electronic:')
-    print(d2.electronic)
-    print('d2E/dZdZ nuclear:')
-    print(d2.nuclear)
-    print('Eq. 32 d3E/dZdZdZ:')
-    print(d3)
+    print_matrix('dE/dZ:', d1)
+    print_matrix('dE/dZ electronic:', d1.electronic)
+    print_matrix('dE/dZ nuclear:', d1.nuclear)
+    print_matrix('d2E/dZdZ:', d2)
+    print_matrix('d2E/dZdZ electronic:', d2.electronic)
+    print_matrix('d2E/dZdZ nuclear:', d2.nuclear)
+    print_matrix('Eq. 32 d3E/dZdZdZ:', d3)
+
     fd1, fd2, fd3 = finite_difference_derivatives(
         mol, functional, solvent_options=solvent_options,
         third_order=third_order)
-    print('finite-difference dE/dZ:')
-    print(fd1)
+    #print_matrix('finite-difference dE/dZ:', fd1)
     print('max |analytic - finite-difference| dE/dZ:',
           np.max(np.abs(d1 - fd1)))
-    print('finite-difference d2E/dZdZ:')
-    print(fd2)
+    #print_matrix('finite-difference d2E/dZdZ:', fd2)
     print('max |analytic - finite-difference| d2E/dZdZ:',
           np.max(np.abs(d2 - fd2)))
-    print('finite-difference d3E/dZdZdZ:')
-    print(fd3)
+    #print_matrix('finite-difference d3E/dZdZdZ:', fd3)
     print('max |analytic - finite-difference| d3E/dZdZdZ:',
           np.max(np.abs(d3 - fd3)))
