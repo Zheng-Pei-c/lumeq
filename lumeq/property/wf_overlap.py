@@ -208,68 +208,66 @@ def cal_wf_overlap_sf(Xm, Ym, Xn, Yn, Cm, Cn, S, extype=0):
     # follow the spin-flip dft implemented at https://github.com/Haskiy/pyscf
     # extype=0: spin flip up, based on ms=-1 triplet ground-state
     # extype=1: spin flip down, based on ms=+1 triplet ground-state
-    has_y = ((Ym is not None) and (Yn is not None))
-
-    #if extype == 0:
-    #    nroots, no_b, nv_a = Xm.shape
-    #    if has_y:
-    #        _,  no_a, nv_b = Ym.shape
-    #elif extype == 1:
-    #    nroots, no_a, nv_b = Xm.shape
-    #    no_b, nv_a = no_a-2, nv_b-2
-    #    if has_y:
-    #        _,  no_b, nv_a = Ym.shape
-    #nocc, nvir = [no_a, no_b], [nv_a, nv_b]
-    # use extype==1 case here, and swap orbitals for extype==0 later
-    nroots, no_a, nv_b = Xm.shape
-    no_b, nv_a = no_a-2, nv_b-2
-    nocc, nvir = [no_a, no_b], [nv_a, nv_b]
+    has_y = (Ym is not None and Yn is not None)
 
     smo = np.einsum('...mp,mn,...nq->...pq', Cm, S, Cn)
     assert smo.ndim == 3
-    # swap alpha and beta orbital overlaps
-    if extype == 0: smo = smo[::-1]
+    nmo = [smo[0].shape[-1], smo[1].shape[-1]]
+    dtype = np.result_type(smo, Xm, Xn)
+    if has_y:
+        dtype = np.result_type(dtype, Ym, Yn)
 
-    smo_oo = [None]*2
-    for s in range(2): # loop over spins
-        smo_oo[s] = np.copy(smo[s,:nocc[s],:nocc[s]])
-    dot_0 = [np.linalg.det(x) for x in smo_oo] # loop over the first-index
+    if extype == 0: # beta -> alpha spin flip
+        _, no_b, nv_a = Xm.shape
+        no_a = nmo[0] - nv_a
+        nv_b = nmo[1] - no_b
+        if has_y and Ym.shape[1:] != (no_a, nv_b):
+            raise ValueError('For extype=0, Y amplitudes should have shape '
+                             '(nroots, nalpha_occ, nbeta_vir)')
+    elif extype == 1: # alpha -> beta spin flip
+        _, no_a, nv_b = Xm.shape
+        no_b = nmo[1] - nv_b
+        nv_a = nmo[0] - no_a
+        if has_y and Ym.shape[1:] != (no_b, nv_a):
+            raise ValueError('For extype=1, Y amplitudes should have shape '
+                             '(nroots, nbeta_occ, nalpha_vir)')
+    else:
+        raise ValueError('extype should be 0 or 1')
+
+    nocc = [no_a, no_b]
+    nvir = [nv_a, nv_b]
+
+    smo_oo = [np.copy(smo[s,:nocc[s],:nocc[s]]) for s in range(2)]
+    dot_0 = [np.linalg.det(x) for x in smo_oo]
     ovlp_00 = dot_0[0]*dot_0[1]
+    inv_oo = [np.linalg.inv(x) for x in smo_oo]
 
+    hole = []
+    particle = []
+    for s in range(2):
+        no = nocc[s]
+        nv = nvir[s]
+        sign = np.fromfunction(lambda i, j: 1 - 2*((i+j) % 2),
+                               (no, no), dtype=int)
+        hole.append(sign * inv_oo[s].T)
+        particle.append(smo[s,no:,no:]
+                        - np.einsum('aj,jb->ab', smo[s,no:,:no],
+                                    np.einsum('ij,jb->ib', inv_oo[s],
+                                              smo[s,:no,no:])))
 
-    def kernel(no_a, no_b, nv_b, soo_a, soo_b, smo_b):
-        ovlp1 = np.zeros((no_a, no_a))
-        for i in range(no_a):
-            for j in range(no_a):
-                ts = np.delete(soo_a, i, axis=0) # i-row
-                ts = np.delete(ts, j, axis=1) # j-column
-                ovlp1[i,j] = np.linalg.det(ts)
+    def component(Xbra, Xket, hole_spin, particle_spin):
+        return ovlp_00 * np.einsum(
+            'mia,njb,ij,ab->mn',
+            Xbra.conj(), Xket, hole[hole_spin], particle[particle_spin])
 
-        ovlp2 = np.zeros((nv_b, nv_b))
-        for a, b in itertools.product(range(nv_b), range(nv_b)):
-            ts = np.vstack((soo_b, smo_b[a+no_b,:no_b])) # add a-row
-            # hstack is samilar to column_stack but needs newaxis for 1d
-            ts = np.column_stack((ts, smo_b[:no_b+1,b+no_b])) # add b-column
-            ts[no_b,no_b] = smo_b[a+no_b,b+no_b]
-            ovlp2[a,b] = np.linalg.det(ts)
-
-        return ovlp1, ovlp2
-
-    # excited-excited
-    # e-g * g-e
-    ovlp1, ovlp2 = kernel(no_a, no_b, nv_b, smo_oo[0], smo_oo[1], smo[1])
-    #ovlp_mn = np.einsum('mia,njb,ij,ab->mn', Xm, Xn, ovlp1, ovlp2)
-    ovlp_mn = np.einsum('njb,ij->nib', Xn, ovlp1)
-    ovlp_mn = np.einsum('nib,ab->nia', ovlp_mn, ovlp2)
-    ovlp_mn = np.einsum('mia,nia->mn', Xm, ovlp_mn)
-
-    if has_y: # swap alpha and beta
-        ovlp3, ovlp4 = kernel(no_b, no_a, nv_a, smo_oo[1], smo_oo[0], smo[0])
-        # use transport
-        #ovlp_mn -= np.einsum('mia,njb,ji,ba->mn', Ym, Yn, ovlp3, ovlp4)
-        tmp = np.einsum('njb,ji->nib', Yn, ovlp3)
-        tmp = np.einsum('nib,ba->nia', tmp, ovlp4)
-        ovlp_mn -= np.einsum('mia,nia->mn', Ym, tmp)
+    if extype == 0:
+        ovlp_mn = component(Xm, Xn, 1, 0)
+        if has_y:
+            ovlp_mn -= component(Ym, Yn, 0, 1)
+    else:
+        ovlp_mn = component(Xm, Xn, 0, 1)
+        if has_y:
+            ovlp_mn -= component(Ym, Yn, 1, 0)
 
     #return ovlp_00, ovlp_mn
     return ovlp_mn
