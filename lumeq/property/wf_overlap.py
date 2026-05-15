@@ -115,7 +115,8 @@ def cal_wf_overlap_u(Xm, Ym, Xn, Yn, Cm, Cn, S):
     # unrestricted case, including alpha and beta spin orbitals
     has_m = (Xm is not None)
     has_n = (Xn is not None)
-    has_y = ((Ym[0] is not None) and (Yn[0] is not None))
+    has_y = (Ym is not None and Yn is not None and
+             Ym[0] is not None and Yn[0] is not None)
 
     nroots, no_a, nv_a = Xm[0].shape # alpha
     _,      no_b, nv_b = Xm[1].shape # beta
@@ -123,6 +124,9 @@ def cal_wf_overlap_u(Xm, Ym, Xn, Yn, Cm, Cn, S):
 
     smo = np.einsum('...mp,mn,...nq->...pq', Cm, S, Cn)
     assert smo.ndim == 3
+    dtype = np.result_type(smo, Xm[0], Xm[1], Xn[0], Xn[1])
+    if has_y:
+        dtype = np.result_type(dtype, Ym[0], Ym[1], Yn[0], Yn[1])
 
     smo_oo = [None]*2
     for s in range(2): # loop over spins
@@ -147,14 +151,14 @@ def cal_wf_overlap_u(Xm, Ym, Xn, Yn, Cm, Cn, S):
 
     # excited-ground
     if has_m:
-        ovlp1 = np.empty((2, nroots))
+        ovlp1 = np.empty((2, nroots), dtype=dtype)
         for s in range(2):
             Xm[s] = Xm[s].conj()
             ovlp1[s] = np.einsum('kia,ia->k', Xm[s], vec1[s])
         ovlp_m0 = np.copy(ovlp1)
 
         if has_y:
-            ovlp2 = np.empty((2, nroots))
+            ovlp2 = np.empty((2, nroots), dtype=dtype)
             for s in range(2):
                 Ym[s] = Ym[s].conj()
                 ovlp2[s] = np.einsum('kia,ia->k', Ym[s], vec2[s])
@@ -166,13 +170,13 @@ def cal_wf_overlap_u(Xm, Ym, Xn, Yn, Cm, Cn, S):
 
     # ground-excited
     if has_n:
-        ovlp3 = np.empty((2, nroots))
+        ovlp3 = np.empty((2, nroots), dtype=dtype)
         for s in range(2):
             ovlp3[s] = np.einsum('kia,ia->k', Xn[s], vec2[s])
         ovlp_0n = np.copy(ovlp3)
 
         if has_y:
-            ovlp4 = np.empty((2, nroots))
+            ovlp4 = np.empty((2, nroots), dtype=dtype)
             for s in range(2):
                 ovlp4[s] = np.einsum('kia,ia->k', Yn[s], vec1[s])
             ovlp_0n += ovlp4
@@ -183,13 +187,10 @@ def cal_wf_overlap_u(Xm, Ym, Xn, Yn, Cm, Cn, S):
 
     # excited-excited
     if has_m and has_n:
-        ovlp_mn = np.zeros((nroots, nroots))
+        ovlp_mn = np.einsum('sm,tn->mn', ovlp1, ovlp3)
+        if has_y:
+            ovlp_mn -= np.einsum('sm,tn->mn', ovlp2, ovlp4)
         for s in range(2):
-            # e-g * g-e and first contribution of e-e * g-g
-            ovlp_mn += 2.*np.einsum('m,n->mn', ovlp1[s], ovlp3[s])
-            if has_y:
-                ovlp_mn -= 2.*np.einsum('m,n->mn', ovlp2[s], ovlp4[s])
-
             # e-e * g-g
             ovlp_mn += np.einsum('mia,njb,ji,ab->mn', Xm[s], Xn[s], vec0[s], vec3[s])
             if has_y:
@@ -290,7 +291,7 @@ def _overlap_gg(Cm, Cn, S, nocc):
     # determinant overlap between ground states
     # Cm and Cn are the mo_coeffs at different nuclear configurations
     # S is the off-diagonal overlap between them
-    smo = np.einsum('...mp,mn,...nq->...pq')
+    smo = np.einsum('...mp,mn,...nq->...pq', Cm, S, Cn)
 
     if smo.ndim == 2: # single-spin orbitals
         return np.linalg.det(smo[:nocc,:nocc]), smo
@@ -307,8 +308,6 @@ def _overlap_eg(Xm, Yn, Cm=None, Cn=None, S=None, smo=None):
     _, no, nv = Xm.shape
 
     Xm = Xm.conj()
-    if has_y:
-        Yn = Yn.conj()
 
     if not isinstance(smo, np.ndarray):
         _, smo = _overlap_gg(Cm, Cn, S, no)
@@ -324,7 +323,7 @@ def _overlap_eg(Xm, Yn, Cm=None, Cn=None, S=None, smo=None):
         ovlp1.append(Xm[:,i,a] * dot)
         if has_y: ovlp4.append(Yn[:,i,a] * dot)
 
-    return ovlp1, ovlp4
+    return np.asarray(ovlp1), np.asarray(ovlp4)
 
 
 def _overlap_ge(Xn, Ym, Cm=None, Cn=None, S=None, smo=None):
@@ -335,6 +334,8 @@ def _overlap_ge(Xn, Ym, Cm=None, Cn=None, S=None, smo=None):
     # determinant overlap between excited and ground states
     has_y = True if isinstance(Ym, np.ndarray) else False
     _, no, nv = Xn.shape
+    if has_y:
+        Ym = Ym.conj()
 
     if not isinstance(smo, np.ndarray):
         _, smo = _overlap_gg(Cm, Cn, S, no)
@@ -350,7 +351,7 @@ def _overlap_ge(Xn, Ym, Cm=None, Cn=None, S=None, smo=None):
         ovlp3.append(Xn[:,i,a] * dot)
         if has_y: ovlp2.append(Ym[:,i,a] * dot)
 
-    return ovlp2, ovlp3
+    return np.asarray(ovlp2), np.asarray(ovlp3)
 
 
 def _overlap_ee(Xm, Ym, Xn, Yn, Cm=None, Cn=None, S=None, smo=None):
@@ -402,11 +403,6 @@ def cal_wf_overlap_r0(Xm, Ym, Xn, Yn, Cm, Cn, S):
 
     if not (has_m or has_n):
         return dot_0**2
-
-    if has_m:
-        Xm = Xm.conj()
-        if has_y:
-            Ym = Ym.conj()
 
     if has_m or has_y:
         ovlp1, ovlp4 = _overlap_eg(Xm, Yn, smo=smo)
