@@ -5,5 +5,6 @@ from .photon_dynamics import PhotonStep, PhotonStep2
 
 from .electronic_dynamics_gs import ElectronicStep, GrassmannStep, CurvyStep, ExtendedLagStep
 from .exciton_dynamics import ExcitonStep
+from .real_time_uks import RTUKS
 
 from .molecular_dynamics import MolecularDynamics
