@@ -119,7 +119,7 @@ def wick_pairs(operators, exceptions=[], index=False):
     annihilators = ~creators
     spins = [get_spin_label(op) for op in operators]
 
-    pairs = []
+    pairs = set() # set lookup is faster than list
 
     for i in range(n):
         op_i = operators[i]
@@ -141,14 +141,15 @@ def wick_pairs(operators, exceptions=[], index=False):
             if (is_creator(op_i) and is_annihilator(op_j)) or (is_annihilator(op_i) and is_creator(op_j)):
                 if sp_i in _known_spins and sp_j in _known_spins:
                     if sp_i == sp_j: # both known spins and should match
-                        pairs.append((i, j))
+                        pairs.add((i,j) if i<j else (j,i)) # faster sorting
                 else:
-                    pairs.append((i, j))
+                    pairs.add((i,j) if i<j else (j,i))
 
     if not index: # convert indices back to operator strings
         pairs = index_to_operators(operators, pairs)
 
-    return pairs
+    #print('pairs:', tuple(sorted(pairs)))
+    return tuple(sorted(pairs))
 
 
 def index_to_operators(operators, pairs_index):
@@ -162,56 +163,84 @@ def index_to_operators(operators, pairs_index):
     Returns:
         pairs (list): Tuple pairs of operator strings.
     """
-    pairs = [(operators[i], operators[j]) for (i, j) in pairs_index]
+    pairs = set(tuple(sorted(operators[i], operators[j]))
+                for (i, j) in pairs_index)
     return pairs
 
 
-def wick_contraction(operators, pairs, expand=True):
+class PairGraph():
+    def __init__(self, nodes, pairs):
+        self.nodes = set(nodes)
+        self.valid_pairings = set(tuple(sorted(pair)) for pair in pairs)
+        self.edges = set()
+        self.paired_nodes = set()
+
+    def can_contract(self, op1, op2):
+        return tuple(sorted((op1, op2))) in self.pairs
+
+    def add_edge(self, node1, node2):
+        new_graph = PairGraph(self.nodes, self.valid_pairings)
+        new_graph.edges = self.edges | {tuple(sorted((node1, node2)))}
+        new_graph.paired_nodes = self.paired_nodes.union({node1, node2})
+        return new_graph
+
+    def is_complete(self):
+        return len(self.paired_nodes) == len(self.nodes)
+
+    def get_all_unpaired_nodes(self):
+        return self.nodes - self.paired_nodes
+
+    def get_open_nodes_in_cluster(self, connected_nodes):
+        open_nodes = self.get_all_unpaired_nodes()
+        return open_nodes.intersection(connected_nodes)
+
+    def solve_contractions(self):
+        r"""Backtracking algorithm to find all valid Wick contraction patterns."""
+        open_nodes = self.get_all_unpaired_nodes()
+        if not open_nodes:
+            return {tuple(sorted(self.edges))}
+
+        src_node = sorted(open_nodes)[0]
+
+        solutions = set()
+        for dest_node in sorted(open_nodes):
+            edge = tuple(sorted((src_node, dest_node)))
+            if edge in self.valid_pairings:
+                new_graph = self.add_edge(src_node, dest_node)
+                solutions |= new_graph.solve_contractions()
+
+        return solutions
+
+
+def wick_contraction(operators, pairs, iprint=False):
     r"""
     Perform Wick contraction on the given pairs of operators.
 
     Args:
         operators (list): Operator strings.
         pairs (list): Tuple pairs of indices to be contracted.
-        expand (bool, optional): If True, return product patterns. Otherwise return a
-            dictionary of lists of contraction patterns.
+        iprint (bool, optional): If True, print the contraction patterns.
 
     Returns:
         contractions (list): Contraction patterns.
     """
     operators = get_list(operators)
-    n_op = len(operators) # total number of operators
-    # pairs of operator strings or indices
-    is_index = True if isinstance(pairs[0][0], int) else False
 
-    contractions = defaultdict(list) # set up empty lists for keys not in dict
-    for (op1, op2) in pairs:
-        contractions[op1].append(op2)
+    graph = PairGraph(range(len(get_list(operators))), pairs)
+    graph_solutions = graph.solve_contractions()
+    print(f'Found {len(graph_solutions)} valid Wick contraction patterns.\n')
 
-    if expand:
-        key_list = list(contractions.keys())
-        value_list = [contractions[k] for k in key_list]
-        n_keys = len(key_list)
-        dim = [len(v) for v in value_list]
-
-        contractions = []
-        for idx in itertools.product(*[range(d) for d in dim]):
-            #c_list = [(key_list[i], value_list[i][idx[i]]) for i in range(n_keys)]
-            c_list, c_flat = [], []
-            for i in range(n_keys):
-                a, b = key_list[i], value_list[i][idx[i]]
-                if a not in c_flat and b not in c_flat:
-                    c_flat += [a, b]
-                    if is_index:
-                        c_list.append((a, b, operators[a], operators[b]))
-                    else:
-                        c_list.append((a, b)) # operator strings
-
-            if len(c_flat) == n_op and not has_pattern(contractions, c_list):
-                #print(c_list)
-                contractions.append(c_list)
-
-    return contractions[::-1] # reverse the order for convenience
+    contractions = []
+    for i, solution in enumerate(graph_solutions):
+        c_list = []
+        if iprint:
+            print(f'Contraction pattern {i+1}:')
+        for (i1, i2) in solution:
+            c_list.append((i1, i2, operators[i1], operators[i2]))
+            if iprint:
+                print(f' {operators[i1]} (index {i1}) and {operators[i2]} (index {i2})')
+        contractions.append(c_list)
+    return contractions
 
 
 def delta_format(style):
@@ -583,6 +612,7 @@ def print_math(string, title, filename=None, latex=False):
         string = string.replace('bar-sigma', r'{\bar{\sigma}}')
         string = string.replace('_', '_\\')
         string = string.replace('_\\{', r'_{')
+        string = string.replace('^dagger', r'^\dagger')
 
     print(title)
 
@@ -661,21 +691,14 @@ def sqo_evaluation(bra, middle, ket, exceptions=[], title='', hamiltonian=None,
     if hamiltonian is None: # take middle as hamiltonian by default
         hamiltonian = middle
 
-    operators = bra + ' ' + middle + ' ' + ket
-    print('operators:\n', operators)
-    pairs = wick_pairs(operators, exceptions=exceptions, index=True)
-    contractions = wick_contraction(operators, pairs, expand=True)
-
     print(title)
-    if len(contractions) == 0:
-        print('No valid Wick contraction patterns found.\n')
-        return contractions, '', ''
+    operators = bra + ' ' + middle + ' ' + ket
+    #print_math(operators, 'operators:', latex=latex)
 
-    for i, pattern in enumerate(contractions):
-        print('Pattern:', i+1)
-        for (i1, i2, op1, op2) in pattern:
-            print(f'Contracting {op1} with {op2};')
-    print('')
+    pairs = wick_pairs(operators, exceptions=exceptions, index=True)
+    contractions = wick_contraction(operators, pairs)
+    if len(contractions) == 0:
+        return contractions, '', ''
 
     if diagram:
         strings = plot_wick_diagram(operators, contractions, end=';', colors=colors)
@@ -684,7 +707,8 @@ def sqo_evaluation(bra, middle, ket, exceptions=[], title='', hamiltonian=None,
     deltas = wick_delta(contractions, delta_style)
 
     strings = contract_hamil_delta(hamiltonian, deltas, symmetry, exchange)
-    print_math(' '.join(strings), 'Contraction result:\n', latex=latex)
+    print_math(operators+'\n=\n'+' '.join(strings), 'Contraction result:',
+               latex=latex)
 
     return contractions, deltas, strings
 
@@ -696,7 +720,7 @@ if __name__ == '__main__':
     exceptions = [('s_alpha^', 'a_alpha'), ('b_alpha^', 't_alpha')]
     pairs = wick_pairs(operators, exceptions=exceptions, index=True)
     print('pairs:', pairs)
-    contractions = wick_contraction(operators, pairs, expand=True)
+    contractions = wick_contraction(operators, pairs)
     print('contractions:', contractions)
     deltas = wick_delta(contractions, delta_style='upper_lower')
     print('deltas:', deltas)
