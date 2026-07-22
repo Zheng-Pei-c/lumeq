@@ -243,14 +243,20 @@ def wick_contraction(operators, pairs, iprint=False):
     return contractions
 
 
-def delta_format(style):
+def delta_format(style, include_occupancy=True):
     r"""Get the write and parse functions for delta function formatting based on the specified style."""
     if style == 'upper_lower' or ('^' in style and '_' in style):
         def write(orb1, orb2, reverse=False):
             if reverse:
-                return f'delta^{{{orb2}}}_{{{orb1}}}' + f'(1-n_{{{orb2}}})'
+                delta = f'delta^{{{orb2}}}_{{{orb1}}}'
+                if not include_occupancy:
+                    return delta
+                return delta + f'(1-n_{{{orb2}}})'
             else:
-                return f'delta^{{{orb1}}}_{{{orb2}}}' + f'n_{{{orb2}}}'
+                delta = f'delta^{{{orb1}}}_{{{orb2}}}'
+                if not include_occupancy:
+                    return delta
+                return delta + f'n_{{{orb2}}}'
 
         def parse(delta_str):
             content = delta_str.split('{')
@@ -262,9 +268,15 @@ def delta_format(style):
     elif style in {'lower', 'comma', '_'}:
         def write(orb1, orb2, reverse=False):
             if reverse:
-                return f'delta_{{{orb2},{orb1}}}' + f'(1-n_{{{orb2}}})'
+                delta = f'delta_{{{orb2},{orb1}}}'
+                if not include_occupancy:
+                    return delta
+                return delta + f'(1-n_{{{orb2}}})'
             else:
-                return f'delta_{{{orb1},{orb2}}}' + f'n_{{{orb2}}}'
+                delta = f'delta_{{{orb1},{orb2}}}'
+                if not include_occupancy:
+                    return delta
+                return delta + f'n_{{{orb2}}}'
 
         def parse(delta_str):
             content = delta_str[delta_str.index('{')+1:delta_str.index('}')]
@@ -274,7 +286,7 @@ def delta_format(style):
     return write, parse
 
 
-def wick_delta(contractions, delta_style='comma'):
+def wick_delta(contractions, delta_style='comma', include_occupancy=True):
     r"""
     Convert contraction pairs into delta functions.
 
@@ -282,19 +294,21 @@ def wick_delta(contractions, delta_style='comma'):
         contractions (list): Contraction patterns.
         delta_style (str, optional): Style for formatting delta functions.
             Options include 'upper_lower', 'lower', 'comma', etc.
+        include_occupancy (bool, optional): If True, include occupancy factors in the delta functions.
 
     Returns:
         deltas (list): Delta-function strings representing the contractions.
     """
     if isinstance(contractions[0], list): # loop over multiple contraction patterns
-        return [wick_delta(pair, delta_style) for pair in contractions]
+        return [wick_delta(pair, delta_style, include_occupancy)
+                for pair in contractions]
 
     if len(contractions[0]) == 2:
         raise ValueError(f'Contractions should have indices as well to determine signs.\n' +
                          f'Use wick_pairs() with index=True option before wick_contraction.')
 
 
-    delta_write = delta_format(delta_style)[0]
+    delta_write = delta_format(delta_style, include_occupancy)[0]
 
     index = []
     deltas = []
@@ -357,47 +371,58 @@ def contract_hamil_delta(hamiltonian, deltas, symmetry=False, exchange=False):
         deltas = [deltas]
 
     delta_style = 'comma' if ',' in deltas[0] else 'upper_lower'
-    delta_parse = delta_format(delta_style)[1]
+    include_occupancy = 'n_' in deltas[0] or '1-n_' in deltas[0]
+    delta_parse = delta_format(delta_style, include_occupancy)[1]
 
-    hamiltonian = get_list(hamiltonian)
-    n_hs = len(hamiltonian)
-    if n_hs == 0: # overlap return the deltas directly
-        return [d.replace(',', ' ') for d in deltas]
-    h = 'h' if n_hs == 2 else 'g'
+    if isinstance(hamiltonian, list): # loop over multiple Hamiltonian terms
+        hamil_names, hamiltonian = map(list, zip(*hamiltonian))
+        hamiltonian = [get_list(h) for h in hamiltonian]
+    else:
+        hamiltonian = [get_list(hamiltonian)]
+        n_hs = len(hamiltonian[0])
+        if n_hs == 0: # overlap return the deltas directly
+            return [d.replace(',', ' ') for d in deltas]
+        hamil_names = ['h'] if n_hs == 2 else ['g']
 
     strings = []
     for delta in deltas:
         sign = delta[0]
         delta_terms = delta[1:].split()
-        h_terms = hamiltonian.copy()
 
-        # find matching indices in Hamiltonian terms
-        for i, h_op in enumerate(h_terms):
-            h_orb = get_spin_orbital_index(h_op)
+        hamil_contracted = []
+        for k, h in enumerate(hamiltonian):
+            h_terms = h.copy() # has to copy!
+            n_hs = len(h_terms)
 
-            for j, d in enumerate(delta_terms):
-                if not d.startswith('delta'):
-                    continue
+            # find matching indices in Hamiltonian terms
+            for i, h_op in enumerate(h_terms):
+                h_orb = get_spin_orbital_index(h_op)
 
-                # extract orbital indices from delta function
-                orb1, orb2, occupancy = delta_parse(d)
+                for j, d in enumerate(delta_terms):
+                    if not d.startswith('delta'):
+                        continue
 
-                if h_orb == orb1:
-                    h_terms[i] = orb2
-                    delta_terms[j] = occupancy.replace(orb1, orb2)  # mark for removal
-                elif h_orb == orb2:
-                    h_terms[i] = orb1
-                    delta_terms[j] = occupancy.replace(orb2, orb1)  # mark for removal
+                    # extract orbital indices from delta function
+                    orb1, orb2, occupancy = delta_parse(d)
 
-        # reorder hamiltonian
-        #h_contracted = h_terms
-        h_contracted = [''] * n_hs
-        for i in range(n_hs//2):
-            h_contracted[2*i], h_contracted[2*i+1] = h_terms[i], h_terms[-1-i]
-            if i in {1,2}: h_contracted[2*i-1] += ';' # separate electrons
-        h_contracted = h + '_{' + ' '.join(h_contracted) + '}'
+                    if h_orb == orb1:
+                        h_terms[i] = orb2
+                        delta_terms[j] = occupancy.replace(orb1, orb2)  # mark for removal
+                    elif h_orb == orb2:
+                        h_terms[i] = orb1
+                        delta_terms[j] = occupancy.replace(orb2, orb1)  # mark for removal
 
-        term_str = ' '.join(delta_terms) + ' ' + h_contracted
+            # reorder hamiltonian
+            #h_contracted = h_terms
+            h_contracted = [''] * n_hs
+            for i in range(n_hs//2):
+                h_contracted[2*i], h_contracted[2*i+1] = h_terms[i], h_terms[-1-i]
+                if i in {1,2}: h_contracted[2*i-1] += ';' # separate electrons
+            if hamil_names[k] != '':
+                h_contracted = hamil_names[k] + '_{' + ' '.join(h_contracted) + '}'
+                hamil_contracted.append(h_contracted)
+
+        term_str = ' '.join(delta_terms) + ' ' + ' '.join(hamil_contracted[::-1])
         # replace commas of delta with spaces, and semicolons with commas
         term_str = term_str.replace(',', ' ').replace(';', ',')
         strings.append(f'{sign} {term_str}\n')
@@ -442,7 +467,8 @@ def combine_same_terms(contracted_strings, exchange=False):
         sign = s[0] if s and s[0] in '+-' else '+'
         body = s[1:].strip() if s and s[0] in '+-' else s
         g_pos = body.index('g_{')
-        prefix = body[:g_pos].strip()
+        g_body = body[g_pos + len('g_{'):].split('}', 1)[0]
+        prefix = body.replace('g_{'+g_body+'}', '', 1)
         prefix_terms = prefix.split()
         magnitude = 1
         if prefix_terms:
@@ -455,7 +481,6 @@ def combine_same_terms(contracted_strings, exchange=False):
                 magnitude = 1
         prefix = ' '.join(prefix_terms)
         prefix_key = get_product_key(prefix_terms)
-        g_body = body[g_pos + len('g_{'):].split('}', 1)[0]
         left, right = [part.strip() for part in g_body.split(',', 1)]
 
         coef = magnitude if sign == '+' else -magnitude
@@ -660,7 +685,7 @@ def commutator(op1, op2, op3=None, sign='-'):
 
 def sqo_evaluation(bra, middle, ket, exceptions=[], title='', hamiltonian=None,
                    latex=True, diagram=False, colors=None, delta_style='comma',
-                   symmetry=False, exchange=False):
+                   include_occupancy=True, symmetry=False, exchange=False):
     r"""
     Evaluate the Wick contractions for the given second-quantization operator (sqo) strings of bra, middle, and ket,
     while excluding specified operator pairs from contraction.
@@ -677,6 +702,7 @@ def sqo_evaluation(bra, middle, ket, exceptions=[], title='', hamiltonian=None,
         diagram (bool, optional): If True, plot the Wick contraction diagram.
         colors (list, optional): Colors for the contraction lines in the diagram.
         delta_style (str, optional): Style for formatting delta functions in the output.
+        include_occupancy (bool, optional): If True, include occupancy factors in the delta functions.
         symmetry (bool, optional): If True, apply symmetry to the two-electron integrals in the output.
         exchange (bool, optional): If True, combine exchange-integral pairs as
             antisymmetrized two-electron integrals.
@@ -704,7 +730,7 @@ def sqo_evaluation(bra, middle, ket, exceptions=[], title='', hamiltonian=None,
         strings = plot_wick_diagram(operators, contractions, end=';', colors=colors)
         print_math(' '.join(strings), 'Wick contraction diagram:\n', latex=latex)
 
-    deltas = wick_delta(contractions, delta_style)
+    deltas = wick_delta(contractions, delta_style, include_occupancy)
 
     strings = contract_hamil_delta(hamiltonian, deltas, symmetry, exchange)
     print_math(operators+'\n=\n'+' '.join(strings), 'Contraction result:',
