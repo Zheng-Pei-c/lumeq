@@ -89,7 +89,7 @@ class Exciton():
                 # l and d are the molecule index in the unit cell
                 a, b, c = i+a, j+b, k+c
                 jc = cell_dict.get(tuple([a,b,c]), None)
-                if jc:
+                if jc is not None:
                     # ic, jc are the indices of hamiltonian elements
                     # l, d are the molecule indices in the unit cell
                     # x is the index for coupling_j

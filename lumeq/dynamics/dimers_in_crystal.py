@@ -160,42 +160,139 @@ def get_center_of_mass(atmsym, coords):
 
 
 
+class Crystal:
+    def __init__(self, cif_file):
+        self.mol = cif_file.replace('.cif', '')
+
+        abc, angles, elements, scales, n_mol = read_unit_cell_info(cif_file)
+        self.abc = abc
+        self.angles = angles
+        self.elements = elements
+        self.scales = scales
+        self.n_mol = n_mol
+        if n_mol != 2:
+            raise ValueError('Only support 2 molecules in a unit cell for now.')
+
+
+    def add_molecules_cell(self, n_images=[5, 5, 5]):
+        self.n_images = n_images
+        self.n_total = self.n_mol * np.prod(n_images)
+
+        self.elements_all, self.coordinates, self.centers_all, self.site_label = add_molecules_cell(
+            self.n_images, self.abc, self.angles, self.elements, self.scales
+        )
+        return self.elements_all, self.coordinates, self.centers_all, self.site_label
+
+
+    def get_distance_order(self, center=0, npairs=50, debug=0):
+        centers_all = self.centers_all
+        site_label = self.site_label
+        n_mol = self.n_mol
+        n_cell = self.n_images
+
+        distances = []
+        n_total = n_mol * np.prod(n_cell)
+        i = int(n_total//n_mol) # center site (B)
+        i -= center # shift if needed (A if center=1)
+        self.center = i
+        if debug:
+            print('center site:', i, site_label[i])
+        for j in range(n_total):
+            distances.append(np.linalg.norm(centers_all[i]-centers_all[j]))
+        distances = np.array(distances)
+        order = distances.argsort()
+        if npairs is None: npairs = len(order) - 1
+        order = order[:npairs+1]
+
+        self.distances = distances
+        self.order = order
+        return order, distances
+
+
+    def get_neighbor_index(self, debug=False):
+        order = self.order
+        distances = self.distances
+        site_label = self.site_label
+
+        # given neighboring pairs
+        index = [list(map(int, site_label[order[k]].split(','))) for k in range(len(order))]
+        sort = [sort_index(d[0], d[1], d[2], d[3], n_cell[0], n_cell[1], n_cell[2], 2) for d in index]
+        if debug:
+            print('index:')
+            for k, idx in enumerate(index):
+                print('%3d ' % (order[k]+1), end='')
+                for d in idx:
+                    print('%2d ' %d, end='')
+                print(' %10.5f' % distances[order[k]])
+
+        # get neighbor index list
+        neighbor_index = []
+        for j, idx in enumerate(index[1:], start=1):
+            k = index[0][3] # B molecule as center
+            if sort[j] < sort[0]: # A molecule as center
+                k = abs(1-k)
+                a, b, c, d = idx
+                # reverse the coupling direction
+                # checked by index from using center (i -= 1)
+                idx = [-a, -b, -c, abs(1-d)]
+
+            neighbor_index.append([k, idx])
+
+        self.neighbor_index = neighbor_index
+        return neighbor_index
+
+
+    def get_hamil_parameters(self, outfile_dir='./', mol=None):
+        if mol is None: mol = self.mol
+        order = self.order
+        distances = self.distances
+
+        # read energy, dipoles, and couplings from output files
+        energy, coupling, trans_dipole = [], [], []
+        for k in order[1:]:
+            outfile = outfile_dir+mol+'-'+str(i+1)+'-'+str(k+1)+'-dimer'+'_%4.2f-dc.out' % distances[k]
+            if Path(outfile).is_file():
+                e, c, d = read_energy_coupling(outfile)
+                #energy.append(e)
+                coupling.append(c)
+                energy = e[0]
+                trans_dipole = d[0]
+
+        energy, coupling = np.array(energy), np.array(coupling)
+        return energy, coupling, trans_dipole
+
+
+    def set_model(self, model='AB', n_cell=[10,1,1], r_cutoff=10, debug=0):
+        neighbor_index = self.neighbor_index
+        distances = self.distances
+
+        return set_model(neighbor_index, distances, model, n_cell, r_cutoff,
+                         debug)
+
+
+
 if __name__ == '__main__':
     mol = 'H2OBPc'
-    abc, angles, elements, scales, n_mol = read_unit_cell_info(mol+'.cif')
-    print('abc:', abc, 'angles:', angles)
-    natoms = len(elements)
+    crystal = Crystal(mol+'.cif')
+    print('abc:', crystal.abc, 'angles:', crystal.angles)
+    natoms = len(crystal.elements)
     print('natoms:', natoms)
 
     npairs = 151
-
     n_images = [5, 5, 5]
-    n_total = 2 * np.prod(n_images)
-    print('n_total:', n_total)
+    elements_all, coordinates, centers_all, site_label = crystal.add_molecules_cell(n_images)
+    print('n_total:', crystal.n_total)
 
-    elements_all, coordinates, centers_all, site_label = add_molecules_cell(n_images, abc, angles, elements, scales)
-
-    fname = mol+'-'+str(n_images[0])+'-'+str(n_images[1])+'-'+str(n_images[2])
-    write_xyz_files(elements_all, coordinates, fname)
-
-    distances = []
-    i = int(n_total//2) # center site
-    print('i:', i, site_label[i])
-    for j in range(n_total):
-        distances.append(np.linalg.norm(centers_all[i]-centers_all[j]))
-    distances = np.array(distances)
-
-    print('centers:', centers_all[i])
-    print('center of mass:', get_center_of_mass(elements_all[:natoms], coordinates[i*natoms:(i+1)*natoms]))
-
-    order = distances.argsort()
-    npairs = len(order)-1
-    #print('distances:', np.sort(distances))
-    #print('order:', order+1)
-    #print('distances:', distances[order[:(npairs+1)]])
+    order, distances = crystal.get_distance_order(center=0, npairs=npairs)
     print('site_label:')
     for k in range(npairs+1):
         print('%3d: %10s %12.5f' % (order[k]+1, site_label[order[k]], distances[order[k]]))
+
+    i = crystal.center
+    print('center of mass:', get_center_of_mass(elements_all[:natoms], coordinates[i*natoms:(i+1)*natoms]))
+
+    fname = mol+'-'+str(n_images[0])+'-'+str(n_images[1])+'-'+str(n_images[2])
+    write_xyz_files(elements_all, coordinates, fname)
 
     for k in order[1:npairs+1]:
         fname = mol+'-'+str(i+1)+'-'+str(k+1)+'-dimer'

@@ -16,36 +16,28 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 from lumeq import np
 
-from scipy import linalg
 from pyscf import dft
 from pyscf.dft import uks
+from pyscf import lib, scf
 from pyscf.lib import logger
 from pyscf.tdscf import uks as tduks
 
 
 ArrayLike = Union[np.ndarray, Sequence[float]]
-SpinMatrices = Tuple[np.ndarray, np.ndarray]
 PerturbationLike = Union[
     ArrayLike,
     Dict[str, Any],
+    Callable[[float], ArrayLike],
     Callable[[float], Union[ArrayLike, Dict[str, Any]]],
 ]
-
-
-def _as_spin_matrices(value: ArrayLike, name: str) -> SpinMatrices:
-    arr = np.asarray(value)
-    if arr.shape[0] != 2:
-        raise ValueError(f"{name} must contain alpha and beta matrices")
-    return arr[0], arr[1]
 
 
 def _hermitize(mat: np.ndarray) -> np.ndarray:
     return (mat + mat.conj().T) * 0.5
 
 
-def _hermitize_spin(dm: ArrayLike) -> np.ndarray:
-    dma, dmb = _as_spin_matrices(dm, "dm")
-    return np.asarray((_hermitize(dma), _hermitize(dmb)))
+def _hermitize_spin(dm: np.ndarray) -> np.ndarray:
+    return np.asarray((_hermitize(dm[0]), _hermitize(dm[1])))
 
 
 def _call_if_needed(value, time: Optional[float]):
@@ -221,7 +213,7 @@ def gaussian_packet_laser_field(
     return field
 
 
-class RTUKS:
+class RTKS(lib.StreamObject):
     """Real-time TDDFT propagator for a PySCF :class:`dft.UKS` reference.
 
     Parameters
@@ -252,28 +244,22 @@ class RTUKS:
 
     def __init__(
         self,
-        mf: uks.UKS,
-        dt: float = 0.05,
-        field: Optional[Union[ArrayLike, Callable[[float], ArrayLike]]] = None,
-        external_potential: Optional[PerturbationLike] = None,
+        mf: scf.HF,
+        dt: float = 20,
+        field: Optional[PerturbationLike] = None,
         origin: Optional[ArrayLike] = None,
         propagator: str = "pc",
         conv_tol: float = 1.0e-8,
         max_cycle: int = 30,
         verbose: Optional[int] = None,
     ):
-        if not isinstance(mf, uks.UKS):
-            raise TypeError("RTUKS expects a PySCF dft.UKS/uks.UKS object")
         if getattr(mf, "mo_coeff", None) is None or getattr(mf, "mo_occ", None) is None:
-            raise RuntimeError("UKS object must be initialized before RT propagation")
-        if np.asarray(mf.mo_coeff).shape[0] != 2:
-            raise ValueError("UKS mo_coeff must contain alpha and beta orbitals")
+            raise RuntimeError("SCF object must be initialized before RT propagation")
 
         self.mf = mf
         self.mol = mf.mol
         self.dt = float(dt)
         self.field = field
-        self.external_potential = external_potential
         self.origin = np.zeros(3) if origin is None else np.asarray(origin, dtype=float)
         self.propagator = propagator.lower()
         self.conv_tol = float(conv_tol)
@@ -293,7 +279,6 @@ class RTUKS:
         self.dipole_ao = self._make_dipole_integrals()
         self.angular_momentum_ao = self._make_angular_momentum_integrals()
         self.quadrupole_ao = self._make_quadrupole_integrals()
-        self.hcore_mo0 = self._ao_to_mo_one_electron(self.hcore_ao)
 
         self.time = 0.0
         self.p_mo = self._ground_state_density_mo()
@@ -306,12 +291,12 @@ class RTUKS:
         cls,
         mol,
         xc: str = "pbe0",
-        dt: float = 0.05,
+        dt: float = 20,
         dm0: Optional[np.ndarray] = None,
         **kwargs,
-    ) -> "RTUKS":
-        """Build and run a PySCF UKS reference before constructing RTUKS."""
-        mf = dft.UKS(mol)
+    ) -> "RTKS":
+        """Build and run a PySCF UKS reference before constructing RTKS."""
+        mf = scf.UKS(mol)
         mf.xc = xc
         for key in ("max_memory", "verbose", "conv_tol", "max_cycle"):
             if key in kwargs:
@@ -330,26 +315,15 @@ class RTUKS:
             "pc_cycle": [],
         }
 
-    def run_tduks(self, nstates: int = 10, **kwargs):
-        """Run PySCF TDUKS on the unperturbed UKS reference."""
-        self.td = tduks.TDDFT(self.mf)
-        for key, value in kwargs.items():
-            setattr(self.td, key, value)
-        self.td.kernel(nstates=nstates)
-        return self.td
-
-    def initialize_ground_state(self) -> np.ndarray:
-        """Reset the propagated density to the unperturbed UKS determinant."""
+    def initialize_from_density(self, dm_ao: Optional[np.ndarray] = None) -> np.ndarray:
+        """Initialize the MO-basis density from an AO spin density matrix.
+        If ``dm_ao`` is ``None``, the unperturbed SCF determinant is used."""
         self.time = 0.0
-        self.p_mo = self._ground_state_density_mo()
         self.reset_history()
-        return self.p_mo
-
-    def initialize_from_ao_density(self, dm_ao: ArrayLike) -> np.ndarray:
-        """Initialize the MO-basis density from an AO spin density matrix."""
-        self.time = 0.0
-        self.p_mo = self.ao_density_to_mo(dm_ao)
-        self.reset_history()
+        if isinstance(dm_ao, np.ndarray):
+            self.p_mo = self.ao_density_to_mo(dm_ao)
+        else: # use SCF ground-state density
+            self.p_mo = self._ground_state_density_mo()
         return self.p_mo
 
     def initialize_from_static_field(
@@ -384,15 +358,24 @@ class RTUKS:
         The perturbed UKS density is transformed back to the unperturbed
         canonical MO basis for subsequent propagation.
         """
-        mf_field = self._perturbed_uks(perturbation)
-        if max_cycle is not None:
-            mf_field.max_cycle = max_cycle
+        mf = self.mf
         if dm0 is None:
-            dm0 = self.mf.make_rdm1()
-        mf_field.kernel(dm0=dm0)
-        if not mf_field.converged:
-            self.log.warn("field-polarized UKS calculation did not converge")
-        return self.initialize_from_ao_density(mf_field.make_rdm1())
+            dm0 = mf.make_rdm1()
+        if max_cycle is None:
+            max_cycle = mf.max_cycle
+        mf.max_cycle = max_cycle
+
+        # get external potential in AO basis
+        v_ao = self._collapse_spin_operator_ao(
+            self._external_potential_ao_from_spec(perturbation, time=0.0)
+        )
+        hcore = self.hcore_ao + v_ao
+        mf.get_hcore = lambda *args: hcore
+        mf.kernel(dm0=dm0)
+        if not mf.converged:
+            self.log.warn("field-polarized SCF calculation did not converge")
+        mf.get_hcore = lambda *args: self.hcore_ao # restore original hcore
+        return self.initialize_from_density(mf.make_rdm1())
 
     def initialize_from_laser_field(
         self,
@@ -425,7 +408,7 @@ class RTUKS:
 
         dt0 = self.dt
         if reset:
-            self.initialize_ground_state()
+            self.initialize_from_density()
         else:
             self.reset_history()
 
@@ -556,18 +539,13 @@ class RTUKS:
         compatibility; pass ``{"type": "one_electron", "matrix": h1ao}``
         for an arbitrary AO one-electron kick.
         """
-        v_mo = self._external_potential_mo(perturbation)
-        p_new = []
-        for spin in range(2):
-            u = linalg.expm(-1j * v_mo[spin])
-            p_new.append(u @ self.p_mo[spin] @ u.conj().T)
-        self.p_mo = _hermitize_spin(np.asarray(p_new))
+        fock_mo = self.fock_mo(self.p_mo, time=0.0)
+        self.p_mo = self._propagate_with_fock(self.p_mo, fock_mo, self.dt)
         return self.p_mo
 
     def set_external_potential(
         self,
-        perturbation: Optional[PerturbationLike] = None,
-        field: Optional[Union[ArrayLike, Callable[[float], ArrayLike]]] = None,
+        field: Optional[PerturbationLike] = None,
     ) -> None:
         """Set propagation-time one-electron perturbations.
 
@@ -576,13 +554,12 @@ class RTUKS:
         callable returning any supported specification.
         """
         self.field = field
-        self.external_potential = perturbation
 
     def kernel(
         self,
         nsteps: int,
         save_density: bool = False,
-        callback: Optional[Callable[["RTUKS"], None]] = None,
+        callback: Optional[Callable[["RTKS"], None]] = None,
     ) -> Dict[str, List[np.ndarray]]:
         """Propagate for ``nsteps`` and return the recorded history."""
         self.record(save_density=save_density)
@@ -592,8 +569,6 @@ class RTUKS:
             if callback is not None:
                 callback(self)
         return self.history
-
-    run = kernel
 
     def step(self) -> np.ndarray:
         """Advance the spin density matrices by one time step."""
@@ -625,28 +600,23 @@ class RTUKS:
             self.history.setdefault("dm", []).append(dm.copy())
             self.history.setdefault("p_mo", []).append(self.p_mo.copy())
 
-    def make_rdm1(self, p_mo: Optional[ArrayLike] = None) -> np.ndarray:
+    def make_rdm1(self, p_mo: Optional[np.ndarray] = None) -> np.ndarray:
         """Return the current alpha/beta AO density matrix."""
         if p_mo is None:
             p_mo = self.p_mo
         return self.mo_density_to_ao(p_mo)
 
-    def mo_density_to_ao(self, p_mo: ArrayLike) -> np.ndarray:
-        p_a, p_b = _as_spin_matrices(p_mo, "p_mo")
-        dm_a = self.mo_coeff[0] @ p_a @ self.mo_coeff[0].conj().T
-        dm_b = self.mo_coeff[1] @ p_b @ self.mo_coeff[1].conj().T
-        return _hermitize_spin(np.asarray((dm_a, dm_b)))
+    def mo_density_to_ao(self, p_mo: np.ndarray) -> np.ndarray:
+        c = self.mo_coeff
+        return c @ p_mo @ c.swapaxes(-1,-2).conj()
 
-    def ao_density_to_mo(self, dm_ao: ArrayLike) -> np.ndarray:
-        dm_a, dm_b = _as_spin_matrices(dm_ao, "dm_ao")
-        s = self.ovlp_ao
-        p_a = self.mo_coeff[0].conj().T @ s @ dm_a @ s @ self.mo_coeff[0]
-        p_b = self.mo_coeff[1].conj().T @ s @ dm_b @ s @ self.mo_coeff[1]
-        return _hermitize_spin(np.asarray((p_a, p_b)))
+    def ao_density_to_mo(self, dm_ao: np.ndarray) -> np.ndarray:
+        sc = self.ovlp_ao @ self.mo_coeff
+        return sc.swapaxes(-1,-2).conj() @ dm_ao @ sc
 
-    def fock_mo(
+    def get_fock(
         self,
-        p_mo: Optional[ArrayLike] = None,
+        p_mo: Optional[np.ndarray] = None,
         time: Optional[float] = None,
     ) -> np.ndarray:
         dm = self.make_rdm1(p_mo)
@@ -657,9 +627,17 @@ class RTUKS:
             # F(t) = hcore + veff[P(t)] + V_ext(t).  During laser preparation
             # self.field is the laser callable set by initialize_from_laser_field().
             fock_ao = fock_ao + self._external_potential_ao(time)
+        return fock_ao
+
+    def fock_mo(
+        self,
+        p_mo: Optional[np.ndarray] = None,
+        time: Optional[float] = None,
+    ) -> np.ndarray:
+        fock_ao = self.get_fock(p_mo=p_mo, time=time)
         return self._ao_to_mo_spin(fock_ao)
 
-    def energy_tot(self, dm: Optional[ArrayLike] = None) -> float:
+    def energy_tot(self, dm: Optional[np.ndarray] = None) -> float:
         if dm is None:
             dm = self.make_rdm1()
         dm = _hermitize_spin(dm)
@@ -667,14 +645,12 @@ class RTUKS:
         e_elec = self.mf.energy_elec(dm=dm, h1e=self.hcore_ao, vhf=vhf)[0]
         return e_elec + self.mf.energy_nuc()
 
-    def electron_number(self, dm: Optional[ArrayLike] = None) -> np.ndarray:
+    def electron_number(self, dm: Optional[np.ndarray] = None) -> np.ndarray:
         if dm is None:
             dm = self.make_rdm1()
-        dm_a, dm_b = _as_spin_matrices(dm, "dm")
-        s = self.ovlp_ao
-        return np.asarray((np.einsum("ij,ji->", dm_a, s), np.einsum("ij,ji->", dm_b, s)))
+        return np.einsum("sij,ji->s", dm, self.ovlp_ao)
 
-    def dipole(self, dm: Optional[ArrayLike] = None, total: bool = True) -> np.ndarray:
+    def dipole(self, dm: Optional[np.ndarray] = None, total: bool = True) -> np.ndarray:
         """Return dipole vector in atomic units.
 
         The electronic term uses the usual electron-charge sign.  If
@@ -686,9 +662,9 @@ class RTUKS:
         electronic = -np.einsum("xij,ji->x", self.dipole_ao, dm_sum)
         if not total:
             return electronic
-        nuclear = np.zeros(3)
-        for ia in range(self.mol.natm):
-            nuclear += self.mol.atom_charge(ia) * self.mol.atom_coord(ia)
+
+        charges = self.mol.atom_charges()
+        nuclear = charges @ self.mol.atom_coords() - charges.sum() * self.origin
         return nuclear + electronic
 
     def _step_etrs(self) -> Tuple[np.ndarray, float, int]:
@@ -713,18 +689,15 @@ class RTUKS:
                 return p_new, error, cycle
             p_old = p_new
 
-        self.log.warn("RTUKS predictor-corrector did not converge; error=%g", error)
+        self.log.warn("RTKS predictor-corrector did not converge; error=%g", error)
         return p_old, error, self.max_cycle
 
     @staticmethod
     def _propagate_with_fock(p_mo: ArrayLike, fock_mo: ArrayLike, dt: float) -> np.ndarray:
-        p_a, p_b = _as_spin_matrices(p_mo, "p_mo")
-        f_a, f_b = _as_spin_matrices(fock_mo, "fock_mo")
-        out = []
-        for p, f in ((p_a, f_a), (p_b, f_b)):
-            u = linalg.expm(-1j * _hermitize(f) * dt)
-            out.append(u @ p @ u.conj().T)
-        return _hermitize_spin(np.asarray(out))
+        w, v = np.linalg.eigh(fock_mo) # [spin, nmo, nmo]
+        phase = np.exp(-1j * w * dt)
+        u = (v * phase[:,None,:]) @ v.swapaxes(-1,-2).conj()
+        return u @ p_mo @ u.swapaxes(-1,-2).conj()
 
     def _ground_state_density_mo(self) -> np.ndarray:
         return np.asarray((np.diag(self.mo_occ[0]), np.diag(self.mo_occ[1])), dtype=complex)
@@ -742,41 +715,21 @@ class RTUKS:
             rr = self.mol.intor("int1e_rr", comp=9, hermi=1)
         return np.asarray(rr).reshape(3, 3, self.nao, self.nao)
 
-    def _ao_to_mo_one_electron(self, h_ao: np.ndarray) -> np.ndarray:
-        h_a = self.mo_coeff[0].conj().T @ h_ao @ self.mo_coeff[0]
-        h_b = self.mo_coeff[1].conj().T @ h_ao @ self.mo_coeff[1]
-        return np.asarray((h_a, h_b))
+    def _ao_to_mo_spin(self, h_ao: np.ndarray) -> np.ndarray:
+        if h_ao.ndim == 2:
+            h_ao = np.asarray((h_ao, h_ao))
 
-    def _ao_to_mo_spin(self, h_ao: ArrayLike) -> np.ndarray:
-        h = np.asarray(h_ao)
-        if h.ndim == 2:
-            return self._ao_to_mo_one_electron(h)
-        h_a, h_b = _as_spin_matrices(h, "h_ao")
-        return np.asarray(
-            (
-                self.mo_coeff[0].conj().T @ h_a @ self.mo_coeff[0],
-                self.mo_coeff[1].conj().T @ h_b @ self.mo_coeff[1],
-            )
-        )
+        c = self.mo_coeff
+        return c.swapaxes(-1,-2).conj() @ h_ao @ c
 
-    def _mo_to_ao_spin(self, h_mo: ArrayLike) -> np.ndarray:
-        h = np.asarray(h_mo, dtype=complex)
-        if h.shape == (self.nmo, self.nmo):
-            h = np.asarray((h, h))
-        elif h.shape != (2, self.nmo, self.nmo):
-            raise ValueError(
-                "MO one-electron perturbation must have shape "
-                f"({self.nmo}, {self.nmo}) or (2, {self.nmo}, {self.nmo})"
-            )
+    def _mo_to_ao_spin(self, h_mo: np.ndarray) -> np.ndarray:
+        if h_mo.ndim == 2:
+            h_mo = np.asarray((h_mo, h_mo))
 
-        out = []
-        s = self.ovlp_ao
-        for spin in range(2):
-            c = self.mo_coeff[spin]
-            out.append(s @ c @ h[spin] @ c.conj().T @ s)
-        return _hermitize_spin(np.asarray(out))
+        sc = self.ovlp_ao @ self.mo_coeff
+        return sc @ h_mo @ sc.swapaxes(-1,-2).conj()
 
-    def _as_spin_operator_ao(self, h_ao: ArrayLike, name: str = "h_ao") -> np.ndarray:
+    def _as_spin_operator_ao(self, h_ao: np.ndarray, name: str = "h_ao") -> np.ndarray:
         h = np.asarray(h_ao, dtype=complex)
         if h.shape == (self.nao, self.nao):
             h = np.asarray((h, h))
@@ -823,8 +776,9 @@ class RTUKS:
             axis = _unit_vector(spin_axis, "spin_axis")
             spin_projection = float(np.dot(bfield, axis))
             spin_shift = 0.25 * float(g_factor) * spin_projection
-            h[0] += spin_shift * self.ovlp_ao
-            h[1] -= spin_shift * self.ovlp_ao
+            spin_shift = spin_shift * self.ovlp_ao
+            h[0] += spin_shift
+            h[1] -= spin_shift
 
         if include_diamagnetic:
             rr_trace = self.quadrupole_ao[0, 0] + self.quadrupole_ao[1, 1] + self.quadrupole_ao[2, 2]
@@ -845,10 +799,7 @@ class RTUKS:
     def _external_potential_ao(self, time: float) -> np.ndarray:
         v_ao = np.zeros((2, self.nao, self.nao), dtype=complex)
         if self.field is not None:
-            field = _call_if_needed(self.field, time)
-            v_ao += self._electric_field_potential_ao(field)
-        if self.external_potential is not None:
-            v_ao += self._external_potential_ao_from_spec(self.external_potential, time)
+            v_ao += self._external_potential_ao_from_spec(self.field, time)
         return _hermitize_spin(v_ao)
 
     def _external_potential_ao_from_spec(
@@ -856,13 +807,6 @@ class RTUKS:
         perturbation: PerturbationLike,
         time: Optional[float] = None,
     ) -> np.ndarray:
-        perturbation = _call_if_needed(perturbation, time)
-        if perturbation is None:
-            return np.zeros((2, self.nao, self.nao), dtype=complex)
-
-        if isinstance(perturbation, dict):
-            return self._external_potential_ao_from_dict(perturbation, time)
-
         if isinstance(perturbation, (list, tuple)):
             arr = np.asarray(perturbation)
             if arr.dtype == object:
@@ -870,6 +814,13 @@ class RTUKS:
                 for term in perturbation:
                     total += self._external_potential_ao_from_spec(term, time)
                 return _hermitize_spin(total)
+
+        if isinstance(perturbation, dict):
+            return self._external_potential_ao_from_dict(perturbation, time)
+
+        perturbation = _call_if_needed(perturbation, time)
+        if perturbation is None:
+            return np.zeros((2, self.nao, self.nao), dtype=complex)
 
         arr = np.asarray(perturbation)
         if arr.ndim == 1 and arr.size == 3:
@@ -881,46 +832,19 @@ class RTUKS:
         spec: Dict[str, Any],
         time: Optional[float] = None,
     ) -> np.ndarray:
-        if "terms" in spec and "type" not in spec and "kind" not in spec:
-            return self._external_potential_ao_from_spec(spec["terms"], time)
 
         kind = str(spec.get("type", spec.get("kind", ""))).lower().replace("-", "_")
-        if not kind:
-            if any(key in spec for key in ("matrix", "h1", "hcore")):
-                kind = "one_electron"
-            elif any(key in spec for key in ("field", "efield", "electric_field")):
-                kind = "electric_field"
-            else:
-                raise ValueError("perturbation dictionary requires a type/kind")
-
-        if kind in ("sum", "list", "terms"):
-            return self._external_potential_ao_from_spec(spec["terms"], time)
 
         scale = _call_if_needed(spec.get("scale", 1.0), time)
         scale = complex(scale)
 
-        if kind in (
-            "electric",
-            "electric_field",
-            "electric_kick",
-            "electric_potential",
-            "efield",
-            "dipole",
-            "electronic_field",
-            "electronic_kick",
-        ):
-            field = spec.get(
-                "field",
-                spec.get("vector", spec.get("efield", spec.get("electric_field"))),
-            )
+        if kind in ("electric_field", "efield"):
+            field = spec.get("efield", spec.get("electric_field"))
             field = _call_if_needed(field, time)
             return scale * self._electric_field_potential_ao(field)
 
-        if kind in ("magnetic", "magnetic_field", "magnetic_kick", "bfield", "zeeman"):
-            field = spec.get(
-                "field",
-                spec.get("vector", spec.get("b", spec.get("bfield", spec.get("magnetic_field")))),
-            )
+        if kind in ("magnetic_field", "bfield"):
+            field = spec.get("bfield", spec.get("magnetic_field"))
             field = _call_if_needed(field, time)
             return scale * self._magnetic_field_potential_ao(
                 field,
@@ -931,18 +855,8 @@ class RTUKS:
                 include_diamagnetic=bool(spec.get("include_diamagnetic", False)),
             )
 
-        if kind in (
-            "one_electron",
-            "one_electron_hamiltonian",
-            "h1",
-            "h1e",
-            "hcore",
-            "hamiltonian",
-            "matrix",
-            "ao_matrix",
-            "perturbation",
-        ):
-            matrix = spec.get("matrix", spec.get("h1", spec.get("hcore")))
+        if kind in ("h1", "hcore", "matrix"):
+            matrix = spec.get("ao_matrix", spec.get("h1", spec.get("hcore")))
             matrix = _call_if_needed(matrix, time)
             basis = str(spec.get("basis", "ao")).lower()
             if basis == "mo":
@@ -952,58 +866,6 @@ class RTUKS:
             return scale * self._as_spin_operator_ao(matrix, "one-electron perturbation")
 
         raise ValueError(f"unknown external perturbation type {kind!r}")
-
-    def _field_uks(self, field: ArrayLike) -> uks.UKS:
-        return self._perturbed_uks({"type": "electric_field", "field": field})
-
-    @staticmethod
-    def _install_spin_hcore_energy(mf_field: uks.UKS) -> None:
-        def energy_elec(dm=None, h1e=None, vhf=None):
-            if dm is None:
-                dm = mf_field.make_rdm1()
-            if h1e is None:
-                h1e = mf_field.get_hcore()
-            h1e_arr = np.asarray(h1e)
-            if h1e_arr.ndim != 3:
-                return uks.energy_elec(mf_field, dm=dm, h1e=h1e, vhf=vhf)
-            if vhf is None or getattr(vhf, "ecoul", None) is None:
-                vhf = mf_field.get_veff(mf_field.mol, dm)
-            dm_arr = np.asarray(dm)
-            if dm_arr.ndim == 2:
-                dm_arr = np.asarray((dm_arr * 0.5, dm_arr * 0.5))
-            e1 = (
-                np.einsum("ij,ji->", h1e_arr[0], dm_arr[0])
-                + np.einsum("ij,ji->", h1e_arr[1], dm_arr[1])
-            ).real
-            ecoul = getattr(vhf, "ecoul", 0.0).real
-            exc = getattr(vhf, "exc", 0.0).real
-            e2 = ecoul + exc
-            mf_field.scf_summary["e1"] = e1
-            mf_field.scf_summary["coul"] = ecoul
-            mf_field.scf_summary["exc"] = exc
-            return e1 + e2, e2
-
-        mf_field.energy_elec = energy_elec
-
-    def _perturbed_uks(self, perturbation: PerturbationLike) -> uks.UKS:
-        mf_field = self.mf.__class__(self.mol)
-        mf_field.xc = self.mf.xc
-        mf_field.max_memory = self.mf.max_memory
-        mf_field.verbose = self.mf.verbose
-        mf_field.conv_tol = self.mf.conv_tol
-        mf_field.max_cycle = self.mf.max_cycle
-        mf_field.grids.level = self.mf.grids.level
-        mf_field.grids.prune = self.mf.grids.prune
-        if getattr(self.mf, "nlc", ""):
-            mf_field.nlc = self.mf.nlc
-        v_ao = self._collapse_spin_operator_ao(
-            self._external_potential_ao_from_spec(perturbation, time=0.0)
-        )
-        hcore = self.hcore_ao + v_ao
-        mf_field.get_hcore = lambda *args: hcore
-        if np.asarray(hcore).ndim == 3:
-            self._install_spin_hcore_energy(mf_field)
-        return mf_field
 
 
 if __name__ == "__main__":
@@ -1020,15 +882,17 @@ if __name__ == "__main__":
     mf.xc = "lda,vwn"
     mf.kernel()
 
-    rt = RTUKS(mf, dt=0.05, propagator="pc")
+    rt = RTKS(mf, dt=20, propagator="etrs")
+    print('p_mo:', rt.p_mo)
     rt.initialize_from_laser_pulse(
         amplitude=1.0e-4,
         omega=0.5,
-        duration=0.5,
+        duration=40,
         major_axis=(0.0, 0.0, 1.0),
         keep_history=True,
     )
-    hist = rt.kernel(10)
+    print('p_mo:', rt.p_mo)
+    #hist = rt.kernel(nsteps=100)
     print("laser preparation steps:", len(rt.preparation_history["time"]))
     print("final time:", hist["time"][-1])
     print("final energy:", hist["energy"][-1])
