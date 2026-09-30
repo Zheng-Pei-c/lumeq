@@ -260,10 +260,7 @@ def get_dse_elec_nuc_grad(dipole, nuc_dip_d1, dm): # c_lambda is included
 
 
 def get_nuclear_dipoles_d1(charges, c_lambda):
-    g1 = []
-    for i in range(len(charges)):
-        g1.append(np.eye(3)*charges[i])
-
+    g1 = np.array([np.eye(3)*charge for charge in charges])
     return np.einsum('nxy,...x->...ny', g1, c_lambda)
 
 
