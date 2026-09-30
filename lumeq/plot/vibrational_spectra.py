@@ -75,59 +75,51 @@ def get_dipole_dev(mf, hessobj, origin=None):
 
 
 def autocorrelation(arrays, dt, window='gaussian', domain='freq', direv=False):
-    # C(t) = < \int A(\tau) B(t-\tau) \dd \tau >
-    # Wiener-Khintchine theorem
-    # first index is along time
+    """Biased, component-wise dipole autocorrelation along the time axis."""
+    arrays = np.array(arrays, dtype=float, copy=True)
     if arrays.ndim == 1:
-        arrays = arrays.reshape(-1, 1)
+        arrays = arrays[:, None]
+    if arrays.ndim != 2 or arrays.shape[0] < 3:
+        raise ValueError('arrays must have shape (nstep, ncomponent), nstep >= 3')
+    if direv:
+        arrays = np.gradient(arrays, dt, edge_order=2, axis=0)
+    arrays -= arrays.mean(axis=0)
 
     nstep = arrays.shape[0]
-    if direv: # get time derivatives of the arrays
-        arrays = np.gradient(arrays, edge_order=2, axis=0) / dt
-    arrays -= np.mean(arrays, axis=0)
-    norm = np.einsum('ix,ix->x', arrays, arrays)
+    correlation = np.empty_like(arrays)
+    for i in range(arrays.shape[1]):
+        correlation[:, i] = signal.fftconvolve(
+            arrays[:, i], arrays[::-1, i], mode='full')[nstep-1:] / nstep
 
-    n = nstep*2 if nstep%2==0 else nstep*2-1
-    correlation = np.zeros(arrays.shape)
-    for i in np.where(norm>1e-8)[0]:
-        #correlation[:,i] = signal.convolve(arrays[:,i], arrays[::-1,i], mode='full')[nstep-1:] / norm[i]
-        tmp = np.zeros(n)
-        tmp[nstep//2:nstep//2+nstep] = np.copy(arrays[:,i])
-        correlation[:,i] = signal.convolve(tmp, arrays[::-1,i], mode='same')[-nstep:] / np.arange(nstep, 0, -1)
-
-    #window = 'none'
-    #if window == 'gaussian':
-    #    sigma = 2. * np.sqrt(2. * np.log(2.))
-    #    window = signal.gaussian(nstep, std=4000./sigma, sym=False)
-    #elif hasattr(signal, window): # hann, hamming, blackmanharris
-    #    window = getattr(signal, window)(nstep, sym=False)
-
-    #if isinstance(window, np.ndarray):
-    #    wf = window / np.sum(window) * nstep
-    #    correlation = correlation * wf[:,None]
+    if window not in (None, 'none', 'boxcar', 'flat'):
+        if window == 'gaussian':
+            lag_window = signal.windows.gaussian(2*nstep-1, std=nstep/6)[nstep-1:]
+        else:
+            name = 'hann' if window == 'hanning' else window
+            lag_window = signal.get_window(name, 2*nstep-1, fftbins=False)[nstep-1:]
+        correlation *= lag_window[:, None]
 
     if domain == 'time':
         return correlation
-    elif domain == 'freq':
-        return np.fft.fft2(correlation)[:nstep//2]
+    if domain == 'freq':
+        symmetric = np.concatenate((correlation, correlation[:0:-1]), axis=0)
+        return np.fft.rfft(symmetric, axis=0).real
+    raise ValueError("domain must be 'time' or 'freq'")
 
 
 def fft_acf(arrays, dt, unit='au', scale_freq=True):
-    nstep = arrays.shape[0]
-
+    """Transform a biased autocorrelation with matching Fourier frequencies."""
+    arrays = np.asarray(arrays, dtype=float)
+    if arrays.ndim == 1:
+        arrays = arrays[:, None]
     if unit != 's':
         dt = convert_units(dt, unit, 's')
-    freq = np.fft.fftfreq(nstep, dt)[:nstep//2]
-
-    #sigma = np.fft.fft2(arrays)[:nstep//2] / nstep
-    sigma = fftpack.dct(arrays[:nstep//2], type=1, axis=0)
-    sigma = np.mean(sigma, axis=1) # average
-
+    symmetric = np.concatenate((arrays, arrays[:0:-1]), axis=0)
+    freq = np.fft.rfftfreq(len(symmetric), dt)
+    sigma = np.fft.rfft(symmetric, axis=0).real.sum(axis=1) * dt
     if scale_freq:
-        sigma *= freq**2
-
-    freq = convert_units(freq, 'hz', 'cm-1')
-    return freq, sigma
+        sigma *= (2*np.pi*freq)**2
+    return convert_units(freq, 'hz', 'cm-1'), sigma
 
 
 def smooth(x, window='hanning', window_len=11):
@@ -142,22 +134,48 @@ def smooth(x, window='hanning', window_len=11):
     if window == 'flat':
         w = np.ones(window_len, 'd')
     else:
-        w = eval('np.'+window+'(window_len)')
+        w = getattr(np, window)(window_len)
 
     y = np.convolve(w/w.sum(), s, mode='valid')
     return y[window_len//2-1:-window_len//2]
 
 
-def cal_spectra(array, dt, window='gaussian', unit='au', scale_freq=True,
+def cal_spectra(array, dt, window='none', unit='au', scale_freq=True,
                 direv=False, smoothing=True):
-    correlation = autocorrelation(array, dt, window, 'time', direv)
-    freq, sigma = fft_acf(correlation, dt, unit, scale_freq)
+    """IR spectrum from the summed Cartesian dipole power spectra.
 
+    A dipole derivative already contributes the frequency-squared factor;
+    scale_freq is therefore applied only to an undifferentiated dipole.
+    """
+    arrays = np.array(array, dtype=float, copy=True)
+    if arrays.ndim == 1:
+        arrays = arrays[:, None]
+    if arrays.ndim != 2 or arrays.shape[0] < 3:
+        raise ValueError('array must have shape (nstep, ncomponent), nstep >= 3')
+
+    if unit != 's':
+        dt = convert_units(dt, unit, 's')
+    if direv:
+        arrays = np.gradient(arrays, dt, edge_order=2, axis=0)
+
+    if window == 'gaussian':
+        spectral_window = ('gaussian', arrays.shape[0]/6)
+    elif window in (None, 'none', 'flat'):
+        spectral_window = 'boxcar'
+    elif window == 'hanning':
+        spectral_window = 'hann'
+    else:
+        spectral_window = window
+
+    freq, components = signal.periodogram(
+        arrays, fs=1./dt, window=spectral_window, detrend='constant',
+        scaling='spectrum', axis=0)
+    sigma = components.sum(axis=1)
+    if scale_freq and not direv:
+        sigma *= (2*np.pi*freq)**2
     if smoothing:
         sigma = smooth(sigma)
-
-    return freq, sigma
-
+    return convert_units(freq, 'hz', 'cm-1'), sigma
 
 
 if __name__ == '__main__':
