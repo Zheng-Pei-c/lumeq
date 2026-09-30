@@ -3,7 +3,7 @@ from lumeq.polariton import polariton_ns
 from lumeq.utils import print_matrix, convert_units
 from lumeq.utils import put_keys_kwargs_to_object
 from lumeq.utils import get_ortho_basis
-from lumeq.utils.pyscf_helper import build_atom, build_molecule
+from lumeq.utils.pyscf_helper import MoleculeInput, build_atom, build_molecule
 
 from pyscf import scf, gto, grad
 
@@ -244,8 +244,10 @@ class ElectronicStep():
         if hasattr(self, 'grid_level'):
             kwargs['grid_level'] = self.grid_level
 
-        mol = build_molecule(atom, self.basis, self.charge, self.spin,
-                             self.unit, self.max_memory, self.verbose)
+        molecule = MoleculeInput(atom=atom, charge=self.charge,
+                                 spin=self.spin, unit=self.unit)
+        mol = build_molecule(molecule, self.basis,
+                             max_memory=self.max_memory, verbose=self.verbose)
         self.mf = run_pyscf_gs(self.scf_method, mol, self.functional, *args, **kwargs)
 
 

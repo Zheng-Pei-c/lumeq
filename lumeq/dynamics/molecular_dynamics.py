@@ -89,12 +89,16 @@ class MolecularDynamics():
         else: # default md initial step
             init_time = 0.
             et, force = edstep.init_electronic_density_static(coords, **kwargs)
+            if 'kick' in ndstep.init_method:
+                # Apply the supplied force during the first nuclear half-step.
+                force = force + ndstep.force
             force = ndstep.project_force(force)
 
             dipole = edstep.mf.dip_moment(unit='au', verbose=0)
 
-            if phstep and phstep.init_method == 'minimum':
+            if phstep and getattr(phstep, 'init_method', None) == 'minimum':
                 phstep.get_minimim_displacement(dipole)
+                photon_energy = phstep.energy
                 print('photon initial coordinate:\n', phstep.coordinate)
 
             etot = et + ndstep.kinetic + photon_energy
@@ -119,12 +123,15 @@ class MolecularDynamics():
         # loop times
         for ti in range(1, self.nsteps):
             ndstep.update_coordinate_velocity(force, 1,
-                        force_func=edstep.update_electronic_density_static, **kwargs)
-            #coords = self.ndstep.coordinate # dont need to reassign!
+                        force_func=edstep.update_electronic_density_static,
+                        initial_step=(ti==1),
+                        **kwargs)
+            #coords = self.ndstep.coordinate # do not need to reassign!
 
             if phstep:
                 # get bilinear coefficient and photon energy
-                kwargs.update(phstep.update_density(dipole, ndstep.dt, 1))
+                kwargs.update(phstep.update_density(dipole, ndstep.dt, 1,
+                                                    initial_step=(ti==1)))
 
             et, force = edstep.update_electronic_density_static(coords, **kwargs)
 
@@ -308,5 +315,3 @@ if __name__ == '__main__':
         energies = np.loadtxt('energy.txt')
         total_time, dt = key['total_time'], key['dt']
         plot_time_variables(total_time, int(total_time/dt) + 1, dists, energies)
-
-

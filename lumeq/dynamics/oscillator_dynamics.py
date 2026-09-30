@@ -63,31 +63,28 @@ class harmonic_oscillator():
         self.coordinate = np.zeros((nmode, n_site))
         self.velocity  = np.zeros((nmode, n_site))
 
-        def get_gaussian_distribution(variance, size, mean=0, seed=None):
-            rng = np.random.default_rng(seed)
-            return rng.normal(loc=mean, scale=np.sqrt(variance), size=size)
-
-        # Boltzmann thermol distribution follows gaussian function
+        # Draw coordinates and velocities independently from the canonical
+        # distribution while keeping random_seed reproducible.
         if init_method == 'thermo':
-            # equal parition of the kT energy to kinetic and potential
-            # 0.5 is because in the Gaussian function, q^2 = 2 * sigma^2
-            seed = getattr(self, 'random_seed', None)
+            rng = np.random.default_rng(getattr(self, 'random_seed', None))
             beta_b = self.beta_b
             K = np.einsum('i,i->i', self.mass, self.omega2)
-            variance = .5 / (beta_b * K)
+            # Equipartition: <K*q**2/2> = k_B*T/2, so Var(q) = 1/(beta*K).
+            variance = 1. / (beta_b * K)
             if self.debug > 0:
                 print_matrix('force constant:', K)
                 print_matrix('coordinate variance:', variance)
 
             for i in range(nmode):
-                self.coordinate[i] = get_gaussian_distribution(variance[i], n_site, seed=seed)
+                self.coordinate[i] = rng.normal(scale=np.sqrt(variance[i]), size=n_site)
 
-            variance = .5 / (beta_b * self.mass)
+            # Likewise <m*v**2/2> = k_B*T/2 gives Var(v) = 1/(beta*m).
+            variance = 1. / (beta_b * self.mass)
             if self.debug > 0:
                 print_matrix('velocity variance:', variance)
 
             for i in range(nmode):
-                self.velocity[i] = get_gaussian_distribution(variance[i], n_site, seed=seed)
+                self.velocity[i] = rng.normal(scale=np.sqrt(variance[i]), size=n_site)
 
         if self.debug > 1:
             print_matrix('initial coordinates:', self.coordinate, 10)
@@ -116,7 +113,7 @@ class harmonic_oscillator():
             if self.update_method == 'euler':
                 self.euler_step(force)
             elif self.update_method == 'leapfrog':
-                self.leapfrog_step(force)
+                self.leapfrog_step(force, kwargs.pop('initial_step', False))
             elif self.update_method == 'velocity_verlet':
                 self.velocity_verlet_step(force, 1)
                 # we will finish the last falf after electronic step
@@ -130,7 +127,6 @@ class harmonic_oscillator():
                 self.velocity_verlet_step(force, 2)
 
             # no need to project at every step
-            #self.project_velocity(self.velocity)
             #return self.project_force(force)
             self.force = force # save to class
             return force
@@ -143,14 +139,18 @@ class harmonic_oscillator():
         self.get_energy(self.velocity)
 
 
-    def leapfrog_step(self, force):
+    def leapfrog_step(self, force, initial_step=False):
         r"""Leapfrog integration step."""
-        old_velocity = np.copy(self.velocity)
-        self.velocity += self.dt * np.einsum('ix,i->ix', force, 1./self.mass)
-        self.coordinate += self.dt * self.velocity
+        acceleration = np.einsum('ix,i->ix', force, 1./self.mass) # a(n)
+        if initial_step: # Bootstrap from v(0) to v(-dt/2) for initial step
+            self._lf_velocity = self.velocity - (.5 * self.dt) * acceleration
 
-        average_velocity = .5 * (old_velocity + self.velocity)
-        self.get_energy(average_velocity)
+        self._lf_velocity += self.dt * acceleration # v(n+1/2)
+        self.coordinate += self.dt * self._lf_velocity # q(n+1)
+
+        # the real velocity v(n+1) after a step forward
+        self.velocity = self._lf_velocity + (.5 * self.dt) * acceleration
+        self.get_energy(self.velocity)
 
 
     def velocity_verlet_step(self, force, half):
@@ -248,8 +248,8 @@ def remove_trans_rotat_velocity(velocity, mass, coords):
         velocity (ndarray): The projected velocities with translational and rotational components removed.
 """
     # remove translation (ie. center of mass velocity)
-    p_com = np.einsum('i,ix->x', mass, velocity) / len(mass)
-    velocity -= np.einsum('i,x->ix', 1./mass, p_com)
+    v_com = np.einsum('i,ix->x', mass, velocity) / np.sum(mass)
+    velocity -= v_com
 
     # move coords to com
     com = get_molecular_center(mass, coords)
@@ -275,9 +275,10 @@ def remove_trans_rotat_force(force, mass, coords):
     Returns:
         force (ndarray): The projected forces with translational and rotational components removed.
 """
-    # remove translation (ie. center of mass force)
-    f_com = np.sum(force, axis=0) / np.sum(mass)
-    force -= np.einsum('i,x->ix', mass, f_com)
+    # Remove the common center-of-mass acceleration. Subtracting the same
+    # force from unequal-mass atoms would change their relative acceleration.
+    a_com = np.sum(force, axis=0) / np.sum(mass)
+    force -= np.einsum('i,x->ix', mass, a_com)
 
     ## move coords to com
     #com = get_molecular_center(mass, coords)
@@ -334,6 +335,11 @@ class OscillatorStep(harmonic_oscillator):
 
 class NuclearStep(harmonic_oscillator):
     r"""Nuclear dynamics step class."""
+    def __init__(self, key, **kwargs):
+        if 'init_method' not in key and 'velocity' in key:
+            key['init_method'] = 'given'
+        super().__init__(key, **kwargs)
+
     def convert_parameter_units(self, unit_dict):
         self.natoms = len(self.atmsym)
 
@@ -346,6 +352,15 @@ class NuclearStep(harmonic_oscillator):
 
         # assume init_coords in AA and change it to A.U.
         self.coordinate = convert_units(np.reshape(self.coordinate, (-1, 3)), 'angstrom', 'bohr')
+        centered = self.coordinate - get_molecular_center(self.mass, self.coordinate)
+        linear = self.natoms == 2 or np.linalg.matrix_rank(centered) <= 1
+        self.ndof = max(0, 3*self.natoms - (5 if linear else 6))
+
+
+    def get_kinetic_energy(self, velocity, mass=None):
+        super().get_kinetic_energy(velocity, mass)
+        # Global translation and rotation are removed from these trajectories.
+        self.temperature = 2.*self.kinetic / self.ndof if self.ndof else 0.
 
 
     # nuclear atoms only have kinetic energy
@@ -360,9 +375,10 @@ class NuclearStep(harmonic_oscillator):
         Args:
             init_method (str, optional): Method used to initialize the
                 coordinates and velocities. ``'restart'`` reads stored values,
-                ``'kick'`` sets zero initial velocity, ``'thermo'`` samples a
-                Boltzmann distribution at ``init_temp``, and ``'random'`` uses
-                random velocities with the given kinetic energy.
+                ``'kick'`` sets zero initial velocity, ``'given'`` uses the
+                supplied velocity, ``'thermo'`` samples a Boltzmann
+                distribution at ``init_temp``, and ``'random'`` uses the
+                given kinetic energy.
         """
         # coordinate has been given
         if init_method is None: init_method = self.init_method
@@ -373,20 +389,31 @@ class NuclearStep(harmonic_oscillator):
 
         elif 'kick' in init_method: # no initial velocity
             self.velocity = np.zeros((self.natoms, 3))
-            self.kinetic = self.energy = 0.
-            self.temperature = 0.
-
-            self.project_force(self.force)
-            return
+            if not hasattr(self, 'force'):
+                raise ValueError("init_method='kick' requires an initial force")
 
         elif 'thermo' in init_method:
-            self.velocity = self.init_velocity_thermo()
+            self.velocity = self.init_velocity_thermo(
+                seed=getattr(self, 'random_seed', 1385448536))
+        elif init_method == 'given':
+            self.velocity = np.asarray(self.velocity, dtype=float)
         elif 'random' in init_method:
             self.velocity = self.init_velocity_random()
 
+        # Remove translation and rotation once, before starting the trajectory.
         self.project_velocity(self.velocity)
+        if 'random' in init_method:
+            # Projection removes kinetic energy. Restore the requested energy
+            # without reintroducing translation or rotation.
+            kinetic = .5 * np.einsum('i,ix,ix->', self.mass,
+                                      self.velocity, self.velocity)
+            if self.etrans > 0.:
+                if kinetic <= 0.:
+                    raise ValueError('cannot initialize positive kinetic energy after projection')
+                self.velocity *= np.sqrt(self.etrans / kinetic)
         self.get_energy(self.velocity)
-        self.force = np.zeros((self.natoms, 3))
+        if not hasattr(self, 'force'):
+            self.force = np.zeros((self.natoms, 3))
 
 
     def init_velocity_thermo(self, temp=None, seed=1385448536):
@@ -409,6 +436,10 @@ class NuclearStep(harmonic_oscillator):
     def init_velocity_random(self, etrans=None, sigma=1e-4, scale=.1, seed=12345):
         r"""Generate random kinetic energy for atoms at three directions."""
         if etrans is None: etrans = self.etrans
+        if etrans < 0.:
+            raise ValueError('etrans must be nonnegative')
+        if etrans == 0.:
+            return np.zeros((self.natoms, 3))
         #etrans = convert_units(etrans*scale, 'eh', 'kcal')
 
         size = 3* self.natoms
@@ -447,9 +478,9 @@ class NuclearStep(harmonic_oscillator):
 
     def update_coordinate_velocity(self, force, half=1, **kwargs):
         r"""Update the nuclear coordinate and velocity."""
+        if half == 2:
+            # Use the same constrained force for this kick and the next one.
+            force = self.project_force(force)
         super().update_coordinate_velocity(force, half, **kwargs)
         if half == 2:
-            mass = self.mass
-            coords = self.coordinate
-            self.project_velocity(self.velocity, mass, coords)
-            return self.project_force(force, mass, coords)
+            return force
