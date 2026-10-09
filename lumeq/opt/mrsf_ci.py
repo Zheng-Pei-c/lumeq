@@ -454,11 +454,147 @@ if __name__ == '__main__':
         X = V @ v
         return w, X
 
-    w, v = solve_gep_singular_s(A1+A2, S1-S2)
+    w, vec1 = solve_gep_singular_s(A1+A2, S1-S2)
     print_matrix("Asymmetric (+) Eigenvalues (singular S):\n", w, 5)
-    w, v = solve_gep_singular_s(A1-A2, S1+S2)
+    w, vec2 = solve_gep_singular_s(A1-A2, S1+S2)
     print_matrix("Asymmetric (-) Eigenvalues (singular S):\n", w, 5)
-    w, v = solve_gep_singular_s(A3+A4, S1-S2)
+    w, vec3 = solve_gep_singular_s(A3+A4, S1-S2)
     print_matrix("Symmetric (+) Eigenvalues (singular S):\n", w, 5)
-    w, v = solve_gep_singular_s(A3-A4, S1+S2)
+    w, vec4 = solve_gep_singular_s(A3-A4, S1+S2)
     print_matrix("Symmetric (-) Eigenvalues (singular S):\n", w, 5)
+
+
+    vec = np.hstack((vec1, vec2)).reshape(noa, nvb, -1).transpose(2,0,1)
+    nstates = vec.shape[0]
+
+    # find transition density
+    detach_a = np.zeros((nstates, nstates, noa, noa))
+    attach_a = np.zeros((nstates, nstates, nvb, nvb))
+    detach_s = np.zeros((nstates, nstates, noa, noa))
+    attach_s = np.zeros((nstates, nstates, nvb, nvb))
+
+    # asymmetric approach
+    # diagonal
+    detach_a = -np.einsum('mia,nja->mnij', vec, vec)
+    attach_a = np.einsum('mia,nib->mnab', vec, vec)
+    detach_a_diag = detach_a.copy()
+    attach_a_diag = attach_a.copy()
+    # crossing
+    detach_a[:,:,s,:] += np.einsum('mi,n->mni', vec[:,:,vt], vec[:,s,vt])
+    detach_a[:,:,s,:] -= np.einsum('mi,n->mni', vec[:,:,vs], vec[:,t,vt])
+    detach_a[:,:,t,:] += np.einsum('mi,n->mni', vec[:,:,vs], vec[:,t,vs])
+    detach_a[:,:,t,:] -= np.einsum('mi,n->mni', vec[:,:,vt], vec[:,s,vs])
+
+    detach_a[:,:,:,s] += np.einsum('m,ni->mni', vec[:,s,vt], vec[:,:,vt])
+    detach_a[:,:,:,s] -= np.einsum('m,ni->mni', vec[:,t,vt], vec[:,:,vs])
+    detach_a[:,:,:,t] += np.einsum('m,ni->mni', vec[:,t,vs], vec[:,:,vs])
+    detach_a[:,:,:,t] -= np.einsum('m,ni->mni', vec[:,s,vs], vec[:,:,vt])
+
+    attach_a[:,:,:,vs] += np.einsum('ma,n->mna', vec[:,s,:], vec[:,t,vt])
+    attach_a[:,:,:,vs] -= np.einsum('ma,n->mna', vec[:,t,:], vec[:,t,vs])
+    attach_a[:,:,:,vt] += np.einsum('ma,n->mna', vec[:,t,:], vec[:,s,vs])
+    attach_a[:,:,:,vt] -= np.einsum('ma,n->mna', vec[:,s,:], vec[:,s,vt])
+
+    attach_a[:,:,vs,:] += np.einsum('m,na->mna', vec[:,t,vt], vec[:,s,:])
+    attach_a[:,:,vs,:] -= np.einsum('m,na->mna', vec[:,t,vs], vec[:,t,:])
+    attach_a[:,:,vt,:] += np.einsum('m,na->mna', vec[:,s,vs], vec[:,t,:])
+    attach_a[:,:,vt,:] -= np.einsum('m,na->mna', vec[:,s,vt], vec[:,s,:])
+
+    # The spin-image terms also run over beta core orbitals and alpha
+    # external virtual orbitals in the one-electron crossing matrix.
+    detach_a[:,:,s,:nob] += np.einsum('mi,n->mni', vec[:,:nob,vt], vec[:,s,vt])
+    detach_a[:,:,s,:nob] -= np.einsum('mi,n->mni', vec[:,:nob,vs], vec[:,t,vt])
+    detach_a[:,:,t,:nob] += np.einsum('mi,n->mni', vec[:,:nob,vs], vec[:,t,vs])
+    detach_a[:,:,t,:nob] -= np.einsum('mi,n->mni', vec[:,:nob,vt], vec[:,s,vs])
+
+    detach_a[:,:,:nob,s] += np.einsum('m,ni->mni', vec[:,s,vt], vec[:,:nob,vt])
+    detach_a[:,:,:nob,s] -= np.einsum('m,ni->mni', vec[:,t,vt], vec[:,:nob,vs])
+    detach_a[:,:,:nob,t] += np.einsum('m,ni->mni', vec[:,t,vs], vec[:,:nob,vs])
+    detach_a[:,:,:nob,t] -= np.einsum('m,ni->mni', vec[:,s,vs], vec[:,:nob,vt])
+
+    attach_a[:,:,2:,vs] += np.einsum('ma,n->mna', vec[:,s,2:], vec[:,t,vt])
+    attach_a[:,:,2:,vs] -= np.einsum('ma,n->mna', vec[:,t,2:], vec[:,t,vs])
+    attach_a[:,:,2:,vt] += np.einsum('ma,n->mna', vec[:,t,2:], vec[:,s,vs])
+    attach_a[:,:,2:,vt] -= np.einsum('ma,n->mna', vec[:,s,2:], vec[:,s,vt])
+
+    attach_a[:,:,vs,2:] += np.einsum('m,na->mna', vec[:,t,vt], vec[:,s,2:])
+    attach_a[:,:,vs,2:] -= np.einsum('m,na->mna', vec[:,t,vs], vec[:,t,2:])
+    attach_a[:,:,vt,2:] += np.einsum('m,na->mna', vec[:,s,vs], vec[:,t,2:])
+    attach_a[:,:,vt,2:] -= np.einsum('m,na->mna', vec[:,s,vt], vec[:,s,2:])
+    detach_a_cross = detach_a - detach_a_diag
+    attach_a_cross = attach_a - attach_a_diag
+
+
+    # symmetric approach
+    # diagonal
+    detach_s[:,:,:no,:no] -= np.einsum('mia,nja->mnij', vec[:,:no,:], vec[:,:no,:])
+    attach_s[:,:,1:,1:] += np.einsum('mia,nib->mnab', vec[:,:,1:], vec[:,:,1:])
+
+    detach_s[:,:,s,s] -= np.einsum('mia,nia->mn', vec[:,:,1:], vec[:,:,1:])
+    attach_s[:,:,vt,vt] += np.einsum('mia,nia->mn', vec[:,:no,:], vec[:,:no,:])
+
+    detach_s[:,:,:no,t] -= np.einsum('mia,na->mni', vec[:,:no,:], vec[:,t,:])
+    detach_s[:,:,t,:no] -= np.einsum('ma,nia->mni', vec[:,t,:], vec[:,:no,:])
+    attach_s[:,:,1:,vs] += np.einsum('mia,ni->mna', vec[:,:,1:], vec[:,:,vs])
+    attach_s[:,:,vs,1:] += np.einsum('mi,nia->mna', vec[:,:,vs], vec[:,:,1:])
+    detach_s_diag = detach_s.copy()
+    attach_s_diag = attach_s.copy()
+
+    # coupling
+    detach_s[:,:,s,:no] += np.einsum('mi,n->mni', vec[:,:no,vs], vec[:,t,vt])
+    detach_s[:,:,s,:no] -= np.einsum('mi,n->mni', vec[:,:no,vt], vec[:,s,vt])
+    detach_s[:,:,t,:no] += np.einsum('mi,n->mni', vec[:,:no,vt], vec[:,s,vs])
+    detach_s[:,:,t,:no] -= np.einsum('mi,n->mni', vec[:,:no,vs], vec[:,t,vs])
+
+    detach_s[:,:,:no,s] += np.einsum('m,ni->mni', vec[:,t,vt], vec[:,:no,vs])
+    detach_s[:,:,:no,s] -= np.einsum('m,ni->mni', vec[:,s,vt], vec[:,:no,vt])
+    detach_s[:,:,:no,t] += np.einsum('m,ni->mni', vec[:,s,vs], vec[:,:no,vt])
+    detach_s[:,:,:no,t] -= np.einsum('m,ni->mni', vec[:,t,vs], vec[:,:no,vs])
+
+    attach_s[:,:,vs,1:] += np.einsum('m,na->mna', vec[:,t,vs], vec[:,t,1:])
+    attach_s[:,:,vs,1:] -= np.einsum('m,na->mna', vec[:,t,vt], vec[:,s,1:])
+    attach_s[:,:,vt,1:] += np.einsum('m,na->mna', vec[:,s,vt], vec[:,s,1:])
+    attach_s[:,:,vt,1:] -= np.einsum('m,na->mna', vec[:,s,vs], vec[:,t,1:])
+
+    attach_s[:,:,1:,vs] += np.einsum('ma,n->mna', vec[:,t,1:], vec[:,t,vs])
+    attach_s[:,:,1:,vs] -= np.einsum('ma,n->mna', vec[:,s,1:], vec[:,t,vt])
+    attach_s[:,:,1:,vt] += np.einsum('ma,n->mna', vec[:,s,1:], vec[:,s,vt])
+    attach_s[:,:,1:,vt] -= np.einsum('ma,n->mna', vec[:,t,1:], vec[:,s,vs])
+    detach_s_cross = detach_s - detach_s_diag
+    attach_s_cross = attach_s - attach_s_diag
+
+
+    nao = mo_coeff.shape[0]
+    P1 = np.zeros((nstates,nstates,nao,nao))
+    P2 = np.zeros_like(P1)
+    triplet_ref = 2 * mo_coeff[:,:nob] @ mo_coeff[:,:nob].T.conj()
+    triplet_ref += np.outer(mo_coeff[:,s],mo_coeff[:,s].conj())
+    triplet_ref += np.outer(mo_coeff[:,t],mo_coeff[:,t].conj())
+    closed_minus_triplet = (np.outer(mo_coeff[:,s],mo_coeff[:,s].conj())
+                            - np.outer(mo_coeff[:,t],mo_coeff[:,t].conj()))
+    vec_flat = vec.reshape(nstates,noa*nvb)
+    nplus = vec1.shape[1]
+
+    # The (+) and (-) eigenvectors are different spin-adapted sectors.
+    # A spin-independent density has no matrix elements between sectors.
+    for sign, states in ((1,slice(0,nplus)),(-1,slice(nplus,nstates))):
+        da = detach_a_diag[states,states] - .5*sign*detach_a_cross[states,states]
+        aa = attach_a_diag[states,states] - .5*sign*attach_a_cross[states,states]
+        ds = detach_s_diag[states,states] + sign*detach_s_cross[states,states]
+        ass = attach_s_diag[states,states] + sign*attach_s_cross[states,states]
+
+        P1[states,states] = np.einsum('mnij,pi,qj->mnpq',da,mo_coeff[:,:noa],mo_coeff[:,:noa])
+        P1[states,states] += np.einsum('mnab,pa,qb->mnpq',aa,mo_coeff[:,nob:],mo_coeff[:,nob:])
+        P2[states,states] = np.einsum('mnij,pi,qj->mnpq',ds,mo_coeff[:,:noa],mo_coeff[:,:noa])
+        P2[states,states] += np.einsum('mnab,pa,qb->mnpq',ass,mo_coeff[:,nob:],mo_coeff[:,nob:])
+
+        overlap = vec_flat[states] @ (S1-sign*S2) @ vec_flat[states].T
+        P1[states,states] += overlap[:,:,None,None] * triplet_ref
+        P2[states,states] += overlap[:,:,None,None] * (triplet_ref+closed_minus_triplet)
+
+    print('is P1=P2?', np.allclose(P1, P2))
+
+    # find transition dipole moments
+    M = mf.mol.intor_symmetric('int1e_r', comp=3)
+    dipoles = np.einsum('mnpq,xpq->mnx', P1, M)
+    print_matrix('Transition dipole moments (a.u.):', dipoles[0,1:])
