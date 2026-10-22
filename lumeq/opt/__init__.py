@@ -1,4 +1,4 @@
-from .optimization import gradient_descent, conjugate_gradient, newton_2nd
+from .optimization import optimizer
 from .riemannian import Riemannian, Grassmann
 
 from .mrsf_roks import MRSF_TDA
