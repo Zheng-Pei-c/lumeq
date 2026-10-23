@@ -6,13 +6,11 @@ from lumeq.utils.unit_conversion import BOHR
 from pyscf import gto
 
 def get_ortho_basis(S, method='lowdin', eigen=False):
-    r"""
-    S is symmetric overlap matrix of atomic basis
-    L = S^(1/2)
-    Z = S^(-1/2)
-    S = L * L^T
-    S^-1 = Z^T * Z
-    inv = S^(-1)
+    r"""Return factors of a Hermitian positive-definite overlap matrix.
+
+    In both methods, ``S = L^H L``, ``Z = L^-1``, and the third result is
+    ``S^-1``. Lowdin gives Hermitian ``L = S^1/2`` and ``Z = S^-1/2``;
+    Cholesky gives an upper-triangular ``L``.
     """
 
     if method == 'lowdin':
@@ -30,15 +28,22 @@ def get_ortho_basis(S, method='lowdin', eigen=False):
             return L, Z, inv
 
     elif method == 'cholesky':
-        import scipy
-        L = scipy.linalg.cholesky(S)
-        Z = scipy.linalg.lapack.dtrtri(L, lower=True)[0]
-        inv = scipy.linalg.inv(S)
+        from scipy.linalg import cholesky, solve_triangular, inv
+        L = cholesky(S)
+        Z = solve_triangular(L, np.eye(L.shape[0], dtype=L.dtype), lower=False)
+        inv = inv(S)
 
         return L, Z, inv
 
 
 def get_ortho_basis_deriv(S, dS, method='lowdin', l_or_z='L', solver='iter'):
+    r"""Differentiate the Hermitian square root or inverse square root of S.
+
+    Solves ``Q dQ + dQ Q = d(S)`` for ``Q=L=S^1/2``, or with
+    ``d(S^-1) = -S^-1 dS S^-1`` for ``Q=Z=S^-1/2``. ``dS`` has shape
+    ``(batch, n, n)``. ``solver`` may be ``'iter'`` (Kronecker system),
+    ``'inv'`` (eigenbasis), or ``'scipy'`` (Sylvester solver).
+    """
     if method == 'cholesky':
         raise ValueError('no direct inverse for cholesky yet and the iter is not tested')
 
@@ -50,36 +55,34 @@ def get_ortho_basis_deriv(S, dS, method='lowdin', l_or_z='L', solver='iter'):
     nbas = S.shape[0]
 
     if solver == 'inv':
-        s = np.sqrt(s)
-        if l_or_z == 'Z': s = 1./s
-        sinv = np.repeat(s, nbas)
-        sinv += sinv.reshape(nbas, -1).flatten(order='F')
-        sinv = np.diag(1./sinv)
-        # s is diagonal so that we can get kronecker product easily
-        #s = np.diag(s)
-        #sinv = np.kron(I, s) + np.kron(s, I)
-        #sinv = np.diag(1./np.diag(sinv))
-
-        Vinv = np.kron(V.conj().T, V.conj().T)
-        V = np.kron(V, V)
-
-        B = np.einsum('pq,qr,rs->ps', V, sinv, Vinv)
-        d1 = np.einsum('pq,xq->xp', B, dS.reshape((dS.shape[0], -1), order='F'))
-        d1 = np.reshape(d1, (-1, nbas, nbas), order='F')
+        roots = np.sqrt(s)
+        if l_or_z == 'Z':
+            roots = 1. / roots
+        rhs = V.conj().T @ dS @ V
+        d1 = V @ (rhs / (roots[:, None] + roots[None, :])) @ V.conj().T
 
     elif solver == 'iter':
+        Q = Z if l_or_z == 'Z' else L
         I = np.eye(nbas)
-        if l_or_z == 'Z':
-            A = np.kron(I, Z) + np.kron(Z.conj().T, I)
-        else: # 'L'
-            A = np.kron(I, L) + np.kron(L.conj().T, I)
+        # vec(Q dQ + dQ Q) = (I kron Q + Q.T kron I) vec(dQ).
+        A = np.kron(I, Q) + np.kron(Q.T, I)
 
         d1 = []
         for i in range(dS.shape[0]):
             x = np.linalg.solve(A, dS[i].flatten(order='F'))
             d1.append(x.reshape((nbas, nbas), order='F'))
 
-    return np.array(d1)
+    elif solver == 'scipy':
+        from scipy.linalg import solve_sylvester
+        # uses Schur decomposition to solve Q dQ + dQ Q = dS
+
+        Q = Z if l_or_z == 'Z' else L
+        d1 = [solve_sylvester(Q, Q, rhs) for rhs in dS]
+
+    else:
+        raise ValueError("solver must be 'iter', 'inv', or 'scipy'.")
+
+    return np.asarray(d1, dtype=np.result_type(S, dS, float)).reshape(dS.shape)
 
 
 
