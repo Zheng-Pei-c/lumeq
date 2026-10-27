@@ -15,6 +15,7 @@ from numbers import Real
 from lumeq import np
 
 
+
 class LineSearchError(RuntimeError):
     """A search direction or trial sequence failed the line-search conditions."""
 
@@ -789,7 +790,7 @@ def _bfgs_inverse_action(vector, pairs, initial_inverse, inner_product):
             scale = 1.
         result = scale * residual
     else:
-        result = initial_inverse @ residual
+        result = (initial_inverse @ residual.ravel()).reshape(residual.shape)
 
     for (step, change), alpha in zip(pairs, reversed(coefficients)):
         rho = 1. / inner_product(step, change)
@@ -801,7 +802,7 @@ def _bfgs_inverse_action(vector, pairs, initial_inverse, inner_product):
 def bfgs(func, gradf, retraction, transport, x0, hess_inv,
          ls_method='armijo', nmax=50, thresh=1e-8, grad_thresh=1e-6,
          disp_thresh=1e-6, *args, **kwargs):
-    r"""Minimize over real vectors using inverse BFGS.
+    r"""Minimize over vectors or arrays using inverse BFGS.
 
     Recent secant pairs are kept in the current tangent space and used in a
     two-loop recursion. With ``hess_inv=None``, the base operator is the
@@ -810,12 +811,12 @@ def bfgs(func, gradf, retraction, transport, x0, hess_inv,
 
     Args:
         func: Objective returning a real scalar.
-        gradf: Gradient returning a real vector with the shape of ``x0``.
+        gradf: Gradient returning a tangent array with the shape of ``x0``.
         retraction: Update map ``retraction(point, tangent_step)``.
         transport: Callback ``transport(old, new, vector)`` returning a
             tangent vector at ``new``. It is applied to stored secant pairs.
             Isometric transport preserves the secant-pair inner products.
-        x0: Initial real one-dimensional point.
+        x0: Initial point, represented as a vector or array.
         hess_inv: Base inverse-Hessian matrix of shape ``(x0.size,
             x0.size)``, or ``None`` for a scaled identity. It must act on
             tangent vectors and be positive definite for the selected metric.
@@ -848,6 +849,9 @@ def bfgs(func, gradf, retraction, transport, x0, hess_inv,
     vector_norm = kwargs.get('norm', np.linalg.norm)
     distance = kwargs.get('distance', _point_distance)
     max_history = kwargs.get('max_history', nmax)
+    if (isinstance(max_history, bool) or not isinstance(
+            max_history, (int, np.integer)) or max_history < 1):
+        raise ValueError('max_history must be a positive integer.')
 
     xi = np.array(x0, copy=True)
     y0 = func(xi)
