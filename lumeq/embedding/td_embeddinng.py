@@ -129,7 +129,7 @@ if __name__ == '__main__':
     from pyscf import scf, tdscf
     from lumeq.utils.pyscf_helper import *
     from lumeq.utils import print_matrix
-    from lumeq.embedding.fragment_entangle import EmbeddingMeanField
+    from lumeq.embedding.fragment_entangle import EmbeddingKS
 
     infile = '../../samples/formic_acid_6_h2o.in'
     if len(sys.argv)>1: infile = sys.argv[1]
@@ -151,9 +151,9 @@ if __name__ == '__main__':
     print('frgm_idx:', frgm_idx)
 
     extra_orb = 0
-    embed = EmbeddingMeanField(mf, frgm_idx, extra_orb=extra_orb)
-    embed.emb_basis_dmet(mf, 0)
-    eomf = embed.get_eomf(mf)
+    embed = EmbeddingKS(mf, frgm_idx)
+    embed.emb_basis_dmet(ifrgm=0, extra_orb=extra_orb)
+    eomf = embed.get_eomf()
 
 
     td_emb = tdscf.TDA(eomf)
