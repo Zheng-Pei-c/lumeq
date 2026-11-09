@@ -1,12 +1,11 @@
 from lumeq import sys, np
+from lumeq.utils.pyscf_helper import *
+from lumeq.utils import print_matrix
+from lumeq.utils import get_ortho_basis
+from lumeq.embedding.mol_lo_tools import partition_lo_to_imps
 
 from pyscf import scf, lib
 from pyscf.mp.mp2 import MP2
-
-from lumeq.utils.pyscf_helper import *
-from lumeq.utils import print_matrix
-from lumeq.embedding.mol_lo_tools import partition_lo_to_imps
-from lumeq.utils import get_ortho_basis
 
 
 def normalize_wf(t2):
@@ -92,7 +91,7 @@ if __name__ == '__main__':
     ovlp_ao = mf.get_ovlp()
     coeff_mo_in_ao = mo_coeff
     coeff_lo_in_ao = get_localized_orbital(mol, coeff_mo_in_ao)
-    dm_lo_in_ao = get_localized_orbital_rdm(coeff_lo_in_ao, coeff_mo_in_ao, ovlp_ao, nocc, extra_orb=0)
+    dm_lo_in_ao = get_localized_orbital_rdm(coeff_lo_in_ao, coeff_mo_in_ao, ovlp_ao, mo_occ)
     frgm_lo_idx = partition_lo_to_imps(frgm_idx, mol, coeff_lo_in_ao, min_weight=0.8)
     print('frgm_lo_idx:', frgm_lo_idx)
 

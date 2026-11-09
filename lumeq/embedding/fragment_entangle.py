@@ -545,6 +545,43 @@ class EmbeddingMeanField():
         return self.nelec, self.neo
 
 
+    def get_impurity_density(self, coeff_imp=None):
+        r"""Project this channel's original density into a spatial impurity basis.
+
+        .. math::
+
+            A=C_{imp}^\dagger S C_{MO},\qquad
+            d_{imp}=A\,\mathrm{diag}(n)A^\dagger.
+
+        Args:
+            coeff_imp (numpy.ndarray, optional): Orthonormal spatial coefficients,
+                shape ``(nao, nimp)``. Defaults to the leading neo_imp EO columns.
+                Supply the same basis to both channels when combining spin data.
+
+        Returns:
+            numpy.ndarray: Channel density, shape ``(nimp, nimp)``, using original
+            SCF occupations without extra-orbital adjustments or rounding. For a
+            restricted channel this is the spin-summed density. No spin splitting
+            or spin expectation value is computed here.
+
+        Raises:
+            RuntimeError: No embedding basis has been constructed.
+            ValueError: The supplied impurity basis is not orthonormal.
+        """
+        if self.coeff_eo_in_ao is None:
+            raise RuntimeError('Call emb_basis_dmet before get_impurity_density.')
+
+        if coeff_imp is None:
+            return self.physical_dm_eo[:self.neo_imp, :self.neo_imp]
+
+        metric = coeff_imp.conj().T @ (self.ovlp_ao @ coeff_imp)
+        if not np.allclose(metric, np.eye(metric.shape[0]), atol=1e-8, rtol=0):
+            raise ValueError('The common impurity basis must be orthonormal.')
+
+        return get_localized_orbital_rdm(
+                coeff_imp, self.coeff_mo_in_ao, self.ovlp_ao, self.mo_occ)
+
+
     def get_eomf(self):
         r"""Canonicalize the channel Fock matrix in the selected EO space.
 
@@ -735,6 +772,107 @@ class EmbeddingKS():
         return energy
 
 
+    def get_fragment_s2(self, coeff_imp=None):
+        r"""Return impurity-only spin polarization and spin square, excluding the bath.
+
+        Both spin densities use the same spatial basis. With
+        :math:`N_\sigma=\mathrm{Tr}(d_\sigma)`, Wick factorization gives
+
+        .. math::
+
+            \langle S_{z,A}\rangle=\tfrac12(N_\alpha-N_\beta),
+
+            \langle S_A^2\rangle=\tfrac34(N_\alpha+N_\beta)
+              +\tfrac14(N_\alpha-N_\beta)^2
+              -\tfrac14\mathrm{Tr}(d_\alpha^2+d_\beta^2)
+              -\mathrm{Tr}(d_\alpha d_\beta).
+
+        Alpha and beta spatial orbitals need not be mutually orthogonal. Only
+        the common impurity basis satisfies :math:`C_A^\dagger S C_A=I`.
+        Its spatial projector is :math:`\hat P_A=\sum_{a\in A}|a\rangle\langle a|`;
+        its action on AO coefficient vectors is :math:`P_A=C_A C_A^\dagger S`.
+        The impurity-projected alpha/beta orbital overlap is
+
+        .. math::
+
+            M^A_{ij}=C_{\alpha i}^\dagger S C_A C_A^\dagger S C_{\beta j},
+            \qquad d_\sigma=C_A^\dagger S C_\sigma
+                \mathrm{diag}(n_\sigma)C_\sigma^\dagger S C_A,
+
+            \mathrm{Tr}(d_\alpha d_\beta)
+                =\sum_{ij}n_{\alpha i}n_{\beta j}|M^A_{ij}|^2.
+
+        Thus the raising/lowering contribution already contains the required
+        orbital overlaps through the cross-density contraction:
+
+        .. math::
+
+            \tfrac12\langle S_A^+S_A^-+S_A^-S_A^+\rangle
+                =\tfrac12(N_\alpha+N_\beta)-\mathrm{Tr}(d_\alpha d_\beta),
+
+            \langle S_{z,A}^2\rangle
+                =\tfrac14\left[(N_\alpha-N_\beta)^2+N_\alpha+N_\beta
+                    -\mathrm{Tr}(d_\alpha^2+d_\beta^2)\right].
+
+        Their sum is the local spin-square expectation above (with hbar=1).
+
+        Restricted densities are split equally between spins here. Populations
+        are not rounded, and local spin fluctuations are retained. This is a
+        determinant/independent-particle estimate; correlated states require
+        a two-particle density matrix.
+
+        Args:
+            coeff_imp (numpy.ndarray, optional): Shared orthonormal spatial
+                impurity coefficients in AO coordinates, shape ``(nao, nimp)``.
+                Defaults to the restricted impurity EOs, or the ALPHA impurity
+                EOs for an unrestricted reference. Beta density is projected
+                into that same spatial basis, not its independently localized
+                impurity basis. An explicit basis defines a different region.
+
+        Returns:
+            tuple: ``(sz, s2)``, local polarization :math:`\langle S_{z,A}\rangle`
+            in units of :math:`\hbar`, and :math:`\langle S_A^2\rangle` in units
+            of :math:`\hbar^2`. Both use original SCF occupations. s2 can be
+            nonzero in a globally closed-shell state. Extra orbitals affect bath selection,
+            not the local-spin populations. Different localization/projector
+            choices can give different local spins.
+
+        Raises:
+            RuntimeError: A channel's embedding basis has not been constructed.
+            ValueError: The supplied common impurity basis is not orthonormal,
+                or spin channels use incompatible AO overlap matrices.
+        """
+        for channel in self.embedding.values():
+            if channel.coeff_eo_in_ao is None:
+                raise RuntimeError('Call emb_basis_dmet before get_fragment_s2.')
+
+        channel = self.embedding.get('total', self.embedding.get('alpha'))
+
+        if 'total' in self.embedding:
+            dm_alpha = channel.get_impurity_density(coeff_imp) * .5
+            dm_beta = dm_alpha
+        else:
+            beta = self.embedding['beta']
+            if not np.allclose(channel.ovlp_ao, beta.ovlp_ao):
+                raise ValueError('Spin channels must use the same AO basis.')
+
+            if coeff_imp is None:
+                # cache alpha impurity coefficients for beta projection
+                coeff_imp = channel.coeff_eo_in_ao[:, :channel.neo_imp]
+                dm_alpha = channel.get_impurity_density()
+            else:
+                dm_alpha = channel.get_impurity_density(coeff_imp)
+            dm_beta = beta.get_impurity_density(coeff_imp)
+
+        nalpha, nbeta = np.trace(dm_alpha).real, np.trace(dm_beta).real
+        sz = .5 * (nalpha - nbeta)
+        # Equivalent: np.einsum('ij,ji->', dm_alpha, dm_beta)
+        s2 = (.75 * (nalpha + nbeta) + .25 * (nalpha - nbeta)**2
+              - .25 * np.trace(dm_alpha @ dm_alpha + dm_beta @ dm_beta)
+              - np.trace(dm_alpha @ dm_beta))
+        return float(sz), float(np.real(s2))
+
+
 
 if __name__ == '__main__':
     from lumeq.utils.pyscf_helper import *
@@ -793,7 +931,8 @@ if __name__ == '__main__':
     for ifrgm in range(len(frgm_idx)):
         embed.emb_basis_dmet(ifrgm, extra_orb=0)
         e = embed.get_embedding_energy()
-        print('fragment:', ifrgm, 'electronic energy:', e)
+        sz, s2 = embed.get_fragment_s2()
+        print('fragment:', ifrgm, 'electronic energy:', e, '<Sz>:', sz, '<S^2>:', s2)
         energy += e
     print('reference energy: %12.8f embedding: %12.8f, difference: %12.8f'
           % (energy_ref, energy, energy-energy_ref))
