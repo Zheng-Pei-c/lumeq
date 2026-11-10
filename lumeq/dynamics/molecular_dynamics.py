@@ -88,18 +88,27 @@ class MolecularDynamics():
 
         else: # default md initial step
             init_time = 0.
+            # A prescribed photon coordinate must also be included in the
+            # initial electronic Hamiltonian, before evaluating its force.
+            if phstep and hasattr(phstep, 'coordinate'):
+                kwargs['trans_coeff'] = phstep.get_trans_coeff()
             et, force = edstep.init_electronic_density_static(coords, **kwargs)
+            dipole = edstep.mf.dip_moment(unit='au', verbose=0)
+
+            if phstep and getattr(phstep, 'init_method', None) == 'minimum':
+                # Choose photon coordinate from the unperturbed starting dipole.
+                phstep.get_minimim_displacement(dipole)
+                kwargs['trans_coeff'] = phstep.get_trans_coeff()
+                # Evaluate the initial electronic state at that chosen q;
+                et, force = edstep.init_electronic_density_static(coords, **kwargs)
+                dipole = edstep.mf.dip_moment(unit='au', verbose=0)
+                photon_energy = phstep.energy
+                print('photon initial coordinate:\n', phstep.coordinate)
+
             if 'kick' in ndstep.init_method:
                 # Apply the supplied force during the first nuclear half-step.
                 force = force + ndstep.force
             force = ndstep.project_force(force)
-
-            dipole = edstep.mf.dip_moment(unit='au', verbose=0)
-
-            if phstep and getattr(phstep, 'init_method', None) == 'minimum':
-                phstep.get_minimim_displacement(dipole)
-                photon_energy = phstep.energy
-                print('photon initial coordinate:\n', phstep.coordinate)
 
             etot = et + ndstep.kinetic + photon_energy
 

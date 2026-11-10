@@ -205,10 +205,12 @@ class PhotonStep2(harmonic_oscillator):
 
         self.update_coordinate_velocity(force, half, **kwargs)
 
-        kwargs = {}
-        kwargs['trans_coeff'] = np.einsum('i,ix,ix->x', self.frequency, self.coordinate, self.c_lambda)
+        return {'trans_coeff': self.get_trans_coeff()}
 
-        return kwargs
+
+    def get_trans_coeff(self):
+        """Return the electronic coupling coefficient without advancing time."""
+        return np.einsum('i,ix,ix->x', self.frequency, self.coordinate, self.c_lambda)
 
 
 if __name__ == '__main__':
