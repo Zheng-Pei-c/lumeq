@@ -126,18 +126,22 @@ def smooth(x, window='hanning', window_len=11):
     r"""
     window: flat, hanning, hamming, bartlett, blackman
     """
+    x = np.asarray(x, dtype=float)
+
+    if x.ndim != 1:
+        raise ValueError("smooth only accepts 1 dimension arrays.")
+    if window_len % 2 == 0:
+        raise ValueError("window_len must be odd.")
     if window_len < 3:
-        return x
+        return x.copy()
 
-    s = np.r_[x[window_len-1:0:-1], x, x[-2:-window_len-1:-1]]
+    aliases = {'hanning': 'hann', 'flat': 'boxcar'}
+    window = aliases.get(window, window) if isinstance(window, str) else window
+    weights = signal.get_window(window, window_len, fftbins=False)
+    weights /= weights.sum()
 
-    if window == 'flat':
-        w = np.ones(window_len, 'd')
-    else:
-        w = getattr(np, window)(window_len)
-
-    y = np.convolve(w/w.sum(), s, mode='valid')
-    return y[window_len//2-1:-window_len//2]
+    pad = window_len // 2
+    return np.convolve(np.pad(x, pad, mode='reflect'), weights, mode='valid')
 
 
 def cal_spectra(array, dt, window='none', unit='au', scale_freq=True,
