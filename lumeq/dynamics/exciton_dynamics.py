@@ -68,8 +68,10 @@ class Exciton():
 
         # build the list of unit cells
         nx, ny, nz = self.n_cell
-        cells = itertools.product(range(nx), range(ny), range(nz))
-        self.cells = getattr(self, 'cells', list(cells))
+        # Do not eagerly build the full nx*ny*nz box when set_model already
+        # supplied a small periodic image envelope (or a finite model path).
+        if not hasattr(self, 'cells'):
+            self.cells = list(itertools.product(range(nx), range(ny), range(nz)))
         print('number of cells:', len(self.cells))
         if self.debug >= 0:
             print('cells:\n', self.cells)
@@ -729,7 +731,7 @@ class ExcitonDynamicsMC(ExcitonDynamics):
 
 
 
-def setup_exciton_dynamics(infile, key={}, nsteps=300):
+def setup_exciton_dynamics(infile, key={}, nsteps=300, periodic=None):
     r"""
     Run the exciton dynamics simulation.
 
@@ -737,6 +739,9 @@ def setup_exciton_dynamics(infile, key={}, nsteps=300):
         infile (str): Input file for dynamics parameters.
         key (dict): Input parameters.
         nsteps (int): Total number of time steps for the dynamics.
+        periodic (bool or None): Override the input periodic flag. Periodic
+            setup builds the cells needed for Bloch extraction; kernel()
+            still propagates the finite real-space Hamiltonian.
 
     Returns:
         ExcitonDynamicsMC: Configured exciton-dynamics object.
@@ -770,11 +775,12 @@ def setup_exciton_dynamics(infile, key={}, nsteps=300):
         data = process_parameters(key['cif'], key['n_cell_param'],
                                   key['param_dir'], key['nstate'])
         save_json(key['cif']+'.json', data)
-    cells, neighbor_index = set_model(data['neighbor_index'],
-                                      data['distances'],
-                                      key.get('model', 'AB'),
-                                      key.get('n_cell', [5,5,5]),
-                                      key.get('r_cutoff', 10))
+    if periodic is not None:
+        key['periodic'] = periodic
+    cells, neighbor_index = set_model(
+        data['neighbor_index'], data['distances'], key.get('model', 'AB'),
+        key.get('n_cell', [5,5,5]), key.get('r_cutoff', 10),
+        periodic=key.get('periodic', False))
     data['cells'] = cells
     data['neighbor_index'] = neighbor_index
     key.update(data) # real parameters

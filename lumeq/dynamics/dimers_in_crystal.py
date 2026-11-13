@@ -262,12 +262,15 @@ class Crystal:
         return energy, coupling, trans_dipole
 
 
-    def set_model(self, model='AB', n_cell=[10,1,1], r_cutoff=10, debug=0):
+    def set_model(self, model='AB', n_cell=[10,1,1], r_cutoff=10,
+                  periodic=False, debug=0):
+        from lumeq.dynamics.process_exciton_parameters import set_model
+
         neighbor_index = self.neighbor_index
         distances = self.distances
 
         return set_model(neighbor_index, distances, model, n_cell, r_cutoff,
-                         debug)
+                         periodic=periodic, debug=debug)
 
 
 

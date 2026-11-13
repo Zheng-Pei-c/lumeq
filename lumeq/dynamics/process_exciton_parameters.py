@@ -147,139 +147,190 @@ def process_parameters(cif_file, n_cell, outfile_dir='./', nstate=2, npairs=50,
 
 
 def set_model(neighbor_index, distances, model='AB', n_cell=[10,1,1],
-              r_cutoff=10, debug=0):
-    r"""
-    Pick the model parameters based on the model type.
+              r_cutoff=10, periodic=False, debug=0):
+    r"""Select finite model cells or a cutoff-reachable periodic cell envelope.
 
     Args:
-        neighbor_index (list): Neighbor-index list for each dimer.
-        distances (numpy.ndarray): Distances between dimers in Angstrom.
-        model (str): The model type, e.g., 'AB', 'BC', 'ABAC', 'AB-C', 'any'
-        n_cell (list): The number of unit cells in each direction ``[nx, ny, nz]``.
-        r_cutoff (float): The cutoff distance in Angstrom (10, 17, 26)
-        debug (int): The debug level
+        neighbor_index: Distance-sorted (source molecule, target cell/site) rows.
+        distances: Dimer distances in Angstrom, in the same order.
+        model: AB, BC, ABAC/BACA, AB-C, BC-A, ABC, or any.
+        n_cell: Finite dimensions. In periodic mode, entries greater than one
+            select extended directions; their magnitude does not expand cells.
+        r_cutoff: Coupling distance cutoff in Angstrom.
+        periodic: Construct a motif and only its reachable images instead of
+            expanding the entire finite chain, plane, or volume.
+        debug: Debug level.
 
     Returns:
-        cells (numpy.ndarray): Cell indices based on the model.
-        neighbor_index (list): Refined neighbor-index list based on the model.
+        cells, neighbor_index: Selected crystal cells and cutoff-filtered rows.
     """
-    # apply distance cutoff
     neighbor_index = neighbor_index[:np.sum(distances <= r_cutoff)]
-    #print('neighbor count after cutoff:', len(neighbor_index))
-    #print(neighbor_index)
 
-
-    # figure out dimensions
-    if isinstance(n_cell, int): n_cell = [n_cell]
-    for i in range(3-len(n_cell)):
-        n_cell.append(1)
-    #print('n_cell:', n_cell)
-    ndim = 3 - np.sum(np.array(n_cell) == 1) # need to change to np array
+    n_cell = [n_cell] if isinstance(n_cell, int) else list(n_cell)
+    n_cell += [1] * (3-len(n_cell))
+    ndim = 3 - np.count_nonzero(np.array(n_cell) == 1)
     if ndim == 0:
         raise ValueError('At least one dimension should be greater than 1.')
-    #print('ndim:', ndim)
 
-    # chain length, number of chains, number of layers
-    nx, ny, nz = np.sort(n_cell)[::-1]
-    #print('nx, ny, nz:', nx, ny, nz)
-
-    if ndim == 1: ny = 2 # quasi-1D system has two columns
-    if ndim >= 2 and ny == 2: ny += 1 # add more columns for 2D
-    if ndim >= 3 and nz == 1: nz += 1 # add more layers for 3D
-
-
-    # now get sepecific cells for different models
-    if model == 'ABC':
-        # 1D ABC is already a plane whose dimension is given by nx and ny
-        # nz adds more layers
-        if ndim == 1: ny = nx # get a square by default
-        cells = list(itertools.product(range(nx), range(ny), range(nz+1)))
-        return np.array(cells), neighbor_index
-
-    # interchangable model types
     if model == 'BACA':
         model = 'ABAC'
-    if model not in {'AB', 'BC', 'ABAC', 'AB-C', 'BC-A', 'any'}:
-        model = 'any'
+    if model not in {'AB', 'BC', 'ABAC', 'AB-C', 'BC-A', 'ABC', 'any'}:
         print('Unknown model type %s changed to any.' % model)
+        model = 'any'
 
+    origin = np.zeros(3, dtype=int)
+    if model == 'ABC':
+        # ABC already denotes an xy plane for a nominal 1D request.
+        dimension = max(2, ndim)
+        translations = np.eye(3, dtype=int)[:dimension]
+        seeds = [origin] if dimension == 3 else [origin, np.array([0, 0, 1])]
+    else:
+        if len(neighbor_index) < 3:
+            raise ValueError('Model geometry requires the A, B and C neighbor definitions.')
 
-    # the first three neighboring dimers labeled as A, B, and C
-    vectors = [np.array(neighbor_index[i][1][:3], dtype=int) for i in range(3)]
+        # Integer crystal-cell displacements of the nearest A, B and C bonds.
+        va, vb, vc = [np.array(entry[1][:3], dtype=int) for entry in neighbor_index[:3]]
+        # Offset between the two initial columns of the molecular path.
+        start = vb if model in {'BC', 'BC-A'} else va
+        steps = [vb, vc] if model in {'ABAC', 'any'} else [vc if model in {'BC', 'BC-A'} else vb]
+        # Net displacement of one repeat: AB -> vb-va, BC -> vc-vb,
+        # ABAC -> vb+vc-2*va. Each forward step is followed by -start.
+        chain_translation = sum((step-start for step in steps), origin.copy())
 
-    # get the perpendicular vector for 3D expansion
-    if model == 'AB':
-        vector_perp = np.cross(vectors[0], vectors[1])
-    elif model == 'BC':
-        vector_perp = np.cross(vectors[1], vectors[2])
-    elif model in {'ABAC', 'AB-C', 'BC-A', 'any'}:
-        vector_perp = np.cross(vectors[1], vectors[2])
-        vector_perp = np.cross(vector_perp, vectors[0])
-    vector_perp = np.abs(vector_perp)
-    #print('vector_perp:', vector_perp)
+        # Candidate crystal cells within one repeat, in both columns.
+        seeds = [origin]
+        for step in steps[:-1]:
+            seeds.append(seeds[-1]+step-start)
+        seeds += [cell+start for cell in seeds[:]]
 
+        # Second periodic direction, translating from one chain to the next:
+        # AB-C uses BC, BC-A uses BA; other paths use the column offset.
+        transverse = vc-vb if model == 'AB-C' else vb-va if model == 'BC-A' else start
 
-    # get effective 1D chain cells
-    c = 1 if model in {'BC', 'BC-A'} else 0
-    vec = vectors[c] # A or B as the starting of second column
-    cells = [[[0,0,0]], [vec]] # O as the starting of first column
+        # Preserve the finite model's existing layer expansion direction.
+        if model == 'AB':
+            finite_normal = np.abs(np.cross(va, vb))
+        elif model == 'BC':
+            finite_normal = np.abs(np.cross(vb, vc))
+        else:
+            finite_normal = np.abs(np.cross(np.cross(vb, vc), va))
 
-    nmax = nx - 1
-    if ndim == 1: nmax = nmax // 2
-    if model in {'AB', 'BC', 'AB-C', 'BC-A'}:
-        for i in range(nmax):
-            cells[1].append(cells[0][-1] + vectors[c+1])
-            cells[0].append(cells[1][-1] - vectors[c])
-    elif model in {'ABAC', 'any'}:
-        for i in range(nmax//2):
-            cells[1].append(cells[0][-1] + vectors[1])
-            cells[0].append(cells[1][-1] - vectors[0])
-            cells[1].append(cells[0][-1] + vectors[2])
-            cells[0].append(cells[1][-1] - vectors[0])
+        if model == 'any' and periodic:
+            # Infinite completion of the Cartesian bounding box of the path.
+            growing = [chain_translation]
+            if ndim >= 2:
+                growing.append(start)
+            if ndim == 3:
+                growing.append(finite_normal)
+            axes = np.flatnonzero(np.any(np.array(growing) != 0, axis=0))
+            if not len(axes):
+                raise ValueError('The periodic bounding box has no growing directions.')
+            translations = np.eye(3, dtype=int)[axes]
+            bounds = np.array(seeds)
+            ranges = [range(1) if i in axes else range(int(bounds[:, i].min()), int(bounds[:, i].max())+1)
+                      for i in range(3)]
+            seeds = [np.array(cell) for cell in itertools.product(*ranges)]
+        else:
+            # Rows are repeat translations in the original crystal basis.
+            translations = [chain_translation]
+            if ndim >= 2:
+                translations.append(transverse)
+            if ndim == 3 and periodic:
+                # Third direction normal to the periodic plane. Reduce to
+                # an integer primitive vector while retaining its signs.
+                normal = np.cross(translations[0], translations[1])
+                divisor = np.gcd.reduce(np.abs(normal))
+                if divisor:
+                    normal //= divisor
+                translations.append(normal)
+            translations = np.array(translations, dtype=int)
+
+    if periodic:
+        if np.linalg.matrix_rank(translations) != len(translations):
+            raise ValueError('The chosen periodic model has dependent translation generators.')
+
+        # Convert a crystal-cell displacement into repeat coordinates.
+        # Integer coefficients AND zero transverse residual imply equivalence.
+        inverse = np.linalg.pinv(translations)
+        # Retain one representative of each translation-equivalent seed.
+        motif = []
+        for seed in seeds:
+            for other in motif:
+                coefficients = (seed-other) @ inverse
+                shift = np.rint(coefficients).astype(int)
+                if (np.allclose(coefficients, shift, atol=1e-8, rtol=0)
+                        and np.allclose(shift @ translations, seed-other, atol=1e-8, rtol=0)):
+                    break
+            else:
+                motif.append(seed)
+        motif = np.array(motif, dtype=int)
+
+        # Only the image cells touched by retained bonds are needed.
+        images = set()
+        for cell in motif:
+            for _, entry in neighbor_index:
+                target = cell + entry[:3]
+                for other in motif:
+                    coefficients = (target-other) @ inverse
+                    shift = np.rint(coefficients).astype(int)
+                    if not (np.allclose(coefficients, shift, atol=1e-8, rtol=0)
+                            and np.allclose(shift @ translations, target-other, atol=1e-8, rtol=0)):
+                        continue
+                    # Include both the forward link and its Hermitian reverse.
+                    images.add(tuple(target))
+                    images.add(tuple(cell-shift @ translations))
+                    break  # later cell indices cannot provide another representative
+
+        if not images:
+            raise ValueError('No active bonds remain in the periodic model at this cutoff.')
+
+        central = [tuple(c) for c in motif]
+        cells = np.array(central + sorted(images-set(central)), dtype=int)
+        return cells, neighbor_index  # never expand a long finite model
+
+    nx, ny, nz = np.sort(n_cell)[::-1]
+    if ndim == 1:
+        ny = 2
+    if ndim >= 2 and ny == 2:
+        ny += 1
+    if model == 'ABC':
+        if ndim == 1:
+            ny = nx
+        return np.array(list(itertools.product(range(nx), range(ny), range(nz+1)))), neighbor_index
+
+    cells = [[origin], [start]]
+    # In 1D the requested chain length is shared by the two columns.
+    nmax = (nx-1)//2 if ndim == 1 else nx-1
+    for _ in range(nmax//len(steps)):
+        for step in steps:
+            cells[1].append(cells[0][-1]+step)
+            cells[0].append(cells[1][-1]-start)
+
     cells = np.array(cells)
 
-    # shift to positive indices
-    #cells = cells.reshape(-1, 3).T
-    #for i, _cells in enumerate(cells):
-    #    min_id = np.min(_cells)
-    #    if min_id < 0:
-    #        cells[i] -= min_id
-    #cells = cells.T
-
-    if model == 'any': # include unconnected cells
-        cells = cells.reshape(-1, 3)
-        ci, cj = np.min(cells, axis=0), np.max(cells, axis=0)
-        rx, ry, rz = range(ci[0], cj[0]+1), range(ci[1], cj[1]+1), range(ci[2], cj[2]+1)
-        cells = list(itertools.product(rx, ry, rz))
-
+    if model == 'any':
+        flat = cells.reshape(-1, 3)
+        low, high = flat.min(axis=0), flat.max(axis=0)
+        cells = list(itertools.product(*(range(a, b+1) for a, b in zip(low, high))))
     cells = np.reshape(cells, (2, -1, 3))
 
-
-    # expand to higher dimensions
     if ndim >= 2 and model in {'AB-C', 'BC-A'}:
-        if model == 'AB-C':
-            vec = vectors[2] - vectors[1] # BC vector
-        elif model == 'BC-A':
-            vecc = vectors[1] - vectors[0] # BA vector
-        cells_t = np.copy(cells)
-        for i in range(ny-1):
-            cells_t += vec[None, None, :]
-            cells = np.append(cells, cells_t, axis=0)
-
+        # Keep legacy finite BC-A behavior; its existing branch used start.
+        offset = start if model == 'BC-A' else transverse
+        shifted = cells.copy()
+        for _ in range(ny-1):
+            shifted += offset[None, None, :]
+            cells = np.append(cells, shifted, axis=0)
     elif ndim >= 2:
-        cells_t = np.copy(cells[1])
-        for i in range(ny-2):
-            cells_t += vec[None, :]
-            cells = np.append(cells, [cells_t], axis=0)
+        shifted = cells[1].copy()
+        for _ in range(ny-2):
+            shifted += start[None, :]
+            cells = np.append(cells, [shifted], axis=0)
 
     if ndim >= 3:
-        cells_t = np.copy(cells)
-        for i in range(nz-1):
-            cells_t += vector_perp[None, None, :]
-            cells = np.append(cells, cells_t, axis=0)
+        shifted = cells.copy()
+        for _ in range(nz-1):
+            shifted += finite_normal[None, None, :]
+            cells = np.append(cells, shifted, axis=0)
 
-    cells = cells.reshape(-1, 3)
-    #print('number of cells:', len(cells))
-    #print(cells)
-
-    return cells, neighbor_index
+    return cells.reshape(-1, 3), neighbor_index
