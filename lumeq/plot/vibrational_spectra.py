@@ -145,7 +145,7 @@ def smooth(x, window='hanning', window_len=11):
 
 
 def cal_spectra(array, dt, window='none', unit='au', scale_freq=True,
-                direv=False, smoothing=True):
+                deriv=False, smoothing=True):
     """IR spectrum from the summed Cartesian dipole power spectra.
 
     A dipole derivative already contributes the frequency-squared factor;
@@ -159,7 +159,7 @@ def cal_spectra(array, dt, window='none', unit='au', scale_freq=True,
 
     if unit != 's':
         dt = convert_units(dt, unit, 's')
-    if direv:
+    if deriv:
         arrays = np.gradient(arrays, dt, edge_order=2, axis=0)
 
     if window == 'gaussian':
@@ -172,10 +172,10 @@ def cal_spectra(array, dt, window='none', unit='au', scale_freq=True,
         spectral_window = window
 
     freq, components = signal.periodogram(
-        arrays, fs=1./dt, window=spectral_window, detrend='constant',
-        scaling='spectrum', axis=0)
+            arrays, fs=1./dt, window=spectral_window, detrend='constant',
+            scaling='spectrum', axis=0)
     sigma = components.sum(axis=1)
-    if scale_freq and not direv:
+    if scale_freq and not deriv:
         sigma *= (2*np.pi*freq)**2
     if smoothing:
         sigma = smooth(sigma)
