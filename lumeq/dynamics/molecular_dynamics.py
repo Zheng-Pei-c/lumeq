@@ -112,15 +112,7 @@ class MolecularDynamics():
 
             etot = et + ndstep.kinetic + photon_energy
 
-        print('current time: %7.3f fs' % convert_units(init_time, 'au', 'fs'), end='  ')
-        print('temperature: %4.2f K' % float(ndstep.temperature * kT_AU_to_Kelvin))
-        print('total energy (au): %15.10f  potential: %15.10f  kinetic: %15.10f' % (etot, et, ndstep.kinetic), end='  ')
-        if phstep: print('photon: %15.10f' % photon_energy)
-        else: print('')
-        print_matrix('nuclear force:', ndstep.force)
-        print_matrix('nuclear velocity:', ndstep.velocity)
-        print_matrix('nuclear coordinate (AA):', convert_units(coords, 'bohr', 'angstrom'))
-        print_matrix('molecular dipole:', dipole)
+        self.print_dynamics(init_time, etot, et, dipole, photon_energy)
 
         self.md_time_total_energy[0] = etot
         self.md_time_coordinate[0] = coords
@@ -160,15 +152,8 @@ class MolecularDynamics():
 
             etot = et + ndstep.kinetic + photon_energy
 
-            print('current time: %7.3f fs' % convert_units(init_time+ti*self.dt, 'au', 'fs'), end='  ')
-            print('temperature: %4.2f K' % float(ndstep.temperature * kT_AU_to_Kelvin))
-            print('total energy (au): %15.10f  potential: %15.10f  kinetic: %15.10f' % (etot, et, ndstep.kinetic), end='  ')
-            if phstep: print('photon: %15.10f' % photon_energy)
-            else: print('')
-            print_matrix('nuclear force:', ndstep.force)
-            print_matrix('nuclear velocity:', ndstep.velocity)
-            print_matrix('nuclear coordinate (AA):', convert_units(coords, 'bohr', 'angstrom'))
-            print_matrix('molecular dipole:', dipole)
+            self.print_dynamics(init_time+ti*self.dt, etot, et, dipole,
+                                photon_energy)
 
             self.md_time_total_energy[ti] = etot
             self.md_time_coordinate[ti] = coords
@@ -177,6 +162,27 @@ class MolecularDynamics():
             self.md_time_mo_energy[ti] = edstep.mf.mo_energy
 
     kernel = run_dynamics
+
+
+    def print_dynamics(self, time, total_energy, potential_energy, dipole,
+                       photon_energy=0.):
+        """Print the current dynamics state, with time and energies in au."""
+        ndstep, phstep = self.ndstep, self.phstep
+        print('current time: %7.3f fs' % convert_units(time, 'au', 'fs'), end='  ')
+        print('temperature: %4.2f K' % float(ndstep.temperature * kT_AU_to_Kelvin))
+        print('total energy (au): %15.10f  potential: %15.10f  kinetic: %15.10f'
+              % (total_energy, potential_energy, ndstep.kinetic), end='  ')
+        if phstep: print('photon: %15.10f' % photon_energy)
+        else: print('')
+
+        print_matrix('nuclear force:', ndstep.force)
+        print_matrix('nuclear velocity:', ndstep.velocity)
+        print_matrix('nuclear coordinate (AA):',
+                     convert_units(ndstep.coordinate, 'bohr', 'angstrom'))
+        print_matrix('molecular dipole:', dipole)
+
+        if phstep:
+            phstep.print_variables()
 
 
     def plot_time_variables(self, fig_name=None):

@@ -104,6 +104,38 @@ class PhotonStep():
         return result
 
 
+    def get_photon_number(self):
+        """Return mean Fock occupation for each mode and direction."""
+        probabilities = self.get_photon_number_probabilities()
+        return np.einsum('ixn,n->ix', probabilities,
+                         np.arange(probabilities.shape[-1]))
+
+
+    def get_coordinate_velocity(self):
+        """Return mean mode coordinate and velocity, each shaped (nmode, 3).
+
+        In atomic units with oscillator mass one, q = (a + a†)/sqrt(2ω)
+        and v = -i sqrt(ω/2) (a - a†). These are field quadratures,
+        not photon particle positions or propagation velocities. Number
+        states have zero means despite their nonzero fluctuations.
+        """
+        amplitude = np.array([
+            np.einsum('n,xn->x', self._trans[i],
+                      np.diagonal(self.density[i], offset=-1, axis1=-2, axis2=-1))
+            for i in range(self.nmode)
+        ])
+        coordinate = amplitude.real / self.scaled_freq[:, None]
+        velocity = 2. * self.scaled_freq[:, None] * amplitude.imag
+        return coordinate, velocity
+
+
+    def print_variables(self):
+        coordinate, velocity = self.get_coordinate_velocity()
+        print_matrix('photon coordinate expectation (au):', coordinate)
+        print_matrix('photon velocity expectation (au):', velocity)
+        print_matrix('photon number expectation:', self.get_photon_number())
+
+
     def update_density(self, molecular_dipole, dt, half=1, **kwargs):
         from scipy.linalg import expm
         coupling = np.einsum('i,ix,x->ix', self.scaled_freq, self.c_lambda, molecular_dipole)
@@ -180,6 +212,22 @@ class PhotonStep2(harmonic_oscillator):
         return self.coordinate
 
 
+    def print_variables(self):
+        print_matrix('photon coordinate (au):', self.coordinate)
+        print_matrix('photon velocity (au):', self.velocity)
+        print_matrix('photon mean number (coherent state):',
+                     self.get_photon_number())
+
+
+    def get_photon_number(self):
+        """Return coherent-state mean occupation for each classical q, v."""
+        if np.any(self.frequency <= 0.):
+            raise ValueError('photon frequency must be positive')
+        omega = self.frequency[:, None]
+        mass = self.mass[:, None]
+        return mass * (self.velocity**2 + omega**2 * self.coordinate**2) / (2. * omega)
+
+
     def get_photon_number_probabilities(self, max_n=9):
         """Return coherent-state Poisson probabilities for each classical q, v.
 
@@ -190,11 +238,7 @@ class PhotonStep2(harmonic_oscillator):
         from scipy.stats import poisson
         if not isinstance(max_n, (int, np.integer)) or max_n < 0:
             raise ValueError('max_n must be a nonnegative integer')
-        if np.any(self.frequency <= 0.):
-            raise ValueError('photon frequency must be positive')
-        omega = self.frequency[:, None]
-        mass = self.mass[:, None]
-        mean_number = mass * (self.velocity**2 + omega**2 * self.coordinate**2) / (2. * omega)
+        mean_number = self.get_photon_number()
         return poisson.pmf(np.arange(max_n + 1), mean_number[..., None])
 
 

@@ -93,6 +93,11 @@ class harmonic_oscillator():
         self.get_energy(self.velocity)
 
 
+    def get_coordinate_velocity(self):
+        """Return classical coordinates and velocities in atomic units."""
+        return self.coordinate, self.velocity
+
+
     def update_coordinate_velocity(self, force, half=1, **kwargs):
         r'''
         Update the oscillator coordinate and velocity, as well as the energy.
