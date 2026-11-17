@@ -61,7 +61,16 @@ def project_trans_rotation(mol, hess, exclude_trans=True, exclude_rot=True,
     return h, bvec, force_const_au, mode
 
 
-def get_g1_d1(mf, frequency, hessobj):
+def get_g1_d1(mf, hessobj, frequency, dip_dev=None):
+    r"""
+    Photon frequency and coupling strength are included in the dipole derivative
+    """
+    if isinstance(dip_dev, np.ndarray):
+        # the dipole derivative is already computed
+        # just combine with frequency and coupling strength
+        return np.einsum('...,...y,zxy->zx...', frequency, mf.c_lambda,
+                         np.reshape(dip_dev, (mf.mol.natm, 3, 3)))
+
     # frequency is the photon frequency
     if isinstance(frequency, list) or isinstance(frequency, np.ndarray):
         if len(frequency) != len(mf.c_lambda):
@@ -75,6 +84,7 @@ def get_g1_d1(mf, frequency, hessobj):
     mo_occ = mf.mo_occ
     mocc = mo_coeff[:,mo_occ>0]
 
+    # mf.dipole is scaled by coupling strength
     dipole = np.einsum('...pq,...->pq...', mf.dipole, frequency) # combine with frequency
     dm = mf.make_rdm1()
 
@@ -93,7 +103,13 @@ def get_g1_d1(mf, frequency, hessobj):
         g1[k] = np.einsum('pq...,xqp->x...', dipole, dm1)*2. # 2 for dm1
         g1[k] += np.einsum('xpq...,qp->x...', dipole_d1[:,p0:p1], dm[:,p0:p1])
 
-    return 2.*np.array(g1)
+    g1 = -2. * np.asarray(g1) # the scaled dipole needs negative # 2 for ket
+
+    z = mol.atom_charges()
+    for i in range(natm): # scaled nuclear dipole derivative
+        g1[i] += z[i] * np.einsum('...,...x->x...', frequency, mf.c_lambda)
+
+    return g1
 
 
 def harmonic_analysis(mol, force_const_au, norm_mode, g1, frequency,
@@ -218,7 +234,7 @@ if __name__ == '__main__':
 
     if np.any(np.abs(coupling) > 1e-4):
 
-        d1 = get_g1_d1(mf, frequency, hessobj)
+        d1 = get_g1_d1(mf, hessobj, frequency, dip_dev=dip_dev)
         #print_matrix('d1:', d1, 5, 1)
         results = harmonic_analysis(mol, force_const_au, norm_mode, d1, frequency)
         print_matrix('freq_wavenumber:', results['freq_wavenumber'])

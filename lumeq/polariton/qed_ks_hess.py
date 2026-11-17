@@ -181,7 +181,7 @@ def partial_hess_elec(hessobj, mo_energy=None, mo_coeff=None, mo_occ=None,
         p0, p1 = aoslices[ia, 2:]
 
         tmp1 = np.einsum('xrs...,qr->...xqs', dipole_d1[:,p0:p1], dm0[:,p0:p1]) # r is derivative index
-        tmp2 = np.einsum('xrs...,qr->...xqs', dipole_d1[:,p0:p1].transpose(0,2,1), dm0) # s is derivative index
+        tmp2 = np.einsum('xrs...,qr->...xqs', dipole_d1[:,p0:p1].swapaxes(1, 2), dm0) # s is derivative index
         for j0, ja in enumerate(atmlst[:i0+1]):
             q0, q1 = aoslices[ja, 2:]
 
