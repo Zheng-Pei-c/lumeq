@@ -114,13 +114,67 @@ def get_g1_d1(mf, hessobj, frequency, dip_dev=None):
 
 def harmonic_analysis(mol, force_const_au, norm_mode, g1, frequency,
                       imaginary_freq=True, mass=None, hessobj=None):
-    """Assemble Eqs. 25a and 25b at the reference CS photon minimum.
+    """Diagonalize the coupled nuclear-photon Hessian at a CS photon minimum.
 
-    frequency uses the same mass-weighted freq_au units as force_const_au.
-    g1 uses the nuclear dipole derivatives from the same Hessian response.
-    hessobj supplies the coupling-scaled photon response; frequency factors
-    are applied here. None retains the unscreened reference.
-    The assembled mass-weighted matrix is returned as results['hessian'].
+    nmol and nph denote the numbers of input nuclear modes and photon modes.
+
+    Args:
+        mol (pyscf.gto.Mole): Molecule defining the nuclear coordinates.
+        force_const_au (ndarray): Nuclear-block eigenvalues, shape (nmol,),
+            in E_h/(amu*bohr**2). Use the nuclear Hessian evaluated with
+            independent photon coordinates at the reference CS minimum.
+        norm_mode (ndarray): Corresponding nuclear displacement modes, shape
+            (nmol, natm, 3), including PySCF's amu**(-1/2) mass factors.
+        g1 (ndarray): Mixed nuclear-photon derivatives from get_g1_d1, shape
+            (natm, 3) for one photon mode or (natm, 3, nph) for multiple modes.
+            Coupling strengths and photon frequencies must already be included.
+            Use nuclear dipole derivatives from the same Hessian response.
+        frequency (float or array_like): Bare photon frequencies, scalar or
+            shape (nph,), in PySCF vibrational freq_au units. Their squares have
+            units E_h/(amu*bohr**2), matching force_const_au. A scalar is shared
+            by all photon modes. To obtain angular frequencies in electronic
+            atomic units, multiply by sqrt(nist.E_MASS/nist.ATOMIC_MASS).
+        imaginary_freq (bool): Return unstable modes as positive imaginary
+            frequencies if True (default), or negative real frequencies otherwise.
+        mass (array_like or None): Compatibility argument for atomic masses
+            in amu; defaults to isotope-averaged masses. Mass weighting is
+            determined by the supplied modes; this argument does not rescale them.
+        hessobj (Hessian or None): QED Hessian object with cached photon orbital
+            responses from the same SCF reference. Its coupling-scaled response
+            A = get_polarizability() corrects the photon block to
+            diag(frequency**2) - sym(Omega @ A @ Omega), where
+            Omega = diag(frequency). None leaves the free-photon diagonal block.
+
+    Returns:
+        dict: Results for nmode = nmol + nph coupled modes, in eigenvalue order:
+
+            * hessian: Coupled mass-weighted matrix, shape (nmode, nmode),
+              in the input nuclear-mode and photon basis; units E_h/(amu*bohr**2).
+            * force_const_au: Its eigenvalues, shape (nmode,), in the same units.
+            * freq_au: Square roots of the eigenvalues in vibrational freq_au.
+            * freq_wavenumber: Frequencies in cm**(-1).
+            * freq_error: Number of unstable modes, before sign conversion.
+            * norm_mode: Nuclear parts of the coupled displacement modes,
+              shape (nmode, natm, 3), with amu**(-1/2) mass factors.
+            * total_mode: Full modes as columns, shape (3*natm+nph, nmode).
+              The first 3*natm rows contain nuclear Cartesian displacements;
+              the last nph rows contain dimensionless photon-mode components.
+            * reduced_mass: Nuclear reduced masses in amu, defined by the
+              inverse squared norm of each nuclear displacement mode. A purely
+              photonic mode has an infinite nuclear reduced mass.
+            * vib_temperature: Characteristic vibrational temperatures in K.
+            * force_const_dyne: Force constants using the nuclear reduced masses,
+              in mDyne/angstrom, following the PySCF conversion convention.
+
+    Raises:
+        ValueError: If hessobj is supplied and a photon frequency is nonpositive
+            or its response matrix does not match the photon-mode count.
+
+    Notes:
+        This function does not calculate infrared intensities. Contract the
+        nuclear dipole derivatives and the frequency-scaled electronic dipole
+        response to photon motion with total_mode to obtain the full transition
+        dipoles. norm_mode contains only the nuclear components of each mode.
     """
     if mass is None:
         mass = mol.atom_mass_list(isotope_avg=True)
@@ -149,9 +203,7 @@ def harmonic_analysis(mol, force_const_au, norm_mode, g1, frequency,
         hqq = omega[:,None]*response*omega[None,:]
         hess2[n1:,n1:] -= (hqq + hqq.T) * 0.5
     print_matrix('hess2:', hess2)
-
     force_const_au, mode0 = np.linalg.eigh(hess2)
-
 
     results = {'hessian': hess2}
     freq_au = np.lib.scimath.sqrt(force_const_au)
@@ -221,7 +273,7 @@ if __name__ == '__main__':
     atom = locals()[sys.argv[1]] if len(sys.argv) > 1 else hf
 
     functional = 'hf'
-    mol = build_molecule(atom, '6-31g')
+    mol = build_molecule(MoleculeInput(atom=atom, spin=0), '6-31g')
 
     #frequency = 0.42978 # gs doesn't depend on frequency
     frequency = 0.45726295
@@ -238,6 +290,8 @@ if __name__ == '__main__':
 
     dip_dev = get_dipole_dev(mf, hessobj)
     print_matrix('dip_dev:', dip_dev, 5, 1)
+    dip_response = hessobj.get_polarizability(
+        dipole=mf.mol.intor('int1e_r'))
 
     results = thermo.harmonic_analysis(mol, h) # only molecular block
     force_const_au = results['force_const_au']
@@ -260,5 +314,8 @@ if __name__ == '__main__':
         #print_matrix('force_const_dyne:', results['force_const_dyne'])
         print_matrix('total mode:', results['total_mode'])
 
-        sir = infrared(dip_dev, results['norm_mode'])
+        # Photon response is for Q=omega*q; frequency uses freq_au.
+        dip_ph = -np.atleast_1d(frequency)[:,None] * dip_response.T
+        sir = infrared(np.vstack((dip_dev, dip_ph)),
+                       results['total_mode'].T)
         print_matrix('infrared intensity:', sir)
