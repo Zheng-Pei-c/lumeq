@@ -113,12 +113,17 @@ def get_g1_d1(mf, hessobj, frequency, dip_dev=None):
 
 
 def harmonic_analysis(mol, force_const_au, norm_mode, g1, frequency,
-                      imaginary_freq=True, mass=None):
+                      imaginary_freq=True, mass=None, hessobj=None):
+    """Assemble Eqs. 25a and 25b at the reference CS photon minimum.
+
+    frequency uses the same mass-weighted freq_au units as force_const_au.
+    g1 uses the nuclear dipole derivatives from the same Hessian response.
+    hessobj supplies the coupling-scaled photon response; frequency factors
+    are applied here. None retains the unscreened reference.
+    The assembled mass-weighted matrix is returned as results['hessian'].
+    """
     if mass is None:
         mass = mol.atom_mass_list(isotope_avg=True)
-
-    w2 = np.einsum('...,...->...', frequency, frequency)
-    if isinstance(w2, float): w2 = [w2]
 
     # last dimension is for photon mode
     g1 = np.einsum('zr...,izr->i...', g1, norm_mode).reshape(norm_mode.shape[0], -1)
@@ -127,15 +132,28 @@ def harmonic_analysis(mol, force_const_au, norm_mode, g1, frequency,
     #print(n1, n2)
     hess2 = np.zeros((n1+n2, n1+n2))
     hess2[:n1,:n1] += np.diag(force_const_au)
-    hess2[:n1,n1:] += g1
-    hess2[n1:,:n1] += g1.T
-    hess2[n1:,n1:] += np.diag(w2)
+    omega = np.broadcast_to(np.atleast_1d(frequency), (n2,))
+    hess2[n1:,n1:] = np.diag(omega**2)
+
+    hess2[:n1,n1:] = g1
+    hess2[n1:,:n1] = hess2[:n1,n1:].T
+
+    if hessobj is not None:
+        if np.any(omega <= 0):
+            raise ValueError('Photon frequencies must be positive')
+        response = hessobj.get_polarizability()
+        if response.shape != (n2, n2):
+            raise ValueError('Photon perturbation and Hessian mode counts differ')
+
+        # get_polarizability contracts +lambda.r, hence the electronic minus sign.
+        hqq = omega[:,None]*response*omega[None,:]
+        hess2[n1:,n1:] -= (hqq + hqq.T) * 0.5
     print_matrix('hess2:', hess2)
 
     force_const_au, mode0 = np.linalg.eigh(hess2)
 
 
-    results = {}
+    results = {'hessian': hess2}
     freq_au = np.lib.scimath.sqrt(force_const_au)
     results['freq_error'] = np.count_nonzero(freq_au.imag > 0)
     if not imaginary_freq and np.iscomplexobj(freq_au):
@@ -236,7 +254,8 @@ if __name__ == '__main__':
 
         d1 = get_g1_d1(mf, hessobj, frequency, dip_dev=dip_dev)
         #print_matrix('d1:', d1, 5, 1)
-        results = harmonic_analysis(mol, force_const_au, norm_mode, d1, frequency)
+        results = harmonic_analysis(mol, force_const_au, norm_mode, d1, frequency,
+                                    hessobj=hessobj)
         print_matrix('freq_wavenumber:', results['freq_wavenumber'])
         #print_matrix('force_const_dyne:', results['force_const_dyne'])
         print_matrix('total mode:', results['total_mode'])

@@ -5,6 +5,7 @@ from lumeq.polariton.qed_ks import polariton_cs, get_lambda2
 from lumeq.polariton.qed_ks_grad import get_multipole_matrix_d1, cal_multipole_matrix_fd, finite_difference
 
 from pyscf import lib
+from pyscf.scf import cphf
 from pyscf.lib import logger
 from pyscf.dft.rks import RKS
 from pyscf.hessian import rhf as rhf_hess
@@ -195,6 +196,17 @@ def partial_hess_elec(hessobj, mo_energy=None, mo_coeff=None, mo_occ=None,
 
     de2 += vdse + vdse2
 
+    # At the CS minimum, f_m=Q_m+lambda_m.mu=0, but (f_m^2/2)^[xy]
+    # contributes f_m^[x] f_m^[y] for independent nuclear displacements.
+    coupling = np.atleast_2d(mf.c_lambda)
+    dipole_d1 = dipole_d1.reshape(3, nao, nao, -1)
+    m1 = np.empty((mol.natm, 3, len(coupling)))
+    for ia in range(mol.natm):
+        p0, p1 = aoslices[ia,2:]
+        m1[ia] = -2*np.einsum('xpqm,qp->xm', dipole_d1[:,p0:p1], dm0[:,p0:p1])
+        m1[ia] += mol.atom_charge(ia)*coupling.T
+    de2 += np.einsum('ixm,jym->ijxy', m1, m1)
+
     return de2
 
 
@@ -283,6 +295,13 @@ def make_h1(hessobj, mo_coeff, mo_occ, chkfile=None, atmlst=None, verbose=None):
         h1ao[ia] += veff + veff.transpose(0,2,1)
         h1ao[ia] += hcore_deriv(ia)
 
+        # F^[x] includes f_m^[x] d_m even where f_m=0.
+        m1 = -2*np.einsum('xpqm,qp->xm',
+                          dipole_d1.reshape(3,nao,nao,-1)[:,p0:p1], dm0[:,p0:p1])
+        m1 += mol.atom_charge(ia)*np.atleast_2d(mf.c_lambda).T
+        h1ao[ia] -= np.einsum('xm,mpq->xpq', m1,
+                              np.asarray(dipole).reshape(-1,nao,nao))
+
     if chkfile is None:
         return h1ao
     else:
@@ -293,11 +312,110 @@ def make_h1(hessobj, mo_coeff, mo_occ, chkfile=None, atmlst=None, verbose=None):
 
 
 class Hessian(rks_hess.Hessian):
+    _keys = rks_hess.Hessian._keys | {'mo1s'}
+    # Nuclear block of the extended energy at the reference CS photon minimum.
     partial_hess_elec = partial_hess_elec
     make_h1 = make_h1
 
-polariton_cs.Hessian = lib.class_as_method(Hessian)
+    def get_polarizability(self, dipole=None):
+        """Contract cached dipole responses; return (noperator, nphoton).
 
+        dipole defaults to the coupling-scaled mf.dipole. A custom operator
+        changes the contraction, not the perturbations used in solve_mo1.
+        """
+        mf = self.base
+        mocc = mf.mo_coeff[:,mf.mo_occ > 0]
+        nao = mf.mo_coeff.shape[0]
+        nphoton = np.asarray(mf.dipole).reshape(-1, nao, nao).shape[0]
+
+        if dipole is None:
+            dipole = mf.dipole
+        dipole = np.asarray(dipole).reshape(-1, nao, nao)
+        mo1 = self.mo1s[-nphoton:]
+        response = 4*np.einsum('mpq,npi,qi->mn', dipole, mo1, mocc)
+        return response
+
+
+    def solve_mo1(self, mo_energy, mo_coeff, mo_occ, h1ao,
+                  fx=None, atmlst=None, max_memory=4000, verbose=None):
+        """Solve the extended nuclear/photon response at the CS photon minimum.
+
+        Local mo1s is atom-indexed, with the photon block in its last entry.
+        self.mo1s is flattened to (3*len(atmlst)+nphoton, nao, nocc).
+        Checkpoint entries follow atmlst order; entry len(atmlst) is photons.
+        Return the local lists in PySCF's usual atom-indexed format.
+        """
+        mf, mol = self.base, self.mol
+        log = logger.new_logger(self, verbose)
+        atmlst = list(self.atmlst if atmlst is None else atmlst)
+        nao, nmo = mo_coeff.shape
+        mocc = mo_coeff[:,mo_occ > 0]
+        nocc = mocc.shape[1]
+        # Coupling-scaled dipole, with Q=omega*q and no frequency factors.
+        dipole = np.asarray(mf.dipole).reshape(-1, nao, nao)
+        hph = -np.einsum('pa,mpq,qi->mai', mo_coeff, dipole, mocc)
+        if fx is None:
+            fx0 = rhf_hess.gen_vind(mf, mo_coeff, mo_occ)
+
+            def fx(mo1):
+                # Add the DSE Coulomb response of independent displacements;
+                # its value vanishes at the CS minimum, but its derivative does not.
+                dm1 = 2*np.einsum('pa,xai,qi->xpq', mo_coeff,
+                                  mo1.reshape(-1,nmo,nocc), mocc)
+                dm1 = dm1+dm1.transpose(0,2,1)
+                vj = np.einsum('mpq,xqp->xm', dipole, dm1)
+                return fx0(mo1)-np.einsum('xm,mai->xai', vj, hph)
+
+        s1a = -mol.intor('int1e_ipovlp', comp=3)
+        aoslices = mol.aoslice_by_atom()
+        mem_now = lib.current_memory()[0]
+        max_memory = max(1, max_memory-mem_now)
+        blksize = max(1, int(max_memory*1e6/8/(nmo*nocc*3*6)))
+
+        mo1s, e1s = [None]*(mol.natm+1), [None]*mol.natm
+        for ia0, ia1 in lib.prange(0, len(atmlst), blksize):
+            h1vo, s1vo = [], []
+            for i0 in range(ia0, ia1):
+                ia = atmlst[i0]
+                shl0, shl1, p0, p1 = aoslices[ia]
+                s1ao = np.zeros((3, nao, nao))
+                s1ao[:,p0:p1] += s1a[:,p0:p1]
+                s1ao[:,:,p0:p1] += s1a[:,p0:p1].transpose(0,2,1)
+                h1vo.append(np.einsum('pa,xpq,qi->xai', mo_coeff, h1ao[ia], mocc))
+                s1vo.append(np.einsum('pa,xpq,qi->xai', mo_coeff, s1ao, mocc))
+
+            nnuc = 3*(ia1-ia0)
+            if ia1 == len(atmlst):
+                h1vo.append(hph)
+                s1vo.append(np.zeros_like(hph))
+            h1vo = np.vstack(h1vo)
+            s1vo = np.vstack(s1vo)
+            tol = mf.conv_tol_cpscf
+            mo1, e1 = cphf.solve(fx, mo_energy, mo_occ, h1vo, s1vo,
+                                tol=tol, max_cycle=self.max_cycle,
+                                level_shift=self.level_shift, verbose=log)
+
+            mo1 = np.einsum('pa,xai->xpi', mo_coeff, mo1)
+            if ia1 == len(atmlst):
+                mo1s[-1] = mo1[nnuc:]
+                key = 'scf_mo1/%d' % len(atmlst)
+                lib.chkfile.save(self.chkfile, key, mo1s[-1])
+            mo1 = mo1[:nnuc].reshape(-1,3,nao,nocc)
+            e1 = e1[:nnuc].reshape(-1,3,nocc,nocc)
+            for k in range(ia1-ia0):
+                ia = atmlst[k+ia0]
+                mo1s[ia] = mo1[k]
+                e1s[ia] = e1[k].reshape(3,nocc,nocc)
+                d = ia0+k
+                key = 'scf_mo1/%d' % d
+                lib.chkfile.save(self.chkfile, key, mo1[k])
+
+            mo1 = e1 = None
+
+        self.mo1s = np.vstack([mo1s[ia] for ia in atmlst]+[mo1s[-1]])
+        return mo1s, e1s
+
+polariton_cs.Hessian = lib.class_as_method(Hessian)
 
 
 
@@ -342,7 +460,15 @@ if __name__ == '__main__':
 
     norder, step_size = 2, 1e-4
 
-    fd_e, fd_mo = finite_difference(mf, norder, step_size, extra=True)[:2]
+    from lumeq.polariton.qed_ks import polariton_ns
+    coupling2 = np.atleast_2d(coupling)
+    mu0 = mf.dip_moment(unit='au', verbose=0)
+    mf_ns = polariton_ns(mol)
+    mf_ns.xc, mf_ns.grids.prune, mf_ns.grids.level = mf.xc, mf.grids.prune, mf.grids.level
+    mf_ns.get_multipole_matrix(coupling2,
+                               trans_coeff=-coupling2.T @ (coupling2 @ mu0))
+    mf_ns.kernel(dm0=mf.make_rdm1())
+    fd_e, fd_mo = finite_difference(mf_ns, norder, step_size, extra=True)[:2]
 
     #fd_mo[0::3,5,3] = 0.
     #fd_mo[np.abs(fd_mo)>2.] = 0.
@@ -352,7 +478,7 @@ if __name__ == '__main__':
     print_matrix('fd_mo1', fd_mo1, 5, 1)
 
     mo1 = lib.chkfile.load(hessobj.chkfile, 'scf_mo1')
-    mo1 = np.reshape([mo1[k] for k in mo1], fd_mo1.shape)
+    mo1 = np.reshape([mo1[str(k)] for k in range(mol.natm)], fd_mo1.shape)
     print_matrix('mo1:', mo1, 5, 1)
     print('cpscf mo1 diff:', np.linalg.norm(fd_mo1-mo1))
 
