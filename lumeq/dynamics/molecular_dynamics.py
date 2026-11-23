@@ -27,6 +27,8 @@ class MolecularDynamics():
 
         self.ndstep = self.set_nuclear_step(key)
         self.edstep = self.set_electronic_step(ed_key, atmsym=key['atmsym'], **kwargs)
+        ph_key = dict(ph_key)
+        ph_key.setdefault('init_temp', self.ndstep.init_temp)
         self.phstep = self.set_photon_step(ph_key, dt=self.dt)
 
         self.md_time_total_energy = np.zeros(self.nsteps)
@@ -95,9 +97,9 @@ class MolecularDynamics():
             et, force = edstep.init_electronic_density_static(coords, **kwargs)
             dipole = edstep.mf.dip_moment(unit='au', verbose=0)
 
-            if phstep and getattr(phstep, 'init_method', None) == 'minimum':
-                # Choose photon coordinate from the unperturbed starting dipole.
-                phstep.get_minimim_displacement(dipole)
+            if isinstance(phstep, PhotonStep2) and 'minimum' in phstep.init_method:
+                # One-pass displacement; preserve the sampled photon velocities.
+                phstep.init_coordinate_velocity(molecular_dipole=dipole)
                 kwargs['trans_coeff'] = phstep.get_trans_coeff()
                 # Evaluate the initial electronic state at that chosen q;
                 et, force = edstep.init_electronic_density_static(coords, **kwargs)

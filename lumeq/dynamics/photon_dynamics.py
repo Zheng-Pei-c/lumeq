@@ -193,23 +193,49 @@ class PhotonStep2(harmonic_oscillator):
 
     def convert_parameter_units(self, unit_dict):
         self.n_site = 3 #xyz
-        self.frequency = convert_units(self.frequency, self.freq_unit, 'hartree')
-
-        if isinstance(self.frequency, float):
-            self.frequency = np.array([self.frequency])
-            self.c_lambda = np.array([self.c_lambda])
-
+        self.frequency = np.atleast_1d(convert_units(
+            np.asarray(self.frequency), self.freq_unit, 'hartree'))
+        self.c_lambda = np.atleast_2d(self.c_lambda)
         self.mass = np.ones(len(self.frequency))
-        if self.init_method == 'thermo':
-            from .oscillator_dynamics import get_boltzmann_beta
-            self.beta_b = get_boltzmann_beta(self.init_temp)
 
 
-    def get_minimim_displacement(self, molecular_dipole):
-        self.coordinate = -np.einsum('i,ix,x->ix', 1./self.frequency, self.c_lambda, molecular_dipole)
+    def init_coordinate_velocity(self, init_method=None, molecular_dipole=None):
+        """Initialize once; set a one-pass minimum when a dipole is supplied.
+
+        Construction sets zero coordinates and samples velocities for methods
+        containing 'thermo'. A later call with molecular_dipole updates only
+        the coordinates for methods containing 'minimum', preserving velocities.
+        """
+        if init_method is None: init_method = self.init_method
+
+        if molecular_dipole is None:
+            self.omega2 = self.frequency**2
+            self.coordinate = np.zeros((len(self.frequency), self.n_site))
+            self.velocity = np.zeros_like(self.coordinate)
+            if 'thermo' in init_method:
+                self.velocity = self.init_velocity_thermo(
+                    seed=getattr(self, 'random_seed', None))
+
+        elif 'minimum' in init_method:
+            self.coordinate = self.get_minimum_displacement(molecular_dipole)
+
         self.get_energy(self.velocity)
 
-        return self.coordinate
+
+    def get_minimum_displacement(self, molecular_dipole):
+        return -np.einsum('i,ix,x->ix', 1./self.frequency, self.c_lambda,
+                          molecular_dipole)
+
+
+    def init_velocity_thermo(self, temp=None, seed=None):
+        """Sample Maxwell velocities using photon masses and temperature."""
+        from .oscillator_dynamics import get_boltzmann_beta
+        if temp is None: temp = self.init_temp
+
+        beta_b = get_boltzmann_beta(temp)
+        sigma = np.sqrt(1./beta_b/self.mass)
+        rng = np.random.default_rng(seed)
+        return rng.normal(size=(len(self.mass), self.n_site)) * sigma[:,None]
 
 
     def print_variables(self):
