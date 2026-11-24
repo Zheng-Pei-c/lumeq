@@ -92,20 +92,16 @@ class MolecularDynamics():
             init_time = 0.
             # A prescribed photon coordinate must also be included in the
             # initial electronic Hamiltonian, before evaluating its force.
-            if phstep and hasattr(phstep, 'coordinate'):
+            if phstep:
                 kwargs['trans_coeff'] = phstep.get_trans_coeff()
             et, force = edstep.init_electronic_density_static(coords, **kwargs)
             dipole = edstep.mf.dip_moment(unit='au', verbose=0)
 
-            if isinstance(phstep, PhotonStep2) and 'minimum' in phstep.init_method:
-                # One-pass displacement; preserve the sampled photon velocities.
-                phstep.init_coordinate_velocity(molecular_dipole=dipole)
-                kwargs['trans_coeff'] = phstep.get_trans_coeff()
-                # Evaluate the initial electronic state at that chosen q;
+            if phstep and 'minimum' in phstep.init_method:
+                kwargs.update(phstep.init_density(molecular_dipole=dipole))
                 et, force = edstep.init_electronic_density_static(coords, **kwargs)
                 dipole = edstep.mf.dip_moment(unit='au', verbose=0)
                 photon_energy = phstep.energy
-                print('photon initial coordinate:\n', phstep.coordinate)
 
             if 'kick' in ndstep.init_method:
                 # Apply the supplied force during the first nuclear half-step.
