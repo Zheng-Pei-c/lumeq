@@ -29,7 +29,7 @@ class Exciton():
         self.exciton_dt = 1 # exciton dynamics time step in au
         self.nstate = 0 # exciton number of each site
 
-        self.propogator = 'magnus' # time propagation method
+        self.propagator = 'magnus' # magnus (midpoint), split (left), magnus_split (midpoint)
 
         # unit cell informations
         # including intermolecular distance: abc
@@ -59,6 +59,11 @@ class Exciton():
         self.convert_parameter_units(getattr(self, 'unit_dict', {}))
 
         self.check_sanity()
+
+        self.onsite_disorder = getattr(self, 'onsite_disorder',
+                                       bool(np.any(self.coupling_g)))
+        self.coupling_disorder = getattr(self, 'coupling_disorder',
+                                         bool(np.any(self.coupling_a)))
 
 
     def process_parameters(self):
@@ -101,10 +106,10 @@ class Exciton():
                     #print('index: ', ic, '[',i,j,k,l,'];', jc, '[',a,b,c,d,'];',x)
 
         self.hamil_index = hamil_index
-        self.sites = sites = list(set(sites))
+        self.sites = sites = sorted(set(sites))
         print('%4d out of %4d molecules are included in the Hamiltonian.'
               % (len(self.sites), int((ic+1)*n_mol)))
-        hamil_filter = (np.reshape(sites, (-1,1))*2 + np.arange(self.nstate)[None,:]).ravel()
+        hamil_filter = (np.reshape(sites, (-1,1))*self.nstate + np.arange(self.nstate)[None,:]).ravel()
         self.hamil_filter = np.ix_(hamil_filter, hamil_filter) # remove isolated entries in hamiltonian
         if self.debug >= 2:
             print('sites:', self.sites)
@@ -141,7 +146,7 @@ class Exciton():
         if xyzfile is None:
             xyzfile = 'molecular_sites_'+str(self.model)+'_'+str(self.n_cell)
             xyzfile = getattr(self, 'xyzfile', xyzfile)
-        if xyzfile[-4] != '.xyz':
+        if not xyzfile.endswith('.xyz'):
             xyzfile += '.xyz'
         symbols = ['Ag'] * self.n_site
         coords = self.length
@@ -179,19 +184,46 @@ class Exciton():
 
 
     def exciton_diagonal(self, energy=None, **kwargs):
-        r"""Return the on-site energy."""
+        r"""Return and store a copy of the onsite energies.
+
+        Args:
+            energy (numpy.ndarray or None): Energies in Hartree, shape ``(M,)``;
+                None uses self.energy, where M=n_site*nstate.
+            **kwargs: Unused additional builder arguments.
+
+        Returns:
+            numpy.ndarray: Copied energies, shape ``(M,)``, stored as h_diagonal.
+        """
         if energy is None: energy = self.energy
-        return energy
+        self.h_diagonal = energy.copy()
+        return self.h_diagonal
 
 
     def exciton_couplings(self, coupling_j=None, neighbor_index=None, **kwargs):
-        r"""Build the exciton couplings part of exciton Hamiltonian."""
+        r"""Build the Hermitian coupling matrix for the retained sites.
+
+        The precomputed hamil_index and hamil_filter determine the topology and
+        basis order. The assembled matrix is added to its conjugate transpose.
+        For Strang splitting, the coupling topology must give diag(J)=0.
+
+        Args:
+            coupling_j (numpy.ndarray or None): Couplings in Hartree, shape
+                ``(n_cell, ndimer, nstate, nstate)``; None uses self.coupling_j.
+            neighbor_index (list or None): Unused compatibility argument;
+                this implementation uses the precomputed hamil_index.
+            **kwargs: Unused additional builder arguments.
+
+        Returns:
+            numpy.ndarray: Coupling matrix J, shape ``(M, M)``, where
+                M=n_site*nstate. A separate copy is stored as h_coupling.
+        """
         if coupling_j is None: coupling_j = self.coupling_j
         hamil_index = self.hamil_index
 
         n_cell, nt, ns = self.n_cell, self.n_mol, self.nstate
         # n_site = n_cell*nt
-        hamiltonian = np.zeros((n_cell, nt, ns, n_cell, nt, ns))
+        hamiltonian = np.zeros((n_cell, nt, ns, n_cell, nt, ns),
+                               dtype=np.result_type(coupling_j, float))
 
         for (left, l, right, d, x) in hamil_index:
             hamiltonian[left,l,:,right,d] = coupling_j[left, x]
@@ -199,54 +231,87 @@ class Exciton():
         hamiltonian = hamiltonian.reshape(n_cell*nt*ns, -1)
         hamiltonian = hamiltonian[self.hamil_filter]
         hamiltonian += hamiltonian.conj().T
+
+        self.h_coupling = hamiltonian.copy()
         return hamiltonian
 
 
     def get_hamiltonian(self, energy=None, coupling_j=None,
                         neighbor_index=None, **kwargs):
-        r"""
-        Build the periodic exciton Hamiltonian of exciton part.
+        r"""Assemble the Hamiltonian from cached onsite and coupling components.
+
+        Each component is rebuilt when its explicit argument is supplied, its
+        disorder flag is enabled, or its cache is absent. With disorder disabled,
+        changing self.energy or self.coupling_j alone does not refresh the cache;
+        pass energy or coupling_j explicitly. Explicit overrides remain cached
+        until the corresponding component is rebuilt again.
 
         Args:
-            energy (numpy.ndarray, optional): Exciton energies for each state.
-            coupling_j (numpy.ndarray, optional): Exciton-exciton couplings with shape
-                ``(ndimer, nstate, nstate)``.
-            neighbor_index (list, optional): Neighbor indices for the couplings.
-            **kwargs: Additional keyword arguments.
+            energy (numpy.ndarray or None): Onsite energies in Hartree, shape
+                ``(M,)``. A supplied array refreshes h_diagonal; None uses
+                self.energy only when the diagonal is rebuilt.
+            coupling_j (numpy.ndarray or None): Couplings in Hartree, shape
+                ``(n_cell, ndimer, nstate, nstate)``. A supplied array rebuilds
+                the coupling matrix; None uses self.coupling_j on a rebuild.
+            neighbor_index (list or None): Passed to exciton_couplings() when
+                rebuilding; unused by the base builder.
+            **kwargs: Forwarded to component builders only when they are called.
+                Additional arguments alone do not trigger a rebuild.
 
         Returns:
-            numpy.ndarray: Exciton Hamiltonian with shape ``(nsite*nstate, nsite*nstate)``.
+            numpy.ndarray: Stored Hamiltonian, shape ``(M, M)``, where
+                M=n_site*nstate. Its diagonal is replaced by h_diagonal.
         """
-        self.hamiltonian = self.exciton_couplings(coupling_j, neighbor_index, **kwargs)
-        diagonal = self.exciton_diagonal(energy, **kwargs)
-        np.fill_diagonal(self.hamiltonian, diagonal)
+        if (energy is not None or self.onsite_disorder
+                or not hasattr(self, 'h_diagonal')):
+            self.h_diagonal = self.exciton_diagonal(energy, **kwargs)
 
+        if (coupling_j is not None or self.coupling_disorder
+                or not hasattr(self, 'h_coupling')):
+            if coupling_j is None: coupling_j = self.coupling_j
+            self.hamiltonian = self.exciton_couplings(coupling_j,
+                                                      neighbor_index, **kwargs)
+
+        np.fill_diagonal(self.hamiltonian, self.h_diagonal)
         return self.hamiltonian
 
 
     def get_initial_coefficients(self, H=None, method=None, **kwargs):
-        r"""
-        Get the initial exciton coefficients from the exciton Hamiltonian.
+        r"""Initialize a normalized pure-state exciton wavefunction.
+
+        ``random`` assigns random complex amplitudes to every state of the sites
+        selected by n_site_init. Integer indices refer to the retained-site order;
+        ``center``, ``edge0``, and ``edge1`` select the middle, first, or last site
+        in lexicographic coordinate order. ``equal`` populates all basis states
+        with equal amplitudes. ``ground`` selects the lowest-energy eigenvector.
+        ``thermal`` draws one eigenvector with probability
+
+        .. math::
+
+            p_k=\frac{e^{-\beta(E_k-E_{\min})}}
+                      {\sum_j e^{-\beta(E_j-E_{\min})}}.
+
+        A thermal draw is a pure state; the thermal mixture is obtained by
+        averaging independent draws.
 
         Args:
-            H (numpy.ndarray, optional): Exciton Hamiltonian with shape
-                ``(nsite*nstate, nsite*nstate)``.
-            method (str, optional): Method used to initialize the coefficients.
-                ``'random'`` gives random coefficients, ``'equal'`` gives an equal
-                superposition state, ``'ground'`` gives the ground state, and
-                ``'thermal'`` gives a thermal equilibrium state at the given
-                temperature.
+            H (numpy.ndarray or None): Hamiltonian in Hartree, shape ``(M, M)``;
+                None calls get_hamiltonian().
+            method (str or None): ``random``, ``equal``, ``ground``, or ``thermal``.
+                None uses initial_method, defaulting to ``random``.
+            **kwargs: Builder arguments and optional seed. The seed overrides
+                random_seed for random amplitudes and thermal selection.
 
         Returns:
-            numpy.ndarray: Squared exciton coefficients with shape
-            ``(nsite*nstate,)``.
+            numpy.ndarray: Initial populations ``abs(coefficients)**2``, shape
+                ``(M,)``, where M=n_site*nstate. Stores the complex coefficients.
         """
         if H is None: H = self.get_hamiltonian(**kwargs)
         if method is None: method = getattr(self, 'initial_method', 'random')
 
         if method == 'random':
             idx = getattr(self, 'n_site_init', 0)
-            rng = np.random.default_rng(kwargs.get('seed', None))
+            rng = np.random.default_rng(kwargs.get('seed', getattr(self, 'random_seed', None)))
             if isinstance(idx, str):
                 order = np.lexsort(tuple(self.length.T[::-1]))
                 if idx == 'center':
@@ -256,14 +321,21 @@ class Exciton():
                 elif idx == 'edge1':
                     idx = order[-1]
                 idx = int(idx)
-            if isinstance(idx, int): idx = [idx]
-            idx = [x for i in idx for x in (2*i, 2*i+1)]
-            print('Wavafunction initializes at sites*states:', idx)
+            if isinstance(idx, (int, np.integer)): idx = [idx]
+            idx = np.asarray(idx, dtype=int).ravel()
+            if idx.size == 0 or np.any((idx < 0) | (idx >= self.n_site)):
+                raise ValueError('Initial site indices must lie in [0, n_site).')
+            idx = [self.nstate*i + state for i in idx for state in range(self.nstate)]
+            print('Wavefunction initializes at sites*states:', idx)
             values = rng.random(len(idx)) + 1j * rng.random(len(idx))
             values /= np.linalg.norm(values)
             coeffs0 = np.zeros(self.n_site*self.nstate, dtype=complex)
             for i, v in zip(idx, values):
                 coeffs0[i] += v
+
+        elif method == 'equal':
+            coeffs0 = np.ones(self.n_site*self.nstate, dtype=complex)
+            coeffs0 /= np.sqrt(coeffs0.size)
 
         elif method in {'ground', 'thermal'}:
             evals, evecs = np.linalg.eigh(H)
@@ -272,43 +344,82 @@ class Exciton():
                 coeffs0 = evecs[:,0] # ground state
 
             elif method == 'thermal':
-                weights = np.exp(- self.beta_b * evals)
+                weights = np.exp(-self.beta_b * (evals - evals.min()))
                 weights /= np.sum(weights)
-                # TODO what is random choice here?
-                index = np.random.choice(len(evals), p=weights)
+                rng = np.random.default_rng(kwargs.get('seed', getattr(self, 'random_seed', None)))
+                index = rng.choice(len(evals), p=weights)
                 coeffs0 = evecs[:,index]
 
+        else:
+            raise ValueError(f'Unknown initial method: {method}')
+
         self.coefficients = coeffs0
-        c2 = np.einsum('i,i->i', self.coefficients.conj(), self.coefficients)
-        return c2.real
+        return np.abs(self.coefficients)**2 # c2
 
 
-    def update_coefficients(self, H=None, dt=None, exp_h=None, **kwargs):
-        r"""
-        Update the exciton coefficients with time step dt.
+    def update_coefficients(self, dt=None, **kwargs):
+        r"""Propagate coefficients using the current sampled Hamiltonian.
+
+        For H=D+J with diag(J)=0, split modes apply Strang factors directly:
+
+        .. math::
+
+            c_{n+1}=e^{-ihD/2}\left[e^{-ihJ}\left(e^{-ihD/2}c_n\right)\right].
+
+        Both diagonal factors use the same sample. The coupling exponential is
+        cached until h or the assembled h_coupling changes. Parameter changes
+        reach this cache only after get_hamiltonian() refreshes the component.
+        Other modes apply the full Hamiltonian exponential. Names containing
+        ``eigen`` use a Hermitian eigendecomposition without storing eigenpairs.
+
+        The MC driver selects the left endpoint for ``split`` and the midpoint
+        for ``magnus`` and ``magnus_split``. Magnus retains its first term with
+        midpoint quadrature, omitting higher commutator terms:
+
+        .. math::
+
+            \Omega_1=-i\int_{t_n}^{t_n+h}H(s)\,ds\approx-ihH(t_n+h/2).
+
+        Atomic units set hbar=1. For smooth time dependence, the midpoint
+        methods have global order two and left-endpoint splitting has order
+        one. Stochastic paths require separate time-step convergence checks.
 
         Args:
-            dt (float): Time step in atomic units.
+            dt (float or None): Propagation step in au; None uses exciton_dt.
+                MC propagation uses a positive full step, even for midpoint sampling.
+            **kwargs: Parameters passed to get_hamiltonian().
 
         Returns:
-            numpy.ndarray: Squared exciton coefficients with shape
-            ``(nsite*nstate,)``.
+            numpy.ndarray: Updated populations ``abs(coefficients)**2``, shape
+                ``(M,)``, where M=n_site*nstate. Updates self.coefficients.
         """
-        if exp_h is None:
+        from scipy.linalg import expm
 
-            if H is None: H = self.get_hamiltonian(**kwargs)
-            if dt is None: dt = self.exciton_dt
+        if dt is None: dt = self.exciton_dt
 
+        self.get_hamiltonian(**kwargs)
+
+        if 'split' in self.propagator:
+            cache = getattr(self, '_exp_j_cache', None)
+            if (cache is None or dt != cache[0]
+                    or not np.array_equal(self.h_coupling, cache[1])):
+                exp_j = expm(-1j * dt * self.h_coupling)
+                self._exp_j_cache = (dt, self.h_coupling.copy(), exp_j)
+            else:
+                exp_j = cache[2]
+
+            exp_d = np.exp(-0.5j * dt * self.h_diagonal)
+            self.coefficients = exp_d * (exp_j @ (exp_d * self.coefficients))
+
+        elif 'eigen' in self.propagator:
             evals, evecs = np.linalg.eigh(self.hamiltonian)
-            exp_h = np.exp((-1j * dt) * evals)
-            exp_h = np.einsum('ji,i,ki->jk', evecs.conj(), exp_h, evecs)
+            phases = np.exp(-1j * dt * evals)
+            self.coefficients = evecs @ (phases * (evecs.conj().T @ self.coefficients))
 
-            self.h_eigens = [evals, evecs] # save for analysis if needed
+        else:
+            self.coefficients = expm(-1j * dt * self.hamiltonian) @ self.coefficients
 
-        self.coefficients = np.einsum('ij,j->i', exp_h, self.coefficients)
-        # c2 should be pure real even though the following is complex type
-        c2 = np.einsum('i,i->i', self.coefficients.conj(), self.coefficients)
-        return c2.real
+        return np.abs(self.coefficients)**2
 
 
     def cal_energy(self, hamiltonian=None, coefficients=None):
@@ -335,10 +446,8 @@ class Exciton():
             tuple: Exciton eigenvalues and oscillator strengths, each with shape
             ``(nsite*nstate,)``.
         """
-        if hasattr(self, 'h_eigens'):
-            evals, evecs = self.h_eigens
-        else:
-            evals, evecs = np.linalg.eigh(self.hamiltonian)
+        evals, evecs = np.linalg.eigh(self.hamiltonian)
+        self.h_eigens = [evals, evecs] # save eigenvalues and eigenvectors
 
         dipole = np.reshape(self.dipole, (self.n_site*self.nstate, 3))
         mu = np.einsum('ix,ik->kx', dipole, evecs)
@@ -387,86 +496,116 @@ class Exciton():
 
 
 class ExcitonMC(Exciton):
-    r"""
-    Thermal fluctuations are accounted for by Monte Carlo sampling Hamiltonian.
+    r"""Exciton dynamics driven by sampled Gaussian disorder.
+
+    Call get_sampler() once to configure the onsite and coupling channels.
+    update_parameters() samples their enabled fluctuations; the inherited
+    Hamiltonian and propagation methods advance the exciton state.
     """
     def get_sampler(self, variance=0.1, seed=123, **kwargs):
-        r"""
-        Get the sampler for Monte Carlo sampling of exciton Hamiltonian.
+        r"""Configure onsite and coupling samplers and reset their fluctuations.
+
+        The channels use independent random streams with the same variance, mean,
+        and tau_c. Their samples match energy.shape and coupling_j.shape.
+        A positive tau_c selects temporal correlation; zero or None selects
+        independent draws. Channel flags default to their current settings.
+        Spatial lengths use coordinate units; default site positions use Angstrom.
 
         Args:
-            variance (float): Variance of the random numbers.
-            seed (int): Seed for the random number generator.
+            variance (float): Stationary variance in Hartree squared.
+            seed (int or None): Seed for the two independent random streams.
+            **kwargs: Channel and distribution options listed below.
+
+        Keyword Args:
+            onsite_disorder (bool): Enable onsite fluctuations.
+            coupling_disorder (bool): Enable coupling fluctuations.
+            sigma (float): Standard deviation in Hartree; overrides variance.
+            mean (float): Mean fluctuation in Hartree; default 0.
+            covariance (bool): Enable onsite spatial correlation; default False.
+            coordinate (numpy.ndarray): Onsite coordinates, shape ``(energy.size, 3)``;
+                defaults to site positions repeated for each state.
+            ell_c (float): Positive onsite spatial correlation length.
+            coupling_covariance (bool): Enable coupling spatial correlation;
+                default False.
+            coupling_coordinate (numpy.ndarray): Required for coupling covariance,
+                shape ``(coupling_j.size, 3)``, following flattened coupling order.
+            coupling_ell_c (float): Positive coupling spatial correlation length.
+            kind (str): Spatial kernel, ``exp`` (default) or ``gauss``.
+            nugget (float): Covariance diagonal regularization; default 1e-12.
+
+        Returns:
+            None: Sets onsite_sampler, coupling_sampler, and their sampling callables.
+                Copies current parameters to energy0 and coupling_j0 and zeros delta_e
+                and delta_j. Correlated noise starts from zero fluctuations rather
+                than a stationary draw.
         """
-        self.onsite_disorder = kwargs.get('onsite_disorder', True)
-        self.coupling_disorder = kwargs.get('coupling_disorder', False)
-
-        sampler = Sampler(size=(self.n_site*self.nstate), variance=variance,
-                          seed=seed, **kwargs)
+        self.onsite_disorder = kwargs.get(
+            'onsite_disorder', getattr(self, 'onsite_disorder', True))
+        self.coupling_disorder = kwargs.get(
+            'coupling_disorder', getattr(self, 'coupling_disorder', False))
         self.tau_c = getattr(self, 'tau_c', None)
-        if self.tau_c: # get the function pointer
-            self.sample = sampler.correlated_sample
-            print('Using correlated sampling with tau_c = %.3f fs.' % convert_units(self.tau_c, 'au', 'fs'))
-        else:
-            self.sample = sampler.sample
 
-        # save unperturbed parameters
+        seeds = np.random.SeedSequence(seed).spawn(2)
+        common = {name: kwargs[name] for name in ('sigma', 'mean', 'kind', 'nugget')
+                  if name in kwargs}
+        onsite_options = dict(common)
+        if self.onsite_disorder and kwargs.get('covariance', False):
+            coordinate = kwargs.get('coordinate')
+            if coordinate is None:
+                coordinate = np.repeat(self.length, self.nstate, axis=0)
+            onsite_options.update(covariance=True, coordinate=coordinate,
+                                  ell_c=kwargs.get('ell_c'))
+
+        coupling_options = dict(common)
+        if self.coupling_disorder and kwargs.get('coupling_covariance', False):
+            coupling_options.update(covariance=True,
+                                    coordinate=kwargs.get('coupling_coordinate'),
+                                    ell_c=kwargs.get('coupling_ell_c'))
+
+        self.onsite_sampler = Sampler(size=self.energy.shape, variance=variance,
+                                      seed=seeds[0], **onsite_options)
+        self.coupling_sampler = Sampler(size=self.coupling_j.shape, variance=variance,
+                                        seed=seeds[1], **coupling_options)
+        method = 'correlated_sample' if self.tau_c else 'sample'
+        self.onsite_sample = getattr(self.onsite_sampler, method)
+        self.coupling_sample = getattr(self.coupling_sampler, method)
+        if self.tau_c:
+            print('Using correlated sampling with tau_c = %.3f fs.'
+                  % convert_units(self.tau_c, 'au', 'fs'))
+
         self.energy0 = np.copy(self.energy)
         self.coupling_j0 = np.copy(self.coupling_j)
-
-        # initial disorders
-        self.delta_e = np.zeros_like(self.energy)
-        self.delta_j = np.zeros_like(self.coupling_j)
+        self.delta_e = np.zeros_like(self.energy, dtype=float)
+        self.delta_j = np.zeros_like(self.coupling_j, dtype=float)
 
 
-    def update_parameters(self, sample=None, dt=None):
-        r"""
-        Update the exciton Hamiltonian parameters by Monte Carlo sampling.
+    def update_parameters(self, dt=None):
+        r"""Sample enabled fluctuations and update the exciton parameters.
+
+        .. math::
+
+            E(t)=E_0+\delta E(t),\qquad J(t)=J_0+\delta J(t).
+
+        Disabled channels retain their values. Call get_hamiltonian() separately
+        to assemble the updated Hamiltonian.
 
         Args:
-            sample (callable, optional): Sampling function used to generate the
-                random numbers. Passing a callable avoids repeated attribute
-                lookup.
+            dt (float or None): Elapsed time in au; None uses exciton_dt.
+                Correlated samplers use dt; independent samplers ignore it.
+
+        Returns:
+            None: Updates the enabled delta_e/energy and delta_j/coupling_j arrays
+                without changing their shapes.
         """
-        if sample is None: sample = self.sample
         if dt is None: dt = self.exciton_dt
 
         if self.onsite_disorder:
-            self.delta_e = sample(self.delta_e, self.tau_c, dt)
+            self.delta_e = self.onsite_sample(self.delta_e, self.tau_c, dt)
             self.energy = self.energy0 + self.delta_e
 
         if self.coupling_disorder:
-            self.delta_j = sample(self.delta_j, self.tau_c, dt)
+            self.delta_j = self.coupling_sample(self.delta_j, self.tau_c, dt)
             self.coupling_j = self.coupling_j0 + self.delta_j
-
-
-    def split_operator(self, dt=None, **kwargs):
-        r"""
-        Get the split operator for time propagation.
-
-        Math `exp(-i H dt) = exp(-i H_d dt/2) exp(-i H_c dt) exp(-i H_d dt/2)`
-
-        Args:
-            dt (float, optional): Time step in atomic units.
-
-        Returns:
-            callable: Function that returns the time-propagation operator with
-            shape ``(nsite*nstate, nsite*nstate)``.
-        """
-        if dt is None: dt = self.exciton_dt
-
-        J = self.exciton_couplings(**kwargs)
-        from scipy.linalg import expm
-        exp_j = expm(-1j * J * dt)
-
-        dt_half = dt / 2.
-        def kernel():
-            exp_d = np.exp((-1j * dt_half) * self.energy)
-            exp_h = np.einsum('i,ij,j->ij', exp_d, exp_j, exp_d)
-            return exp_h
-
-        return kernel
-
 
 
 class ExcitonStep(Exciton):
@@ -658,20 +797,70 @@ class ExcitonDynamics():
 
 
 class ExcitonDynamicsMC(ExcitonDynamics):
-    r"""
-    Exciton dynamics with Monte Carlo sampling Hamiltonian.
-    Wrapper class containing exciton dynamics with MC disorders.
+    r"""Run one exciton trajectory with Monte Carlo disorder sampling.
+
+    Constructs an ExcitonMC step, propagates it with kernel(), and saves its
+    observables. Ensemble averaging requires multiple independent trajectories.
     """
     def set_dynamics_class(self, key):
-        r"""Set the dynamics class for exciton Monte Carlo dynamics."""
+        r"""Construct the ExcitonMC step and configure its samplers.
+
+        Args:
+            key (dict): Exciton parameters and sampler options. mc_covariance enables
+                onsite spatial correlation; mc_coupling_covariance enables coupling
+                spatial correlation. A supplied wrapper dt overrides exciton_dt.
+
+        Returns:
+            None: Sets edstep with the requested disorder channels and samplers.
+        """
+        if self.dt is not None:
+            key['exciton_dt'] = self.dt
         self.edstep = ExcitonMC(key)
+
+        options = {name: key[name] for name in (
+            'coordinate', 'ell_c', 'kind', 'nugget', 'sigma', 'mean',
+            'coupling_coordinate', 'coupling_ell_c') if name in key}
+        options.update(
+            onsite_disorder=key.get('onsite_disorder', True),
+            coupling_disorder=key.get('coupling_disorder', False),
+            covariance=key.get('mc_covariance', False),
+            coupling_covariance=key.get('mc_coupling_covariance', False))
+
         self.edstep.get_sampler(variance=key.get('mc_variance', 0.1),
-                                seed=key.get('random_seed', None),
-                                covariance=key.get('mc_covariance', False))
+                                seed=key.get('random_seed', None), **options)
 
 
     @monitor_performance(level=0)
     def kernel(self):
+        r"""Propagate one disorder trajectory and save its observables.
+
+        For H(t)=D(t)+J(t), let h=dt and t_m=t_n+h/2. Atomic units set hbar=1:
+
+        .. math::
+
+            U_n^{\mathrm{magnus}}=e^{-ihH(t_m)},
+
+            U_n^{\mathrm{split}}\approx e^{-ihD(t_n)/2}
+            e^{-ihJ(t_n)}e^{-ihD(t_n)/2},
+
+            U_n^{\mathrm{magnus\_split}}\approx e^{-ihD(t_m)/2}
+            e^{-ihJ(t_m)}e^{-ihD(t_m)/2}.
+
+        ``split`` propagates with the left-endpoint Hamiltonian, then advances
+        parameters by h. Midpoint modes advance parameters by h/2 before and after
+        a full propagation step. Both diagonal half steps use the same sample.
+        Each sampling call draws fresh disorder when temporal correlation is disabled.
+
+        Magnus retains the first term with midpoint quadrature. For smooth time
+        dependence, global orders are two for magnus and magnus_split and one for
+        split. Stochastic paths require separate time-step convergence checks.
+
+        Returns:
+            None: Writes output_name+'.npz', including the initial time point.
+                Saves site populations, state participation ratios, spatial moments
+                in Angstrom squared, and endpoint energies in eV. Bath energy is
+                excluded. debug=-2 additionally saves onsite energies in Hartree.
+        """
         # assign local variables for class attributes
         edstep = self.edstep
 
@@ -685,13 +874,13 @@ class ExcitonDynamicsMC(ExcitonDynamics):
 
         self.total_energy[0] = edstep.cal_energy()
 
-        if getattr(edstep, 'propogator', 'magnus'):
-            # hamiltonian is half step advanced
-            edstep.update_parameters(dt=edstep.exciton_dt/2.)
-        if getattr(edstep, 'propogator', 'split'):
-            exp_h = edstep.split_operator(dt=edstep.exciton_dt)
-        else:
-            exp_h = lambda: None
+        propagator = edstep.propagator
+        if propagator not in {'magnus', 'split', 'magnus_split'}:
+            raise ValueError("propagator must be 'magnus', 'split', or 'magnus_split'.")
+
+        dt = edstep.exciton_dt
+        midpoint = 'magnus' in propagator
+        sample_dt = dt/2 if midpoint else 0.
 
         onsite_energy = None
         if self.debug == -2:
@@ -699,8 +888,16 @@ class ExcitonDynamicsMC(ExcitonDynamics):
             onsite_energy[0] = edstep.energy
 
         for ti in range(1, self.nsteps):
-            edstep.update_parameters()
-            c2 = edstep.update_coefficients(exp_h=exp_h())
+            # split uses the existing left-endpoint Hamiltonian; the other
+            # methods first advance parameters for hamiltonian to the midpoint.
+            if midpoint:
+                edstep.update_parameters(dt=sample_dt)
+            c2 = edstep.update_coefficients(dt=dt)
+
+            # Advance parameters to the endpoint used for observables.
+            edstep.update_parameters(dt=dt-sample_dt)
+            edstep.get_hamiltonian() # update hamiltonian for energy analysis
+
             correlation, ipr = edstep.analyze_wf_property(c2=c2)
 
             self.c2[ti] = np.sum(c2.reshape(n_site, -1), axis=1)
@@ -731,25 +928,33 @@ class ExcitonDynamicsMC(ExcitonDynamics):
 
 
 
-def setup_exciton_dynamics(infile, key={}, nsteps=300, periodic=None):
-    r"""
-    Run the exciton dynamics simulation.
+def setup_exciton_dynamics(infile, key=None, nsteps=300, periodic=None):
+    r"""Configure exciton dynamics from the input sections and model parameters.
+
+    A non-None monte_carlo section selects MC dynamics, including an empty
+    section that uses defaults. Otherwise, the phonon section configures
+    explicit oscillator dynamics. This function constructs the driver;
+    call its kernel() to propagate.
 
     Args:
-        infile (str): Input file for dynamics parameters.
-        key (dict): Input parameters.
-        nsteps (int): Total number of time steps for the dynamics.
-        periodic (bool or None): Override the input periodic flag. Periodic
-            setup builds the cells needed for Bloch extraction; kernel()
-            still propagates the finite real-space Hamiltonian.
+        infile (str): Input parameter file.
+        key (dict or None): Additional parameters, copied before input
+            sections are merged. File-section values override matching keys.
+        nsteps (int): Default propagation-step count when absent from key
+            and input. The driver stores one additional initial time point.
+        periodic (bool or None): Override the periodic setup flag. Periodic
+            setup supplies the cells needed for Bloch extraction; the dynamics
+            kernel still propagates the finite real-space Hamiltonian.
 
     Returns:
-        ExcitonDynamicsMC: Configured exciton-dynamics object.
+        ExcitonDynamicsMC or ExcitonDynamics: Configured MC or explicit
+            oscillator dynamics driver.
     """
+    key = {} if key is None else dict(key)
     parameters = parser(infile)
     key.update(parameters.get('exciton', {}))
 
-    do_mc = parameters.get('monte_carlo', None)
+    do_mc = parameters.get('monte_carlo') is not None
     if do_mc: # use Monte Carlo sampling
         key.update(parameters.get('monte_carlo', {}))
     else: # use explicit vibrational phonon modes
@@ -757,7 +962,7 @@ def setup_exciton_dynamics(infile, key={}, nsteps=300, periodic=None):
 
     key['debug'] = key.get('debug', 0)
     key['random_seed'] = key.get('random_seed', None)
-    key['nsteps'] = key.get('nsteps', 300)
+    key['nsteps'] = key.get('nsteps', nsteps)
     key['exciton_dt'] = key.get('exciton_dt', 10)
     key['n_cell'] = key.get('n_cell', [5, 5, 5])
     key['n_cell_param'] = key.get('n_cell_param', [5, 5, 5])
@@ -769,6 +974,7 @@ def setup_exciton_dynamics(infile, key={}, nsteps=300, periodic=None):
     key['param_dir'] = key.get('param_dir', './')
     key['write_coords'] = key.get('write_coords', False)
 
+    data = None
     if key.get('json', None):
         data = load_json(key['param_dir']+key['json'], to_numpy=True)
     if data is None and key.get('cif', None):
