@@ -26,6 +26,8 @@ class PhotonStep():
     dipole. ``thermo_minimum`` also samples imaginary displacement amplitudes
     with variance kBT/(2 omega), matching the nuclear velocity-only ensemble.
     It is an ensemble for mean-field IR trajectories, not a quantum Gibbs state.
+    Each mode is one scalar oscillator; c_lambda carries its polarization.
+    density has shape (nmode, nbasis, nbasis), with a common basis size.
     Quadrature expectations are evaluated only for diagnostics and printing.
     """
     def __init__(self, key, **kwargs):
@@ -33,7 +35,7 @@ class PhotonStep():
         key.setdefault('freq_unit', 'hartree')
         key.setdefault('c_lambda', np.array([0.,0.,0.1]))
         key.setdefault('init_method', 'fock')
-        key.setdefault('init_number', [0,0,0])
+        key.setdefault('init_number', 0)
         key.setdefault('init_temp', 300.)
         key.setdefault('basis_size', 10)
 
@@ -44,7 +46,7 @@ class PhotonStep():
         self.freq_unit = 'hartree'
         self.nmode = len(self.frequency)
         self.c_lambda = np.broadcast_to(self.c_lambda, (self.nmode, 3))
-        self.init_number = np.broadcast_to(self.init_number, (self.nmode, 3))
+        self.init_number = np.broadcast_to(self.init_number, (self.nmode,))
         self.basis_size = np.broadcast_to(self.basis_size, (self.nmode,)).astype(int)
 
         self.scaled_freq = np.sqrt(self.frequency/2.)
@@ -69,44 +71,40 @@ class PhotonStep():
                 self.get_thermal_density(n, self.frequency[i], beta_b)
                 if self.init_method == 'thermo' else self.get_initial_density(n, self.init_number[i])
                 for i, n in enumerate(self.basis_size)], dtype=complex)
-            alpha = np.zeros((self.nmode, 3), dtype=complex)
+            alpha = np.zeros(self.nmode, dtype=complex)
             if self.init_method == 'thermo_minimum':
                 rng = np.random.default_rng(getattr(self, 'random_seed', None))
                 alpha = (1j * rng.normal(size=alpha.shape) /
-                         np.sqrt(2. * beta_b * self.frequency[:, None]))
+                         np.sqrt(2. * beta_b * self.frequency))
         elif 'minimum' in self.init_method:
-            alpha = -self.c_lambda * molecular_dipole / (2. * self.scaled_freq[:, None])
+            alpha = -(self.c_lambda @ molecular_dipole) / (2. * self.scaled_freq)
         else:
             return
 
         for i, ntot in enumerate(self.basis_size):
             annihilation = np.diag(self._trans[i], 1)
-            for x in range(3):
-                amplitude = np.dot(self._trans[i], np.diag(self.density[i,x], -1))
-                # A real displacement preserves the previously sampled phase.
-                shift = alpha[i,x] - amplitude.real if molecular_dipole is not None else alpha[i,x]
-                if shift == 0.: continue
-                displacement = expm(shift * annihilation.T - shift.conjugate() * annihilation)
-                self.density[i,x] = displacement @ self.density[i,x] @ displacement.conj().T
-                expected = amplitude + shift
-                actual = np.dot(self._trans[i], np.diag(self.density[i,x], -1))
-                boundary = ntot * self.density[i,x,-1,-1].real
-                if boundary > 1e-8 or not np.isclose(actual, expected, rtol=1e-7, atol=1e-11):
-                    raise RuntimeError('initial photon density is not converged; increase basis_size')
+            amplitude = np.dot(self._trans[i], np.diag(self.density[i], -1))
+            # A real displacement preserves the previously sampled phase.
+            shift = alpha[i] - amplitude.real if molecular_dipole is not None else alpha[i]
+            if shift == 0.: continue
+            displacement = expm(shift * annihilation.T - shift.conjugate() * annihilation)
+            self.density[i] = displacement @ self.density[i] @ displacement.conj().T
+            expected = amplitude + shift
+            actual = np.dot(self._trans[i], np.diag(self.density[i], -1))
+            boundary = ntot * self.density[i,-1,-1].real
+            if boundary > 1e-8 or not np.isclose(actual, expected, rtol=1e-7, atol=1e-11):
+                raise RuntimeError('initial photon density is not converged; increase basis_size')
 
         if molecular_dipole is None: molecular_dipole = np.zeros(3)
         return self.update_density(molecular_dipole, 0)
 
 
-    def get_initial_density(self, ntot, ns):
-        ns = np.broadcast_to(ns, (3,))
-
-        init_density = np.zeros((len(ns),ntot,ntot))
-        for x in range(len(ns)):
-            n = int(ns[x])
-            if not 0 <= n < ntot:
-                raise ValueError('init_number must be within the photon basis')
-            init_density[x,n,n] = 1.
+    def get_initial_density(self, ntot, n):
+        n = int(n)
+        if not 0 <= n < ntot:
+            raise ValueError('init_number must be within the photon basis')
+        init_density = np.zeros((ntot, ntot))
+        init_density[n,n] = 1.
         return init_density
 
 
@@ -114,11 +112,11 @@ class PhotonStep():
         # The zero-point energy cancels from the Boltzmann probabilities.
         population = np.exp(-beta_b * frequency * np.arange(ntot))
         population /= population.sum()
-        return np.repeat(np.diag(population)[None, :, :], 3, axis=0)
+        return np.diag(population)
 
 
     def get_photon_number_probabilities(self, max_n=None):
-        """Return Fock probabilities with shape (nmode, 3, nlevels).
+        """Return Fock probabilities with shape (nmode, nlevels).
 
         The optional max_n selects n = 0, ..., max_n. Values beyond the
         finite Fock basis are zero; a shorter selection omits its tail.
@@ -129,84 +127,67 @@ class PhotonStep():
         if not isinstance(max_n, (int, np.integer)) or max_n < 0:
             raise ValueError('max_n must be a nonnegative integer')
 
-        result = np.zeros((*probabilities.shape[:2], max_n + 1))
+        result = np.zeros((*probabilities.shape[:-1], max_n + 1))
         ncopy = min(max_n + 1, probabilities.shape[-1])
         result[..., :ncopy] = probabilities[..., :ncopy]
         return result
 
 
     def get_photon_number(self):
-        """Return mean Fock occupation for each mode and direction."""
+        """Return mean Fock occupation, shaped (nmode,)."""
         probabilities = self.get_photon_number_probabilities()
-        return np.einsum('ixn,n->ix', probabilities,
-                         np.arange(probabilities.shape[-1]))
+        return probabilities @ np.arange(probabilities.shape[-1])
 
 
     def get_coordinate_velocity(self):
-        """Return mean mode coordinate and velocity, each shaped (nmode, 3).
+        """Return scalar quadrature expectations, each shaped (nmode,).
 
-        In atomic units with oscillator mass one, q = (a + a†)/sqrt(2ω)
-        and v = -i sqrt(ω/2) (a - a†). These are field quadratures,
-        not photon particle positions or propagation velocities. Number
-        states have zero means despite their nonzero fluctuations.
+        q = (a + a†)/sqrt(2 omega) and v = -i sqrt(omega/2) (a - a†).
+        These are diagnostics derived from rho, not propagated variables.
         """
         amplitude = np.array([
-            np.einsum('n,xn->x', self._trans[i],
-                      np.diagonal(self.density[i], offset=-1, axis1=-2, axis2=-1))
+            np.dot(self._trans[i], np.diag(self.density[i], -1))
             for i in range(self.nmode)
         ])
-        coordinate = amplitude.real / self.scaled_freq[:, None]
-        velocity = 2. * self.scaled_freq[:, None] * amplitude.imag
-        return coordinate, velocity
+        return amplitude.real / self.scaled_freq, 2. * self.scaled_freq * amplitude.imag
 
 
     def update_density(self, molecular_dipole, dt, half=1, **kwargs):
         """Advance rho with half=1 followed by half=2; retain the latest coupling."""
         from scipy.linalg import expm
-        #coupling = np.einsum('i,ix,x->ix', self.scaled_freq, self.c_lambda,
-        #                     molecular_dipole)
-        coupling = self.scaled_freq[:, None] * self.c_lambda * molecular_dipole
+        coupling = self.scaled_freq * (self.c_lambda @ molecular_dipole)
 
         if half == 1:
             # Predict the photon state at the new time with the old dipole.
-            for i in range(self.nmode):
-                for x in range(3):
-                    if dt == 0.: continue
-                    ntot = self.basis_size[i]
-                    trans = get_trans_amplitude(ntot, coupling[i,x], self.frequency[i])
-                    propagator = expm(-1j*trans*dt)
-                    self.density[i,x] = propagator @ self.density[i,x] @ propagator.conj().T
+            for i, ntot in enumerate(self.basis_size):
+                if dt == 0.: continue
+                trans = get_trans_amplitude(ntot, coupling[i], self.frequency[i])
+                propagator = expm(-1j*trans*dt)
+                self.density[i] = propagator @ self.density[i] @ propagator.conj().T
         elif half == 2:
-            # The new dipole is available after the electronic step. Correct
-            # the momentum using the change in coupling; this uses no extra
-            # electronic force or dipole evaluation.
+            # Correct using the new dipole, without another electronic step.
             delta = coupling - self.coupling
-            for i in range(self.nmode):
-                for x in range(3):
-                    if dt == 0. or delta[i,x] == 0.:
-                        continue
-                    ntot = self.basis_size[i]
-                    trans = get_trans_amplitude(ntot, .5*delta[i,x])
-                    propagator = expm(-1j*trans*dt)
-                    self.density[i,x] = propagator @ self.density[i,x] @ propagator.conj().T
+            for i, ntot in enumerate(self.basis_size):
+                if dt == 0. or delta[i] == 0.: continue
+                trans = get_trans_amplitude(ntot, .5*delta[i])
+                propagator = expm(-1j*trans*dt)
+                self.density[i] = propagator @ self.density[i] @ propagator.conj().T
         else:
             raise ValueError('half must be 1 or 2')
 
         self.coupling = coupling
-
-        self.energy = np.einsum('i,ix->', self.frequency, self.get_photon_number())
+        self.energy = np.dot(self.frequency, self.get_photon_number())
         return {'trans_coeff': self.get_trans_coeff()}
 
 
     def get_trans_coeff(self):
-        """Return the electronic coupling directly from rho without propagation."""
+        """Return the Cartesian electronic coupling directly from rho."""
         trans_coeff = np.array([
-            np.einsum('n,xn->x', self._trans[i],
-                      np.diagonal(self.density[i], offset=1, axis1=-2, axis2=-1) +
-                      np.diagonal(self.density[i], offset=-1, axis1=-2, axis2=-1)).real
+            np.dot(self._trans[i], np.diag(self.density[i], 1) +
+                   np.diag(self.density[i], -1)).real
             for i in range(self.nmode)
         ])
-        return np.einsum('i,ix,ix->x', self.scaled_freq, trans_coeff, self.c_lambda)
+        return (self.scaled_freq * trans_coeff) @ self.c_lambda
 
 
     def print_variables(self):
@@ -226,7 +207,7 @@ class PhotonStep2(harmonic_oscillator):
         super().__init__(key, **kwargs)
 
     def convert_parameter_units(self, unit_dict):
-        self.n_site = 3 #xyz
+        self.n_site = 1 # one scalar oscillator per mode
         self.frequency = np.atleast_1d(convert_units(
             np.asarray(self.frequency), self.freq_unit, 'hartree'))
         self.c_lambda = np.atleast_2d(self.c_lambda)
@@ -244,7 +225,7 @@ class PhotonStep2(harmonic_oscillator):
 
         if molecular_dipole is None:
             self.omega2 = self.frequency**2
-            self.coordinate = np.zeros((len(self.frequency), self.n_site))
+            self.coordinate = np.zeros(len(self.frequency))
             self.velocity = np.zeros_like(self.coordinate)
             if 'thermo' in init_method:
                 self.velocity = self.init_velocity_thermo(
@@ -263,8 +244,7 @@ class PhotonStep2(harmonic_oscillator):
 
 
     def get_minimum_displacement(self, molecular_dipole):
-        return -np.einsum('i,ix,x->ix', 1./self.frequency, self.c_lambda,
-                          molecular_dipole)
+        return -(self.c_lambda @ molecular_dipole) / self.frequency
 
 
     def init_velocity_thermo(self, temp=None, seed=None):
@@ -275,7 +255,7 @@ class PhotonStep2(harmonic_oscillator):
         beta_b = get_boltzmann_beta(temp)
         sigma = np.sqrt(1./beta_b/self.mass)
         rng = np.random.default_rng(seed)
-        return rng.normal(size=(len(self.mass), self.n_site)) * sigma[:,None]
+        return rng.normal(size=len(self.mass)) * sigma
 
 
     def print_variables(self):
@@ -289,8 +269,8 @@ class PhotonStep2(harmonic_oscillator):
         """Return coherent-state mean occupation for each classical q, v."""
         if np.any(self.frequency <= 0.):
             raise ValueError('photon frequency must be positive')
-        omega = self.frequency[:, None]
-        mass = self.mass[:, None]
+        omega = self.frequency
+        mass = self.mass
         return mass * (self.velocity**2 + omega**2 * self.coordinate**2) / (2. * omega)
 
 
@@ -309,18 +289,14 @@ class PhotonStep2(harmonic_oscillator):
 
 
     def update_density(self, molecular_dipole, dt, half=1, **kwargs):
-        force = -np.einsum('i,ix,x->ix', self.frequency, self.c_lambda, molecular_dipole)
-        if self.n_site == 1:
-            force = np.sum(force, axis=1).reshape(-1, 1)
-
+        force = -self.frequency * (self.c_lambda @ molecular_dipole)
         self.update_coordinate_velocity(force, half, **kwargs)
-
         return {'trans_coeff': self.get_trans_coeff()}
 
 
     def get_trans_coeff(self):
-        """Return the electronic coupling coefficient without advancing time."""
-        return np.einsum('i,ix,ix->x', self.frequency, self.coordinate, self.c_lambda)
+        """Return the Cartesian electronic coupling without advancing time."""
+        return (self.frequency * self.coordinate) @ self.c_lambda
 
 
 if __name__ == '__main__':

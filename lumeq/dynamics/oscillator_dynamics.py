@@ -20,7 +20,7 @@ class harmonic_oscillator():
             mass, coordinate, velocity,
             update_method, init_method, init_temp,
         atomic system has size (natoms, 3)
-        photon system has size (nmode, 3)
+        photon system has size (nmode,)
             frequency,
         phonon system has size (nmode, n_site_tot)
             n_site, frequency,
@@ -112,7 +112,7 @@ class harmonic_oscillator():
             ``half=2``.
         '''
         if isinstance(self.frequency, np.ndarray) or isinstance(self.frequency, float): # add oscillator force first
-            force -= np.einsum('i,i,ix->ix', self.mass, self.omega2, self.coordinate)
+            force -= np.einsum('i,i,i...->i...', self.mass, self.omega2, self.coordinate)
 
         if half == 1:
             if self.update_method == 'euler':
@@ -139,14 +139,14 @@ class harmonic_oscillator():
 
     def euler_step(self, force):
         r"""Simple Euler integration step."""
-        self.velocity += self.dt * np.einsum('ix,i->ix', force, 1./self.mass)
+        self.velocity += self.dt * np.einsum('i...,i->i...', force, 1./self.mass)
         self.coordinate += self.dt * self.velocity
         self.get_energy(self.velocity)
 
 
     def leapfrog_step(self, force, initial_step=False):
         r"""Leapfrog integration step."""
-        acceleration = np.einsum('ix,i->ix', force, 1./self.mass) # a(n)
+        acceleration = np.einsum('i...,i->i...', force, 1./self.mass) # a(n)
         if initial_step: # Bootstrap from v(0) to v(-dt/2) for initial step
             self._lf_velocity = self.velocity - (.5 * self.dt) * acceleration
 
@@ -160,7 +160,7 @@ class harmonic_oscillator():
 
     def velocity_verlet_step(self, force, half):
         r"""Velocity Verlet integration step."""
-        self.velocity += .5 * self.dt * np.einsum('ix,i->ix', force, 1./self.mass)
+        self.velocity += .5 * self.dt * np.einsum('i...,i->i...', force, 1./self.mass)
         if half == 1:
             self.coordinate += self.dt * self.velocity
         if half == 2:
@@ -177,7 +177,7 @@ class harmonic_oscillator():
 
         # update coordinate
         for i in range(N, 0, -1):
-            dv = np.einsum('ix,i->ix', force, 1./mass) * (dt/(2.*i))
+            dv = np.einsum('i...,i->i...', force, 1./mass) * (dt/(2.*i))
             dx = (self.velocity + dv) * (dt/(2.*i-1.))
             force = force_func(x0+dx, **kwargs)[1]
         # we need the accumulation in place to use its pointer
@@ -187,10 +187,10 @@ class harmonic_oscillator():
         # find coordinate at where the effective acceleration is calculated
         force = np.copy(force0)
         for i in range(N, 1, -1):
-            dv = np.einsum('ix,i->ix', force, 1./mass) * (dt/(2.*i-1.))
+            dv = np.einsum('i...,i->i...', force, 1./mass) * (dt/(2.*i-1.))
             dx = (self.velocity + dv) * (dt/(2.*i-2.))
             force = force_func(x0+dx, **kwargs)[1]
-        self.velocity += np.einsum('ix,i->ix', force, 1./mass) * dt
+        self.velocity += np.einsum('i...,i->i...', force, 1./mass) * dt
 
         self.get_energy(self.velocity)
 
@@ -199,7 +199,7 @@ class harmonic_oscillator():
         r"""Calculate the kinetic energy and temperature."""
         if mass is None: mass = self.mass
 
-        v2 = np.einsum('ix,ix->i', velocity, velocity)
+        v2 = (velocity**2).reshape(len(mass), -1).sum(axis=1)
         self.kinetic = .5* np.einsum('i,i', mass, v2)
         self.temperature = 2.* self.kinetic / (velocity.size)
 
@@ -210,7 +210,7 @@ class harmonic_oscillator():
         if coordinate is None: coordinate = self.coordinate
         if omega2 is None: omega2 = self.omega2
 
-        v2 = np.einsum('ix,ix->i', coordinate, coordinate)
+        v2 = (coordinate**2).reshape(len(mass), -1).sum(axis=1)
         self.potential = .5 * np.einsum('i,i,i->', mass, omega2, v2)
 
 
